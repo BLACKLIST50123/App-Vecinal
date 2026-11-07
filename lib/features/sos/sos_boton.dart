@@ -41,9 +41,10 @@ class CapaSos extends StatelessWidget {
         },
       ),
       // Aviso de SOS cercano recibido en tiempo real.
-      ValueListenableBuilder<(Publicacion, double)?>(
-        valueListenable: alertaEntrante,
-        builder: (context, alerta, _) {
+      ListenableBuilder(
+        listenable: Listenable.merge([alertaEntrante, sosAbierto]),
+        builder: (context, _) {
+          final alerta = alertaEntrante.value;
           if (alerta == null || sosAbierto.value) return const SizedBox.shrink();
           return Positioned(
             top: mq.padding.top + 8,
@@ -151,23 +152,29 @@ class BotonSos extends StatelessWidget {
         button: true,
         label: 'SOS. Abrir modo emergencia para pedir ayuda rápido.',
         excludeSemantics: true,
-        child: Material(
-          color: ColoresSos.rojo,
-          shape: const CircleBorder(side: BorderSide(color: Colors.white, width: 3)),
-          elevation: 6,
-          shadowColor: ColoresSos.rojoOscuro,
-          child: InkWell(
-            customBorder: const CircleBorder(),
-            onTap: () {
-              HapticFeedback.mediumImpact();
-              abrirSos();
-            },
-            child: const SizedBox(
-              width: 64,
-              height: 64,
-              child: Center(
-                child: Text('SOS',
-                    style: TextStyle(color: Colors.white, fontSize: 19, fontWeight: FontWeight.w900, letterSpacing: 1)),
+        // Un solo círculo rojo y una sombra neutra suave: sin bordes ni halo
+        // rojo (que se veían como un "doble marco encendido").
+        child: DecoratedBox(
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            boxShadow: [BoxShadow(color: Color(0x40000000), blurRadius: 12, offset: Offset(0, 4))],
+          ),
+          child: Material(
+            color: ColoresSos.rojo,
+            shape: const CircleBorder(),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: () {
+                HapticFeedback.mediumImpact();
+                abrirSos();
+              },
+              child: const SizedBox(
+                width: 62,
+                height: 62,
+                child: Center(
+                  child: Text('SOS',
+                      style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                ),
               ),
             ),
           ),

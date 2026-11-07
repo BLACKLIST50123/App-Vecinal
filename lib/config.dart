@@ -112,9 +112,5 @@ Categoria buscarCategoria(String id, {bool emergencia = false}) {
   return categoriasFavor.last;
 }
 
-/// Números de emergencia del Perú (llamada gratuita).
-const numerosEmergencia = <(String, String, IconData)>[
-  ('Bomberos', '116', Icons.fire_truck),
-  ('Policía', '105', Icons.local_police),
-  ('Ambulancia SAMU', '106', Icons.emergency),
-];
+// Los números de emergencia (nacionales y locales por zona) están en
+// assets/datos_iniciales.json → lib/data/datos_iniciales.dart.

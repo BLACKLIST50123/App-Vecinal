@@ -11,7 +11,9 @@ import 'auth_screen.dart';
 import 'confianza.dart';
 
 String traducirError(Object e) {
+  if (e is SinPermiso) return e.mensaje;
   if (e is PostgrestException) {
+    if (e.code == 'P0001') return e.message; // mensajes propios del servidor (anti-spam)
     if (e.code == '23505') return 'Esto ya estaba registrado.';
     if (e.code == '42501' || e.message.contains('row-level security')) {
       return 'No tienes permiso para hacer esto.';

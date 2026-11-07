@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../config.dart';
+import '../data/datos_iniciales.dart';
 import '../features/sos/sos_alertas.dart';
 import '../models.dart';
 import '../state/app_state.dart';
@@ -161,18 +162,53 @@ class AvisoAutoridades extends StatelessWidget {
             const SizedBox(height: 4),
             const Text('Si hay riesgo de vida, llama primero:', style: TextStyle(color: Colors.black87)),
             const SizedBox(height: 8),
-            Wrap(spacing: 8, runSpacing: 8, children: [
-              for (final (nombre, numero, icono) in numerosEmergencia)
-                FilledButton.icon(
-                  style: FilledButton.styleFrom(backgroundColor: const Color(0xFFE53935), foregroundColor: Colors.white),
-                  onPressed: () => llamar(numero),
-                  icon: Icon(icono),
-                  label: Text('$nombre $numero'),
-                ),
-            ]),
+            BotonesNumeros(numeros: DatosIniciales.actual.numeros),
           ]),
         ),
       );
+}
+
+/// Botones para llamar: nacionales (105, 106, 116) y, si la zona los tiene
+/// confirmados, los locales (Serenazgo, comisaría...).
+class BotonesNumeros extends StatelessWidget {
+  const BotonesNumeros({super.key, required this.numeros, this.claro = false});
+  final List<NumeroEmergencia> numeros;
+
+  /// Estilo para fondo rojo (pantalla SOS): botones blancos con borde.
+  final bool claro;
+
+  @override
+  Widget build(BuildContext context) {
+    final locales = numeros.where((n) => n.local).toList();
+    final nacionales = numeros.where((n) => !n.local).toList();
+    Widget boton(NumeroEmergencia n) => claro
+        ? OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(
+              backgroundColor: Colors.transparent,
+              foregroundColor: Colors.white,
+              side: const BorderSide(color: Colors.white, width: 2),
+            ),
+            onPressed: () => llamar(n.numero),
+            icon: Icon(n.icono),
+            label: Text('${n.numero} · ${n.nombre}'),
+          )
+        : FilledButton.icon(
+            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFE53935), foregroundColor: Colors.white),
+            onPressed: () => llamar(n.numero),
+            icon: Icon(n.icono),
+            label: Text('${n.nombre} ${n.numero}'),
+          );
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      Wrap(spacing: 8, runSpacing: 8, children: [for (final n in nacionales) boton(n)]),
+      if (locales.isNotEmpty) ...[
+        const SizedBox(height: 10),
+        Text('Números de tu zona',
+            style: TextStyle(fontWeight: FontWeight.w700, color: claro ? Colors.white : Colors.black87)),
+        const SizedBox(height: 6),
+        Wrap(spacing: 8, runSpacing: 8, children: [for (final n in locales) boton(n)]),
+      ],
+    ]);
+  }
 }
 
 // ======================================================== panel de coordinación

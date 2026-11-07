@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'config.dart';
+import 'data/datos_iniciales.dart';
 import 'data/repo.dart';
 import 'features/sos/sos_atajo.dart';
 import 'features/sos/sos_boton.dart';
@@ -25,6 +27,9 @@ Future<void> main() async {
     runApp(const SinCredenciales());
     return;
   }
+  // Datos incluidos en la app (números de emergencia, grupos de apoyo) para
+  // que funcione desde el primer uso, aunque nunca haya tenido internet.
+  await DatosIniciales.cargar(Zona.nombre);
   final prefs = await SharedPreferences.getInstance();
   await Supabase.initialize(url: supabaseUrl, publishableKey: supabaseKey);
   final estado = AppState(prefs, Repo(prefs, Supabase.instance.client));

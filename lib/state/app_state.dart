@@ -16,6 +16,15 @@ import '../util.dart';
 
 final mensajero = GlobalKey<ScaffoldMessengerState>();
 
+/// La acción no está permitida (no es un problema de red): se muestra el
+/// mensaje tal cual, con los números de emergencia.
+class SinPermiso implements Exception {
+  const SinPermiso(this.mensaje);
+  final String mensaje;
+  @override
+  String toString() => mensaje;
+}
+
 void avisar(String texto) {
   mensajero.currentState
     ?..hideCurrentSnackBar()
@@ -192,7 +201,15 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> sincronizar({bool silencioso = false}) async {
-    final n = await repo.sincronizar();
+    final (n, rechazadas) = await repo.sincronizar();
+    if (rechazadas.isNotEmpty) {
+      // Nunca dejar una alerta "guardada" que en realidad no se enviará.
+      final hayEmergencia = rechazadas.any((e) => e.datos['es_emergencia'] == true);
+      avisar(hayEmergencia
+          ? '⚠️ No se pudo enviar tu pedido de ayuda. Si es urgente, llama al 105 (Policía), 106 (SAMU) o 116 (Bomberos).'
+          : 'No se pudo enviar una publicación guardada. Revísala en "Llevar mensajes".');
+      notifyListeners();
+    }
     if (n > 0) {
       avisar(n == 1 ? 'Se envió 1 publicación guardada' : 'Se enviaron $n publicaciones guardadas');
       refrescar();
@@ -209,6 +226,14 @@ class AppState extends ChangeNotifier {
   }
 
   Future<bool> publicar(String tabla, Map<String, dynamic> datos) async {
+    // Sin cuenta, un pedido normal solo se acepta con emergencia activa (D5).
+    // Se avisa ahora, en vez de guardarlo en la cola y que falle en silencio.
+    if (!logueado && datos['origen'] == 'sin_cuenta' && !modoEmergencia) {
+      throw const SinPermiso(
+        'Sin cuenta solo puedes pedir ayuda cuando la junta activa la emergencia. '
+        'Usa el botón SOS, o si es urgente llama al 105, 106 o 116.',
+      );
+    }
     final enviado = await repo.publicar(tabla, datos);
     refrescar();
     return enviado;

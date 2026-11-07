@@ -5,6 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../data/datos_iniciales.dart';
+import '../../screens/confianza.dart';
 import '../../screens/detalles.dart';
 import '../../screens/qr_screens.dart';
 import '../../services/ubicacion.dart';
@@ -468,6 +470,14 @@ class _Resultado extends StatelessWidget {
             ),
             const SizedBox(height: 10),
           ],
+          // Si NO se pudo enviar: nunca decir "guardada"; llamar es lo primero.
+          if (!ok) ...[
+            const Text('Llama ahora:',
+                textAlign: TextAlign.center, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF1D2925))),
+            const SizedBox(height: 8),
+            BotonesNumeros(numeros: DatosIniciales.actual.numeros),
+            const SizedBox(height: 14),
+          ],
           if (ok && enLinea == false && onQr != null) ...[
             FilledButton.icon(
               style: FilledButton.styleFrom(backgroundColor: ColoresSos.rojoOscuro),
@@ -525,29 +535,7 @@ class _NumerosOficiales extends StatelessWidget {
           style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600, height: 1.4),
         ),
         const SizedBox(height: 12),
-        Row(children: [
-          Expanded(child: _BotonLlamar(numero: '105', texto: 'Policía', icono: Icons.local_police_outlined)),
-          const SizedBox(width: 12),
-          Expanded(child: _BotonLlamar(numero: '106', texto: 'Ambulancia', icono: Icons.emergency_outlined)),
-        ]),
+        // Nacionales verificados + los locales de la zona si están confirmados.
+        BotonesNumeros(numeros: DatosIniciales.actual.numeros, claro: true),
       ]);
-}
-
-class _BotonLlamar extends StatelessWidget {
-  const _BotonLlamar({required this.numero, required this.texto, required this.icono});
-  final String numero, texto;
-  final IconData icono;
-
-  @override
-  Widget build(BuildContext context) => OutlinedButton.icon(
-        style: OutlinedButton.styleFrom(
-          minimumSize: const Size(0, 56),
-          backgroundColor: Colors.transparent,
-          foregroundColor: Colors.white,
-          side: const BorderSide(color: Colors.white, width: 2),
-        ),
-        onPressed: () => llamar(numero),
-        icon: Icon(icono),
-        label: Text('$numero · $texto'),
-      );
 }

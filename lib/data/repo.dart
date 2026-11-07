@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models.dart';
+import 'datos_iniciales.dart';
 
 /// Publicación creada sin conexión (o traída por QR) que espera enviarse.
 class EntradaPendiente {
@@ -73,7 +74,8 @@ class Repo {
       }
     }
     final raw = prefs.getString('cache_$clave');
-    if (raw == null) return [];
+    // Primer uso sin internet: datos incluidos en la app (grupos de apoyo).
+    if (raw == null) return DatosIniciales.actual.respaldo(clave) ?? [];
     return (jsonDecode(raw) as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
   }
 
@@ -405,10 +407,13 @@ class Repo {
     return false;
   }
 
-  /// Envía la cola. Devuelve cuántas se enviaron.
-  Future<int> sincronizar() async {
-    if (forzarOffline || pendientes.isEmpty) return 0;
+  /// Envía la cola. Devuelve cuántas se enviaron y cuáles fueron RECHAZADAS
+  /// por primera vez (permiso, límite anti-spam...), para avisar a la persona
+  /// en lugar de dejarlas en silencio como "guardadas".
+  Future<(int, List<EntradaPendiente>)> sincronizar() async {
+    if (forzarOffline || pendientes.isEmpty) return (0, <EntradaPendiente>[]);
     var enviados = 0;
+    final rechazadas = <EntradaPendiente>[];
     for (final e in List.of(pendientes)) {
       try {
         await _enviar(e);
@@ -416,11 +421,12 @@ class Repo {
         enviados++;
       } catch (err) {
         if (esErrorDeRed(err)) break;
+        if (e.error == null) rechazadas.add(e);
         e.error = err is PostgrestException ? err.message : err.toString();
       }
     }
     await _guardarCola();
-    return enviados;
+    return (enviados, rechazadas);
   }
 
   /// Guarda un pedido recibido por QR. false si ya lo tenías.

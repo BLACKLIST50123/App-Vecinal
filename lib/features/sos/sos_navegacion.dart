@@ -21,23 +21,48 @@ const radioAlertaKm = 2.0;
 /// tapar sus opciones.
 final ventanasAbiertas = ValueNotifier<int>(0);
 
+/// Cuenta los menús y diálogos abiertos para ocultar el botón SOS mientras
+/// están en pantalla. El contador se actualiza al instante (no a partir de
+/// un valor viejo), así nunca queda "trabado" y el botón siempre vuelve.
 class ObservadorSos extends NavigatorObserver {
-  void _cambiar(Route<dynamic>? r, int delta) {
-    if (r is PopupRoute) {
-      final v = ventanasAbiertas.value + delta;
-      // Se difiere para no notificar durante la construcción.
-      WidgetsBinding.instance.addPostFrameCallback((_) => ventanasAbiertas.value = v < 0 ? 0 : v);
-    }
+  final Set<Route<dynamic>> _abiertas = {};
+  bool _programado = false;
+
+  void _publicar() {
+    if (_programado) return;
+    _programado = true;
+    // Se difiere para no notificar durante la construcción de la pantalla.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _programado = false;
+      ventanasAbiertas.value = _abiertas.length;
+    });
+  }
+
+  void _abrir(Route<dynamic>? r) {
+    if (r is PopupRoute && _abiertas.add(r)) _publicar();
+  }
+
+  void _cerrar(Route<dynamic>? r) {
+    if (r != null && _abiertas.remove(r)) _publicar();
   }
 
   @override
-  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) => _cambiar(route, 1);
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) => _abrir(route);
 
   @override
-  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) => _cambiar(route, -1);
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) => _cerrar(route);
 
   @override
-  void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) => _cambiar(route, -1);
+  void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) => _cerrar(route);
+
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
+    _cerrar(oldRoute);
+    _abrir(newRoute);
+  }
+
+  /// Solo para pruebas.
+  int get abiertas => _abiertas.length;
 }
 
 final observadorSos = ObservadorSos();
