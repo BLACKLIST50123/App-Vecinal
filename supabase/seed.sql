@@ -23,7 +23,12 @@ values
  ('TecnoAyuda Ana','tecnologia','Reparación de celulares y computadoras','Cambio de pantalla, formateo e instalación de programas.','Desde S/ 20','999 000 109','Lun a Sáb, 10 am a 8 pm','Casco Urbano',-9.0740,-78.5945, now() - interval '6 days'),
  ('Enf. Lucía Torres','salud','Enfermera a domicilio','Inyectables, curaciones y control de presión arterial.','Desde S/ 15','999 000 110','Previa cita','San Pedro',-9.0485,-78.5855, now() - interval '5 days'),
  ('Doña Juana','comida','Menú casero y viandas','Menú del día, delivery dentro del sector.','S/ 10','999 000 111','12 pm a 3 pm','Miraflores Alto',-9.0660,-78.5790, now() - interval '3 days'),
- ('Jorge Técnico','gasfiteria','Instalación de tanques y bombas de agua','Tanques elevados, bombas y cisternas.','Desde S/ 50','999 000 112','Lun a Sáb','Nicolás Garatea',-9.1335,-78.5155, now() - interval '2 days');
+ ('Jorge Técnico','gasfiteria','Instalación de tanques y bombas de agua','Tanques elevados, bombas y cisternas.','Desde S/ 50','999 000 112','Lun a Sáb','Nicolás Garatea',-9.1335,-78.5155, now() - interval '2 days'),
+ -- Productos del barrio
+ ('Panadería La Espiga','panaderia','Pan de yema y pan francés recién horneado','Salida de pan a las 6 am y 5 pm. Tortas por encargo.','S/ 0.20 c/u','999 000 113','6 am a 9 pm','El Progreso',-9.0575,-78.5698, now() - interval '7 days'),
+ ('Bodega Don Lucho','bodega','Bodega con delivery en el sector','Abarrotes, gas y agua de mesa. Te lo llevo a tu casa sin recargo.','Precio de mercado','999 000 114','7 am a 11 pm','La Florida',-9.0818,-78.5768, now() - interval '11 days'),
+ ('Manos Chimbotanas','artesania','Artesanía y recuerdos hechos en el barrio','Tejidos, bisutería y adornos con conchitas de playa.','Desde S/ 8','999 000 115','Sábados y domingos','Casco Urbano',-9.0738,-78.5950, now() - interval '4 days'),
+ ('Feria de la Sra. Nely','segunda_mano','Ropa, útiles y juguetes de segunda mano','Todo en buen estado y a precio de remate.','Desde S/ 2','999 000 116','Domingos 8 am a 1 pm','Bellamar',-9.1172,-78.5440, now() - interval '1 day');
 
 -- ---------------- Módulo 1 · Grupos de apoyo (emergencia) -------------
 insert into public.servicios
@@ -36,9 +41,15 @@ values
  ('Escucha Solidaria','organizacion','psicologico','Escucha solidaria: apoyo emocional','Psicólogos voluntarios por llamada o en el albergue.','999 000 205','8 am a 10 pm','Buenos Aires',-9.1255,-78.5270, true);
 
 -- ---------------- Visto Bueno Vecinal (recomendaciones) ---------------
-insert into public.vistos_buenos (servicio_id, autor_nombre, comentario)
-select s.id, v.nombre, v.comentario
+insert into public.vistos_buenos (servicio_id, autor_nombre, comentario, autor_verificado)
+select s.id, v.nombre, v.comentario, true
 from (values
+  ('Pan de yema y pan francés recién horneado','Rocío T.','El pan sale calientito, el mejor del sector.'),
+  ('Pan de yema y pan francés recién horneado','Manuel A.',null),
+  ('Pan de yema y pan francés recién horneado','Kelly P.','Hace tortas riquísimas por encargo.'),
+  ('Bodega con delivery en el sector','Antonio R.','Me trajo el gas en 10 minutos.'),
+  ('Bodega con delivery en el sector','Lourdes M.',null),
+  ('Artesanía y recuerdos hechos en el barrio','Valeria C.','Lindos recuerdos para regalar.'),
   ('Gasfitero a domicilio','María L.','Llegó puntual y cobró lo justo.'),
   ('Gasfitero a domicilio','Carlos P.','Arregló la fuga de mi cocina en 20 minutos.'),
   ('Gasfitero a domicilio','Elena R.','Muy honrado, lo recomiendo.'),

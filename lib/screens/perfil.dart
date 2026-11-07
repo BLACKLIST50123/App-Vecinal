@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../models.dart';
 import '../state/app_state.dart';
 import '../ui/widgets.dart';
 import 'auth_screen.dart';
@@ -63,10 +64,17 @@ class PerfilScreen extends StatelessWidget {
           ),
 
         if (st.logueado) ...[
+          ListTile(
+            leading: const Icon(Icons.list_alt, size: 32),
+            title: const Text('Mis publicaciones', style: TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: const Text('Ver, marcar como resueltas o eliminar'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MisPublicacionesScreen())),
+          ),
           const TituloSeccion('Perfil prestador'),
           SwitchListTile(
             secondary: const Icon(Icons.handyman),
-            title: const Text('Ofrezco un oficio o servicio'),
+            title: const Text('Ofrezco un oficio, servicio o producto'),
             subtitle: const Text('Aparecerás en el directorio de tu barrio'),
             value: esPrestador,
             onChanged: st.online
@@ -169,6 +177,47 @@ class PerfilScreen extends StatelessWidget {
       ]),
     );
   }
+}
+
+class MisPublicacionesScreen extends StatelessWidget {
+  const MisPublicacionesScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        appBar: AppBar(title: const Text('Mis publicaciones')),
+        body: Cargador<(List<Publicacion>, List<Servicio>)>(
+          cargar: (st) => st.repo.misPublicaciones(),
+          builder: (context, datos) {
+            final (pubs, servs) = datos;
+            final abiertas = pubs.where((p) => p.estado != 'resuelta').toList();
+            final resueltas = pubs.where((p) => p.estado == 'resuelta').toList();
+            if (pubs.isEmpty && servs.isEmpty) {
+              return EstadoVacio(
+                icono: Icons.post_add,
+                texto: 'Todavía no publicaste nada.\nToca Publicar para pedir u ofrecer algo a tus vecinos.',
+                accion: ('Publicar ahora', () {
+                  Navigator.pop(context);
+                  abrirMenuPublicar(context);
+                }),
+              );
+            }
+            return ListView(padding: const EdgeInsets.only(bottom: 32), children: [
+              if (abiertas.isNotEmpty) ...[
+                TituloSeccion('Activas (${abiertas.length})'),
+                for (final p in abiertas) TarjetaPublicacion(p),
+              ],
+              if (servs.isNotEmpty) ...[
+                TituloSeccion('Mis servicios y productos (${servs.length})'),
+                for (final s in servs) TarjetaServicio(s),
+              ],
+              if (resueltas.isNotEmpty) ...[
+                TituloSeccion('Resueltas (${resueltas.length})'),
+                for (final p in resueltas) Opacity(opacity: 0.6, child: TarjetaPublicacion(p)),
+              ],
+            ]);
+          },
+        ),
+      );
 }
 
 class _PanelModerador extends StatefulWidget {

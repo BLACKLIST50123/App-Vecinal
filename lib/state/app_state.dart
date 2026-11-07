@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../config.dart';
 import '../data/repo.dart';
@@ -48,6 +49,8 @@ class AppState extends ChangeNotifier {
   StreamSubscription<List<ConnectivityResult>>? _subRed;
   StreamSubscription<dynamic>? _subAuth;
   Timer? _timer;
+  Timer? _debounce;
+  RealtimeChannel? _canal;
 
   bool get online => _red && !repo.forzarOffline;
   bool get simulandoOffline => repo.forzarOffline;
@@ -74,10 +77,43 @@ class AppState extends ChangeNotifier {
           (r) => _cambioRed(r.any((x) => x != ConnectivityResult.none)),
         );
     _subAuth = repo.db.auth.onAuthStateChange.listen((_) => cargarPerfil());
+    _escucharTiempoReal();
     unawaited(cargarPerfil());
     unawaited(actualizarEmergencia());
     unawaited(sincronizar(silencioso: true));
     _timer = Timer.periodic(const Duration(seconds: 30), (_) => actualizarEmergencia());
+  }
+
+  /// Supabase Realtime: cuando el moderador activa la emergencia o alguien
+  /// publica un pedido, todos los celulares se actualizan al instante.
+  void _escucharTiempoReal() {
+    try {
+      _canal = repo.db
+          .channel('barrio')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.update,
+            schema: 'public',
+            table: 'emergencia',
+            callback: (_) async {
+              final antes = emergencia.activa;
+              await actualizarEmergencia();
+              if (!antes && emergencia.activa) avisar('Se activó el modo EMERGENCIA en tu barrio');
+              if (antes && !emergencia.activa) avisar('Terminó el modo emergencia');
+            },
+          )
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'publicaciones',
+            callback: (_) {
+              _debounce?.cancel();
+              _debounce = Timer(const Duration(milliseconds: 800), refrescar);
+            },
+          )
+          .subscribe();
+    } catch (_) {
+      // Sin tiempo real la app sigue funcionando con la consulta cada 30 s.
+    }
   }
 
   Future<void> ubicar() async {
@@ -188,6 +224,8 @@ class AppState extends ChangeNotifier {
     _subRed?.cancel();
     _subAuth?.cancel();
     _timer?.cancel();
+    _debounce?.cancel();
+    if (_canal != null) repo.db.removeChannel(_canal!);
     super.dispose();
   }
 }

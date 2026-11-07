@@ -14,8 +14,8 @@ class _Paso {
 const _pasos = [
   _Paso(Icons.diversity_3, 'Bienvenido a App Vecinal',
       'Tu barrio en el celular: encuentra ayuda, ofrece lo que sabes y apóyate en tus vecinos de Chimbote.'),
-  _Paso(Icons.thumb_up, 'Oficios con Visto Bueno',
-      'Busca gasfiteros, electricistas, clases y más. Los vecinos que ya los contrataron les dan su Visto Bueno.'),
+  _Paso(Icons.thumb_up, 'Servicios y productos con Visto Bueno',
+      'Busca gasfiteros, clases, pan, bodegas y más cerca de tu casa. Los vecinos verificados que ya los usaron les dan su Visto Bueno.'),
   _Paso(Icons.volunteer_activism, 'Cadena de Favores',
       'Pide o presta herramientas, regala, enseña o comparte movilidad. Sin dinero, entre vecinos.'),
   _Paso(Icons.touch_app, 'Publica en 3 toques',

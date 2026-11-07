@@ -1,6 +1,9 @@
 import 'config.dart';
 
 double? _d(dynamic v) => v == null ? null : (v as num).toDouble();
+int _conteo(dynamic x) =>
+    x is List && x.isNotEmpty && x.first is Map ? (((x.first as Map)['count'] as num?)?.toInt() ?? 0) : 0;
+
 DateTime _fecha(dynamic v) =>
     (v == null ? null : DateTime.tryParse(v.toString())?.toLocal()) ?? DateTime.now();
 
@@ -113,9 +116,11 @@ class Publicacion {
     this.sector,
     this.origen = 'app',
     this.pendiente = false,
+    this.ayudantes = 0,
     DateTime? creado,
   }) : creado = creado ?? DateTime.now();
 
+  final int ayudantes; // vecinos que dijeron "Yo ayudo"
   final String id;
   final String tipo; // 'pido' | 'ofrezco'
   final String categoria, titulo;
@@ -159,6 +164,7 @@ class Publicacion {
         sector: m['sector'] as String?,
         origen: (m['origen'] ?? 'app') as String,
         pendiente: pendiente,
+        ayudantes: _conteo(m['ayudas']),
         creado: _fecha(m['created_at'] ?? m['creado_offline_en']),
       );
 
@@ -169,14 +175,16 @@ class Publicacion {
         if (personas != null) 'Para $personas ${personas == 1 ? 'persona' : 'personas'}',
         'Publicado por $autorVisible',
         if (sector != null) 'En $sector',
-        if (estado == 'en_curso') 'Ya están ayudando',
+        if (ayudantes > 0) '$ayudantes ${ayudantes == 1 ? 'vecino va' : 'vecinos van'} a ayudar'
+        else if (estado == 'en_curso') 'Ya están ayudando',
       ].join('. ');
 }
 
 class VistoBueno {
-  VistoBueno({required this.id, this.autorId, this.autorNombre, this.comentario, required this.creado});
+  VistoBueno({required this.id, this.autorId, this.autorNombre, this.comentario, this.verificado = false, required this.creado});
   final String id;
   final String? autorId, autorNombre, comentario;
+  final bool verificado;
   final DateTime creado;
 
   factory VistoBueno.fromMap(Map<String, dynamic> m) => VistoBueno(
@@ -184,6 +192,21 @@ class VistoBueno {
         autorId: m['autor_id'] as String?,
         autorNombre: m['autor_nombre'] as String?,
         comentario: m['comentario'] as String?,
+        verificado: m['autor_verificado'] == true,
+        creado: _fecha(m['created_at']),
+      );
+}
+
+/// Vecino que se comprometió a ayudar en un pedido ("Yo ayudo").
+class Ayuda {
+  Ayuda({required this.vecinoId, this.vecinoNombre, required this.creado});
+  final String vecinoId;
+  final String? vecinoNombre;
+  final DateTime creado;
+
+  factory Ayuda.fromMap(Map<String, dynamic> m) => Ayuda(
+        vecinoId: m['vecino_id'] as String,
+        vecinoNombre: m['vecino_nombre'] as String?,
         creado: _fecha(m['created_at']),
       );
 }

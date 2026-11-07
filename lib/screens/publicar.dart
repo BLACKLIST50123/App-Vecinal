@@ -16,7 +16,7 @@ import 'qr_screens.dart';
 enum TipoForm {
   pidoFavor('Pido un favor', 'Herramientas, ayuda, movilidad... sin dinero', Icons.front_hand),
   ofrezcoFavor('Ofrezco un favor', 'Presto, regalo o enseño algo', Icons.volunteer_activism),
-  servicio('Ofrezco mi oficio o servicio', 'Gasfitería, clases, costura...', Icons.handyman),
+  servicio('Ofrezco un servicio o producto', 'Gasfitería, clases, pan, bodega, artesanía...', Icons.storefront),
   necesitoAyuda('Necesito ayuda', 'Para mí o mi familia. Sin cuenta y sin internet', Icons.sos),
   reportarVulnerable('Reportar vecino vulnerable', 'Adulto mayor, persona enferma o con discapacidad', Icons.elderly),
   ofrezcoRecurso('Ofrezco un recurso', 'Agua, comida, albergue, medicinas...', Icons.inventory_2),
@@ -43,7 +43,7 @@ enum TipoForm {
   String get pista => switch (this) {
         pidoFavor => 'Ej: Necesito una escalera por 2 horas',
         ofrezcoFavor => 'Ej: Presto mi taladro',
-        servicio => 'Ej: Gasfitero a domicilio',
+        servicio => 'Ej: Gasfitero a domicilio · Pan de yema recién horneado',
         grupoApoyo => 'Ej: Brigada de primeros auxilios',
         necesitoAyuda => 'Ej: Mi casa se inundó, necesitamos agua',
         reportarVulnerable => 'Ej: Señora mayor sola, sin agua, en la Mz. B',

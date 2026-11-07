@@ -61,7 +61,7 @@ class _HomeShellState extends State<HomeShell> {
           ];
     final titulos = e
         ? const ['Emergencia', 'Grupos de apoyo', 'Tablero de ayuda', 'Mapa de ayuda']
-        : const ['App Vecinal', 'Servicios del barrio', 'Cadena de Favores', 'Mapa del barrio'];
+        : const ['App Vecinal', 'Servicios y productos', 'Cadena de Favores', 'Mapa del barrio'];
 
     return Scaffold(
       appBar: AppBar(

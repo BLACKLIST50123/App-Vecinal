@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -18,6 +18,38 @@ String traducirError(Object e) {
     return 'El servidor rechazó la acción: ${e.message}';
   }
   return 'Ocurrió un problema. Revisa tu conexión e intenta otra vez.';
+}
+
+/// Confirma y elimina (autor o moderador). Devuelve true si se eliminó.
+Future<bool> confirmarEliminar(BuildContext context, AppState st, String tabla, String id, {required bool esModeracion}) async {
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (c) => AlertDialog(
+      icon: const Icon(Icons.delete_forever, size: 40),
+      title: Text(esModeracion ? '¿Eliminar por moderación?' : '¿Eliminar tu publicación?'),
+      content: Text(esModeracion
+          ? 'Úsalo para contenido falso, ofensivo o spam. Desaparecerá para todo el barrio.'
+          : 'Desaparecerá para todos tus vecinos.'),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancelar')),
+        FilledButton(
+          style: FilledButton.styleFrom(backgroundColor: const Color(0xFFB71C1C), foregroundColor: Colors.white),
+          onPressed: () => Navigator.pop(c, true),
+          child: const Text('Eliminar'),
+        ),
+      ],
+    ),
+  );
+  if (ok != true) return false;
+  try {
+    await st.repo.eliminar(tabla, id);
+    avisar('Eliminado');
+    st.refrescar();
+    return true;
+  } catch (e) {
+    avisar(traducirError(e));
+    return false;
+  }
 }
 
 class _Dato extends StatelessWidget {
@@ -147,17 +179,45 @@ class _ServicioDetalleState extends State<ServicioDetalle> {
         Cargador<List<VistoBueno>>(
           claves: [s.id, _recarga],
           cargar: (st) => st.repo.vistosBuenos(s.id),
-          builder: (c, lista) => lista.isEmpty
-              ? const EstadoVacio(icono: Icons.thumb_up_off_alt, texto: 'Aún nadie lo recomienda. ¡Sé el primero si lo usaste!')
-              : Column(children: [
-                  for (final vb in lista)
-                    ListTile(
-                      leading: const CircleAvatar(child: Icon(Icons.thumb_up, size: 20)),
-                      title: Text(vb.autorNombre ?? 'Vecino'),
-                      subtitle: Text([?vb.comentario, haceCuanto(vb.creado)].join('\n')),
-                    ),
-                ]),
+          builder: (c, lista) {
+            if (lista.isEmpty) {
+              return const EstadoVacio(icono: Icons.thumb_up_off_alt, texto: 'Aún nadie lo recomienda. ¡Sé el primero si lo usaste!');
+            }
+            final verificados = lista.where((v) => v.verificado).length;
+            return Column(children: [
+              if (verificados > 0)
+                ListTile(
+                  leading: const Icon(Icons.verified_user, color: Color(0xFF2E7D32), size: 32),
+                  title: Text('$verificados de ${lista.length} son vecinos verificados de ${Zona.nombre}',
+                      style: const TextStyle(fontWeight: FontWeight.bold)),
+                  subtitle: const Text('Confirmaron con GPS que viven en la zona'),
+                ),
+              for (final vb in lista)
+                ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: vb.verificado ? const Color(0xFFC8E6C9) : null,
+                    child: Icon(vb.verificado ? Icons.verified_user : Icons.thumb_up, size: 20,
+                        color: vb.verificado ? const Color(0xFF1B5E20) : null),
+                  ),
+                  title: Text([vb.autorNombre ?? 'Vecino', if (vb.verificado) '· vecino verificado'].join(' ')),
+                  subtitle: Text([?vb.comentario, haceCuanto(vb.creado)].join('\n')),
+                ),
+            ]);
+          },
         ),
+        if (!s.pendiente && (esMio || st.esModerador))
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFFB71C1C)),
+              onPressed: () async {
+                final ok = await confirmarEliminar(context, st, 'servicios', s.id, esModeracion: !esMio);
+                if (ok && context.mounted) Navigator.pop(context);
+              },
+              icon: const Icon(Icons.delete_outline),
+              label: Text(esMio ? 'Eliminar mi publicación' : 'Eliminar (moderación)'),
+            ),
+          ),
       ]),
     );
   }
@@ -165,28 +225,68 @@ class _ServicioDetalleState extends State<ServicioDetalle> {
 
 // ======================================================= Publicación
 
-class PublicacionDetalle extends StatelessWidget {
+/// Detalle de un favor, pedido de ayuda o recurso, con coordinación vecinal:
+/// "Yo ayudo" (cualquier vecino), "La atendemos" (organización),
+/// "Resuelto" (autor/organización/moderador) y eliminar (autor/moderador).
+class PublicacionDetalle extends StatefulWidget {
   const PublicacionDetalle({super.key, required this.publicacion});
   final Publicacion publicacion;
 
-  Future<void> _cambiar(BuildContext context, AppState st, String estado, {bool atender = false}) async {
+  @override
+  State<PublicacionDetalle> createState() => _PublicacionDetalleState();
+}
+
+class _PublicacionDetalleState extends State<PublicacionDetalle> {
+  int _recarga = 0;
+  bool _ocupado = false;
+
+  Publicacion get p => widget.publicacion;
+
+  Future<void> _cambiar(AppState st, String estado, {bool atender = false}) async {
+    setState(() => _ocupado = true);
     try {
-      await st.repo.cambiarEstado(publicacion.id, estado, atender: atender);
-      avisar(estado == 'resuelta' ? '¡Marcado como resuelto! Gracias por ayudar.' : 'Marcado: ya están ayudando');
+      await st.repo.cambiarEstado(p.id, estado, atender: atender);
+      avisar(estado == 'resuelta' ? '¡Marcado como resuelto! Gracias por ayudar.' : 'Listo: tu organización lo atiende');
       st.refrescar();
-      if (context.mounted) Navigator.pop(context);
+      if (mounted) Navigator.pop(context);
     } catch (e) {
       avisar(traducirError(e));
+    } finally {
+      if (mounted) setState(() => _ocupado = false);
+    }
+  }
+
+  Future<void> _yoAyudo(AppState st, bool yaAyudo) async {
+    if (!st.logueado) {
+      await Navigator.push(context, MaterialPageRoute(
+        builder: (_) => const AuthScreen(mensaje: 'Para comprometerte a ayudar necesitas una cuenta de vecino.'),
+      ));
+      return;
+    }
+    setState(() => _ocupado = true);
+    try {
+      if (yaAyudo) {
+        await st.repo.retirarAyuda(p.id);
+        avisar('Quitaste tu compromiso de ayuda');
+      } else {
+        await st.repo.ofrecerAyuda(p.id);
+        avisar('¡Gracias! ${p.autorVisible} verá que vas a ayudar. Coordina por llamada o WhatsApp.');
+      }
+      setState(() => _recarga++);
+      st.refrescar();
+    } catch (e) {
+      avisar(traducirError(e));
+    } finally {
+      if (mounted) setState(() => _ocupado = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final st = context.watch<AppState>();
-    final p = publicacion;
     final cat = buscarCategoria(p.categoria, emergencia: p.esEmergencia);
     final esMio = p.autorId != null && p.autorId == st.uid;
-    final puedeAtender = p.esEmergencia && (st.esOrganizacion || st.esModerador);
+    final esOrg = st.esOrganizacion || st.esModerador;
     final dist = p.punto == null ? null : distanciaKm(st.referencia, p.punto!);
     final tel = p.contactoTelefono;
 
@@ -214,7 +314,7 @@ class PublicacionDetalle extends StatelessWidget {
                 child: FilledButton.icon(
                   onPressed: () => llamar(tel),
                   icon: const Icon(Icons.call),
-                  label: Text(p.esPedido ? 'Llamar y ayudar' : 'Llamar'),
+                  label: const Text('Llamar'),
                 ),
               ),
               const SizedBox(width: 12),
@@ -240,27 +340,90 @@ class PublicacionDetalle extends StatelessWidget {
           const _Dato(Icons.qr_code_2, 'Cómo llegó', 'Un vecino trajo este pedido por código QR porque no tenía internet.'),
         if (p.pendiente)
           const _Dato(Icons.schedule_send, 'Aún no enviado', 'Se publicará apenas haya internet.'),
-        if (!p.pendiente && (puedeAtender || esMio)) ...[
+
+        // ----------------------------------------- coordinación vecinal
+        if (!p.pendiente && p.esPedido && p.estado != 'resuelta') ...[
+          const Divider(),
+          const TituloSeccion('Vecinos que van a ayudar'),
+          Cargador<List<Ayuda>>(
+            claves: [p.id, _recarga],
+            cargar: (st) => st.repo.ayudas(p.id),
+            builder: (c, lista) {
+              final yaAyudo = lista.any((a) => a.vecinoId == st.uid);
+              return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                if (lista.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    child: Text('Nadie se ha comprometido todavía. ¿Puedes ayudar?', style: TextStyle(fontSize: 16)),
+                  )
+                else
+                  for (final a in lista)
+                    ListTile(
+                      leading: const CircleAvatar(child: Icon(Icons.volunteer_activism, size: 20)),
+                      title: Text(a.vecinoId == st.uid ? 'Tú' : (a.vecinoNombre ?? 'Vecino')),
+                      subtitle: Text('Se comprometió ${haceCuanto(a.creado)}'),
+                    ),
+                if (!esMio)
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: SizedBox(
+                      height: 56,
+                      child: yaAyudo
+                          ? OutlinedButton.icon(
+                              onPressed: _ocupado ? null : () => _yoAyudo(st, true),
+                              icon: const Icon(Icons.undo),
+                              label: const Text('Ya no puedo ayudar'),
+                            )
+                          : FilledButton.icon(
+                              style: FilledButton.styleFrom(backgroundColor: const Color(0xFF2E7D32), foregroundColor: Colors.white),
+                              onPressed: _ocupado ? null : () => _yoAyudo(st, false),
+                              icon: const Icon(Icons.volunteer_activism),
+                              label: const Text('Yo ayudo', style: TextStyle(fontSize: 18)),
+                            ),
+                    ),
+                  ),
+              ]);
+            },
+          ),
+        ],
+
+        if (!p.pendiente && (esOrg || esMio)) ...[
           const Divider(),
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              if (puedeAtender && p.estado == 'abierta')
+              if (esOrg && p.esEmergencia && p.estado == 'abierta')
                 FilledButton.icon(
-                  onPressed: () => _cambiar(context, st, 'en_curso', atender: true),
-                  icon: const Icon(Icons.volunteer_activism),
+                  onPressed: _ocupado ? null : () => _cambiar(st, 'en_curso', atender: true),
+                  icon: const Icon(Icons.health_and_safety),
                   label: const Text('Nuestra organización lo atiende'),
                 ),
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: () => _cambiar(context, st, 'resuelta'),
-                icon: const Icon(Icons.check_circle),
-                label: const Text('Marcar como resuelto'),
-              ),
+              if (p.estado != 'resuelta') ...[
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: _ocupado ? null : () => _cambiar(st, 'resuelta'),
+                  icon: const Icon(Icons.check_circle),
+                  label: const Text('Marcar como resuelto'),
+                ),
+              ],
             ]),
           ),
         ],
+        if (!p.pendiente && (esMio || st.esModerador))
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFFB71C1C)),
+              onPressed: () async {
+                final ok = await confirmarEliminar(context, st, 'publicaciones', p.id, esModeracion: !esMio);
+                if (ok && context.mounted) Navigator.pop(context);
+              },
+              icon: const Icon(Icons.delete_outline),
+              label: Text(esMio ? 'Eliminar mi publicación' : 'Eliminar (moderación)'),
+            ),
+          ),
       ]),
     );
   }
 }
+

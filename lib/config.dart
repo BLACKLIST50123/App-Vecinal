@@ -34,8 +34,13 @@ class Categoria {
   final IconData icono;
 }
 
-/// Módulo 1 · día a día: oficios y profesiones del barrio.
+/// Módulo 1 · día a día: productos, oficios y profesiones del barrio.
 const categoriasServicio = <Categoria>[
+  Categoria('bodega', 'Bodega y abarrotes', Icons.storefront),
+  Categoria('panaderia', 'Pan y postres', Icons.bakery_dining),
+  Categoria('comida', 'Comida casera', Icons.restaurant),
+  Categoria('artesania', 'Artesanía', Icons.palette),
+  Categoria('segunda_mano', 'Segunda mano', Icons.recycling),
   Categoria('gasfiteria', 'Gasfitería', Icons.plumbing),
   Categoria('electricidad', 'Electricidad', Icons.electrical_services),
   Categoria('carpinteria', 'Carpintería', Icons.carpenter),
@@ -46,7 +51,6 @@ const categoriasServicio = <Categoria>[
   Categoria('costura', 'Costura', Icons.content_cut),
   Categoria('tecnologia', 'Tecnología', Icons.computer),
   Categoria('salud', 'Salud', Icons.medical_services),
-  Categoria('comida', 'Comida', Icons.restaurant),
   Categoria('otros', 'Otros', Icons.handyman),
 ];
 

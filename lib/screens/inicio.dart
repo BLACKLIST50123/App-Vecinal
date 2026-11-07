@@ -92,7 +92,7 @@ class InicioScreen extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         _Rejilla([
-          _AccionGrande(icono: Icons.handyman, texto: 'Buscar un oficio', onTap: () => irA(1)),
+          _AccionGrande(icono: Icons.storefront, texto: 'Servicios y productos', onTap: () => irA(1)),
           _AccionGrande(icono: Icons.front_hand, texto: 'Pedir un favor', onTap: () => abrirFormulario(context, TipoForm.pidoFavor)),
           _AccionGrande(icono: Icons.volunteer_activism, texto: 'Ofrecer ayuda', onTap: () => abrirFormulario(context, TipoForm.ofrezcoFavor)),
           _AccionGrande(icono: Icons.map, texto: 'Ver en el mapa', onTap: () => irA(3)),

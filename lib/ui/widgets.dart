@@ -373,7 +373,10 @@ class TarjetaPublicacion extends StatelessWidget {
                   _Etiqueta(p.esPedido ? 'PIDE' : 'OFRECE', colorTipo),
                   if (critica) const _Etiqueta('MUY URGENTE', Color(0xFFB71C1C)),
                   if (p.esEmergencia && p.prioridad == 'alta') const _Etiqueta('URGENTE', Color(0xFFC62828)),
-                  if (p.estado == 'en_curso') const _Etiqueta('YA ESTÁN AYUDANDO', Color(0xFF1565C0)),
+                  if (p.ayudantes > 0)
+                    _Etiqueta('${p.ayudantes} ${p.ayudantes == 1 ? 'VA' : 'VAN'} A AYUDAR', const Color(0xFF1565C0))
+                  else if (p.estado == 'en_curso')
+                    const _Etiqueta('YA ESTÁN AYUDANDO', Color(0xFF1565C0)),
                   if (p.origen == 'qr') const _Etiqueta('LLEGÓ POR QR', Color(0xFF6A1B9A)),
                   if (p.pendiente) const _Etiqueta('POR ENVIAR', Color(0xFF616161)),
                 ]),

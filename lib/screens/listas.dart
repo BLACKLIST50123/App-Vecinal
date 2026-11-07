@@ -39,8 +39,8 @@ class _ServiciosScreenState extends State<ServiciosScreen> {
           onChanged: (v) => setState(() => _busqueda = v.trim().toLowerCase()),
           decoration: InputDecoration(
             prefixIcon: const Icon(Icons.search),
-            labelText: widget.emergencia ? 'Buscar grupo de apoyo' : 'Buscar un oficio o servicio',
-            hintText: widget.emergencia ? 'Ej: albergue, primeros auxilios' : 'Ej: gasfitero, clases, cerrajero',
+            labelText: widget.emergencia ? 'Buscar grupo de apoyo' : 'Buscar servicio o producto',
+            hintText: widget.emergencia ? 'Ej: albergue, primeros auxilios' : 'Ej: gasfitero, pan, bodega, clases',
           ),
         ),
       ),

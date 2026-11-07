@@ -108,7 +108,7 @@ class Repo {
       'publicaciones_$emergencia',
       () => db
           .from('publicaciones')
-          .select()
+          .select('*, ayudas(count)')
           .eq('es_emergencia', emergencia)
           .neq('estado', 'resuelta')
           .order('created_at', ascending: false)
@@ -140,11 +140,52 @@ class Repo {
       'vb_$servicioId',
       () => db
           .from('vistos_buenos')
-          .select('id, autor_id, autor_nombre, comentario, created_at')
+          .select('id, autor_id, autor_nombre, autor_verificado, comentario, created_at')
           .eq('servicio_id', servicioId)
           .order('created_at', ascending: false),
     );
     return filas.map(VistoBueno.fromMap).toList();
+  }
+
+  Future<List<Ayuda>> ayudas(String publicacionId) async {
+    final filas = await _consultar(
+      'ayudas_$publicacionId',
+      () => db
+          .from('ayudas')
+          .select('vecino_id, vecino_nombre, created_at')
+          .eq('publicacion_id', publicacionId)
+          .order('created_at'),
+    );
+    return filas.map(Ayuda.fromMap).toList();
+  }
+
+  /// Todo lo que publicó el usuario (incluye resueltas e inactivas).
+  Future<(List<Publicacion>, List<Servicio>)> misPublicaciones() async {
+    final id = uid;
+    if (id == null) return (<Publicacion>[], <Servicio>[]);
+    final pubs = await _consultar(
+      'mis_pubs_$id',
+      () => db.from('publicaciones').select('*, ayudas(count)').eq('autor_id', id).order('created_at', ascending: false),
+    );
+    final servs = await _consultar(
+      'mis_servs_$id',
+      () => db.from('servicios').select('*, vistos_buenos(count)').eq('autor_id', id).order('created_at', ascending: false),
+    );
+    return (pubs.map(Publicacion.fromMap).toList(), servs.map(Servicio.fromMap).toList());
+  }
+
+  Future<void> ofrecerAyuda(String publicacionId) =>
+      db.from('ayudas').insert({'publicacion_id': publicacionId});
+
+  Future<void> retirarAyuda(String publicacionId) =>
+      db.from('ayudas').delete().eq('publicacion_id', publicacionId).eq('vecino_id', uid!);
+
+  /// Elimina una publicación o servicio (autor o moderador; lo valida RLS).
+  Future<void> eliminar(String tabla, String id) async {
+    final borradas = await db.from(tabla).delete().eq('id', id).select('id');
+    if (borradas.isEmpty) {
+      throw const PostgrestException(message: 'row-level security', code: '42501');
+    }
   }
 
   Future<Map<String, dynamic>?> miPerfil() async {
