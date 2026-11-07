@@ -10,13 +10,28 @@ import '../util.dart';
 String _errorAuth(Object e) {
   if (e is AuthException) {
     final m = e.message.toLowerCase();
-    if (m.contains('invalid login')) return 'Correo o contraseña incorrectos.';
-    if (m.contains('already registered')) return 'Ese correo ya tiene una cuenta. Ingresa con él.';
-    if (m.contains('password')) return 'La contraseña debe tener al menos 6 caracteres.';
-    if (m.contains('email')) return 'Revisa que el correo esté bien escrito.';
+    if (m.contains('invalid login')) return 'Número/correo o clave incorrectos.';
+    if (m.contains('already registered')) return 'Ese número o correo ya tiene una cuenta. Usa "Ingresar".';
+    if (m.contains('not confirmed')) {
+      return 'La cuenta espera confirmación. El administrador debe desactivar "Confirm email" en Supabase.';
+    }
+    if (m.contains('password')) return 'La clave debe tener al menos 6 números o letras.';
+    if (m.contains('email')) return 'Revisa que el número o correo esté bien escrito.';
     return e.message;
   }
   return 'Sin conexión. Necesitas internet para crear tu cuenta o ingresar.';
+}
+
+/// Muchos vecinos no usan correo: la cuenta se crea con el celular.
+/// Internamente se convierte en un identificador tipo correo, solo para
+/// Supabase Auth (dominio reservado example.com; nunca se envían correos).
+String? _identificador(String entrada, {required bool usarCorreo}) {
+  final t = entrada.trim();
+  if (usarCorreo) return t.contains('@') ? t.toLowerCase() : null;
+  final d = soloDigitos(t);
+  final cel = d.length == 11 && d.startsWith('51') ? d.substring(2) : d;
+  if (cel.length != 9 || !cel.startsWith('9')) return null;
+  return '51$cel@vecinos.example.com';
 }
 
 class AuthScreen extends StatefulWidget {
@@ -37,7 +52,13 @@ class _AuthScreenState extends State<AuthScreen> {
   bool _buscando = false;
   bool _cargando = false;
   bool _verClave = false;
+  bool _usarCorreo = false;
   String? _error;
+
+  String? get _id => _identificador(_correo.text, usarCorreo: _usarCorreo);
+  String get _errorId => _usarCorreo
+      ? 'Escribe un correo válido.'
+      : 'Escribe tu número de celular de 9 dígitos (empieza con 9).';
 
   Future<void> _verificarGps() async {
     setState(() => _buscando = true);
@@ -50,12 +71,17 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   Future<void> _ingresar() async {
+    final id = _id;
+    if (id == null) {
+      setState(() => _error = _errorId);
+      return;
+    }
     setState(() {
       _cargando = true;
       _error = null;
     });
     try {
-      await Supabase.instance.client.auth.signInWithPassword(email: _correo.text.trim(), password: _clave.text);
+      await Supabase.instance.client.auth.signInWithPassword(email: id, password: _clave.text);
       if (!mounted) return;
       await context.read<AppState>().cargarPerfil();
       avisar('¡Bienvenido de nuevo!');
@@ -68,8 +94,18 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   Future<void> _registrar() async {
-    if (_nombre.text.trim().length < 2 || _sector == null) {
-      setState(() => _error = _nombre.text.trim().length < 2 ? 'Escribe tu nombre.' : 'Elige tu sector.');
+    final id = _id;
+    final faltante = _nombre.text.trim().length < 2
+        ? 'Escribe tu nombre.'
+        : id == null
+            ? _errorId
+            : _clave.text.length < 6
+                ? 'La clave debe tener al menos 6 números.'
+                : _sector == null
+                    ? 'Elige tu sector.'
+                    : null;
+    if (faltante != null) {
+      setState(() => _error = faltante);
       return;
     }
     setState(() {
@@ -77,12 +113,13 @@ class _AuthScreenState extends State<AuthScreen> {
       _error = null;
     });
     try {
+      final telefono = _usarCorreo ? _telefono.text.trim() : soloDigitos(_correo.text).replaceFirst(RegExp(r'^51(?=9\d{8}$)'), '');
       final r = await Supabase.instance.client.auth.signUp(
-        email: _correo.text.trim(),
+        email: id!,
         password: _clave.text,
         data: {
           'nombre': _nombre.text.trim(),
-          'telefono': _telefono.text.trim(),
+          'telefono': telefono,
           'sector': _sector,
           if (_gps != null) 'lat': _gps!.lat,
           if (_gps != null) 'lng': _gps!.lng,
@@ -90,7 +127,9 @@ class _AuthScreenState extends State<AuthScreen> {
       );
       if (!mounted) return;
       if (r.session == null) {
-        setState(() => _error = 'Te enviamos un correo para confirmar tu cuenta. Ábrelo y luego ingresa.');
+        setState(() => _error = _usarCorreo
+            ? 'Te enviamos un correo para confirmar tu cuenta. Ábrelo y luego ingresa.'
+            : 'La cuenta quedó esperando confirmación. El administrador debe desactivar "Confirm email" en Supabase.');
         return;
       }
       await context.read<AppState>().cargarPerfil();
@@ -107,18 +146,37 @@ class _AuthScreenState extends State<AuthScreen> {
 
   Widget _campoCorreoClave() => Column(children: [
         TextField(
+          key: ValueKey(_usarCorreo),
           controller: _correo,
-          keyboardType: TextInputType.emailAddress,
-          autofillHints: const [AutofillHints.email],
-          decoration: const InputDecoration(labelText: 'Correo', prefixIcon: Icon(Icons.email)),
+          keyboardType: _usarCorreo ? TextInputType.emailAddress : TextInputType.phone,
+          autofillHints: [_usarCorreo ? AutofillHints.email : AutofillHints.telephoneNumberNational],
+          style: const TextStyle(fontSize: 18),
+          decoration: InputDecoration(
+            labelText: _usarCorreo ? 'Correo' : 'Número de celular',
+            hintText: _usarCorreo ? 'nombre@correo.com' : '9XX XXX XXX',
+            prefixIcon: Icon(_usarCorreo ? Icons.email : Icons.phone_android),
+          ),
         ),
-        const SizedBox(height: 12),
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton(
+            onPressed: () => setState(() {
+              _usarCorreo = !_usarCorreo;
+              _correo.clear();
+              _error = null;
+            }),
+            child: Text(_usarCorreo ? 'Usar mi número de celular' : 'Prefiero usar correo'),
+          ),
+        ),
         TextField(
           controller: _clave,
           obscureText: !_verClave,
+          keyboardType: _usarCorreo ? TextInputType.visiblePassword : TextInputType.number,
           autofillHints: const [AutofillHints.password],
+          style: const TextStyle(fontSize: 18),
           decoration: InputDecoration(
-            labelText: 'Contraseña (mínimo 6)',
+            labelText: _usarCorreo ? 'Contraseña (mínimo 6)' : 'Clave de 6 números',
+            helperText: 'Anótala en un lugar seguro',
             prefixIcon: const Icon(Icons.lock),
             suffixIcon: IconButton(
               tooltip: _verClave ? 'Ocultar contraseña' : 'Mostrar contraseña',
@@ -167,12 +225,14 @@ class _AuthScreenState extends State<AuthScreen> {
             ),
             const SizedBox(height: 12),
             _campoCorreoClave(),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _telefono,
-              keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(labelText: 'Teléfono o WhatsApp (opcional)', prefixIcon: Icon(Icons.phone)),
-            ),
+            if (_usarCorreo) ...[
+              const SizedBox(height: 12),
+              TextField(
+                controller: _telefono,
+                keyboardType: TextInputType.phone,
+                decoration: const InputDecoration(labelText: 'Teléfono o WhatsApp (opcional)', prefixIcon: Icon(Icons.phone)),
+              ),
+            ],
             const SizedBox(height: 16),
             const Text('¿En qué sector vives?', style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
