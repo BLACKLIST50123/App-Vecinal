@@ -56,6 +56,15 @@ void main() {
       expect(enZona(const Punto(-12.0464, -77.0428)), isFalse);
     });
 
+    test('la ubicación pública es aproximada: no exacta y a menos de 300 m', () {
+      const casa = Punto(-9.09951, -78.56823);
+      for (var i = 0; i < 200; i++) {
+        final p = aproximar(casa);
+        expect(distanciaKm(casa, p), lessThan(0.3));
+        expect(p.lat == casa.lat && p.lng == casa.lng, isFalse);
+      }
+    });
+
     test('distancia aproximada correcta', () {
       final km = distanciaKm(Zona.sectores['Casco Urbano']!, Zona.sectores['Buenos Aires']!);
       expect(km, inInclusiveRange(7, 10));

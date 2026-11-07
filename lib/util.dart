@@ -16,6 +16,15 @@ double distanciaKm(Punto a, Punto b) {
 
 bool enZona(Punto p) => distanciaKm(p, Zona.centro) <= Zona.radioKm;
 
+/// Privacidad: los pedidos de ayuda se publican con ubicación aproximada
+/// (cuadrícula de ~220 m + desplazamiento aleatorio de hasta ~110 m), para
+/// no revelar dónde vive una persona vulnerable o quién está sola.
+Punto aproximar(Punto p) {
+  final r = Random();
+  double f(double v) => (v * 450).roundToDouble() / 450 + (r.nextDouble() - 0.5) * 0.002;
+  return Punto(f(p.lat), f(p.lng));
+}
+
 String formatoDistancia(double km) =>
     km < 1 ? 'a ${(km * 1000 / 10).round() * 10} m' : 'a ${km.toStringAsFixed(1)} km';
 

@@ -7,6 +7,7 @@ import '../services/ubicacion.dart';
 import '../state/app_state.dart';
 import '../util.dart';
 import 'auth_screen.dart';
+import 'confianza.dart';
 import 'detalles.dart';
 import 'qr_screens.dart';
 
@@ -248,6 +249,7 @@ class _FormularioPublicarState extends State<FormularioPublicar> {
       ).toInsert();
     } else {
       tabla = 'publicaciones';
+      final aprox = aproximar(p);
       datos = {
         'id': id,
         'tipo': t.tipoPub,
@@ -259,8 +261,8 @@ class _FormularioPublicarState extends State<FormularioPublicar> {
         'personas': t.esEmergencia && t.tipoPub == 'pido' ? _personas : null,
         'prioridad': t.esEmergencia && t.tipoPub == 'pido' ? _prioridad : 'normal',
         'es_emergencia': t.esEmergencia,
-        'lat': p.lat,
-        'lng': p.lng,
+        'lat': aprox.lat,
+        'lng': aprox.lng,
         'sector': _sector,
         'autor_nombre': _nombre.text.trim().isEmpty ? st.nombre : _nombre.text.trim(),
         'creado_offline_en': DateTime.now().toUtc().toIso8601String(),
@@ -291,10 +293,11 @@ class _FormularioPublicarState extends State<FormularioPublicar> {
         icon: const Icon(Icons.cloud_off, size: 40),
         title: const Text('Guardado sin internet'),
         content: Text(tabla == 'publicaciones'
-            ? 'Se enviará solo cuando vuelva la señal.\n\n'
+            ? 'Quedó guardado en tu celular. Tus vecinos lo verán recién cuando vuelva la señal.\n\n'
                 'Si es urgente, muestra el código QR a un vecino que tenga internet: '
-                'al escanearlo, su app lo enviará por ti.'
-            : 'Se enviará solo cuando vuelva la señal.'),
+                'al escanearlo, su app lo enviará por ti.\n\n'
+                'Si hay riesgo de vida, no esperes: llama al 116, 105 o 106.'
+            : 'Quedó guardado en tu celular y se enviará cuando vuelva la señal.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Listo')),
           if (tabla == 'publicaciones')
@@ -367,6 +370,7 @@ class _FormularioPublicarState extends State<FormularioPublicar> {
             ),
           ),
           if (emergenciaPedido) ...[
+            if (_prioridad == 'critica') const AvisoAutoridades(),
             const SizedBox(height: 8),
             const Text('¿Qué tan urgente es?', style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
@@ -406,7 +410,9 @@ class _FormularioPublicarState extends State<FormularioPublicar> {
             child: ListTile(
               leading: Icon(_gps != null ? Icons.my_location : Icons.place),
               title: Text(ubicacionTexto),
-              subtitle: const Text('Ayuda a que te encuentren rápido'),
+              subtitle: Text(t.esServicio
+                  ? 'Ayuda a que tus clientes te encuentren'
+                  : 'Se mostrará aproximada (±200 m) para cuidar tu privacidad'),
               trailing: TextButton(onPressed: _elegirSector, child: const Text('Cambiar')),
             ),
           ),
@@ -440,7 +446,12 @@ class _FormularioPublicarState extends State<FormularioPublicar> {
                   maxLines: 3,
                   maxLength: 500,
                   textCapitalization: TextCapitalization.sentences,
-                  decoration: const InputDecoration(labelText: 'Detalle', hintText: 'Dirección de referencia, horario, cantidad...'),
+                  decoration: InputDecoration(
+                    labelText: 'Detalle',
+                    hintText: t.esServicio ? 'Qué ofreces, horario, cantidad...' : 'Qué necesitas, horario, cantidad...',
+                    helperText: t.esServicio ? null : 'No escribas tu dirección exacta: compártela por teléfono con quien te ayude.',
+                    helperMaxLines: 2,
+                  ),
                 ),
               ),
               if (t.esServicio) ...[

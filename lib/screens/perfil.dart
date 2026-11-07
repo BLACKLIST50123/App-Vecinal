@@ -6,6 +6,7 @@ import '../models.dart';
 import '../state/app_state.dart';
 import '../ui/widgets.dart';
 import 'auth_screen.dart';
+import 'confianza.dart';
 import 'detalles.dart';
 import 'publicar.dart';
 import 'qr_screens.dart';
@@ -96,6 +97,29 @@ class PerfilScreen extends StatelessWidget {
               onTap: () => abrirFormulario(context, TipoForm.servicio),
             ),
         ],
+
+        if (st.esOrganizacion || st.esModerador)
+          ListTile(
+            leading: const Icon(Icons.dashboard, size: 32),
+            title: const Text('Panel de coordinación', style: TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: Text(st.esModerador ? 'Indicadores, pedidos por estado y reportes' : 'Indicadores y pedidos por estado'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PanelCoordinacionScreen())),
+          ),
+
+        const TituloSeccion('Comunidad'),
+        ListTile(
+          leading: const Icon(Icons.group_add, size: 32),
+          title: const Text('Invitar vecinos por WhatsApp'),
+          subtitle: const Text('Mientras más vecinos, más rápido llega la ayuda'),
+          onTap: () => compartirWhatsapp(textoInvitacion),
+        ),
+        ListTile(
+          leading: const Icon(Icons.rule, size: 32),
+          title: const Text('Normas del barrio'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => mostrarNormas(context),
+        ),
 
         const TituloSeccion('Accesibilidad'),
         ListTile(

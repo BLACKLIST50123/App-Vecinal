@@ -6,6 +6,7 @@ import '../config.dart';
 import '../services/ubicacion.dart';
 import '../state/app_state.dart';
 import '../util.dart';
+import 'confianza.dart';
 
 String _errorAuth(Object e) {
   if (e is AuthException) {
@@ -53,6 +54,7 @@ class _AuthScreenState extends State<AuthScreen> {
   bool _cargando = false;
   bool _verClave = false;
   bool _usarCorreo = false;
+  bool _aceptaNormas = false;
   String? _error;
 
   String? get _id => _identificador(_correo.text, usarCorreo: _usarCorreo);
@@ -103,7 +105,9 @@ class _AuthScreenState extends State<AuthScreen> {
                 ? 'La clave debe tener al menos 6 números.'
                 : _sector == null
                     ? 'Elige tu sector.'
-                    : null;
+                    : !_aceptaNormas
+                        ? 'Para unirte, acepta las normas del barrio.'
+                        : null;
     if (faltante != null) {
       setState(() => _error = faltante);
       return;
@@ -260,6 +264,17 @@ class _AuthScreenState extends State<AuthScreen> {
                 trailing: _buscando
                     ? const CircularProgressIndicator()
                     : TextButton(onPressed: _verificarGps, child: Text(_gps == null ? 'Verificar' : 'Repetir')),
+              ),
+            ),
+            const SizedBox(height: 8),
+            CheckboxListTile(
+              contentPadding: EdgeInsets.zero,
+              value: _aceptaNormas,
+              onChanged: (v) => setState(() => _aceptaNormas = v ?? false),
+              title: const Text('Acepto las normas del barrio: respeto, nada de acusaciones ni datos de otros.'),
+              subtitle: Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton(onPressed: () => mostrarNormas(context), child: const Text('Leer las normas')),
               ),
             ),
             _mensajeError(),

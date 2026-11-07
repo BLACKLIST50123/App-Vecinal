@@ -112,6 +112,12 @@ values
  ('Bodega Don Lucho','ofrezco','recurso','Tengo 20 bidones de agua para repartir','Pasen por la bodega con su DNI, uno por familia.','Don Lucho','999 000 405',null,'normal',true,'La Florida',-9.0818,-78.5768, now() - interval '90 minutes'),
  ('Sra. Mercedes','ofrezco','albergue','Ofrezco mi segundo piso para 2 familias','Tiene baño y está seco.','Mercedes','999 000 406',null,'normal',true,'Miraflores Alto',-9.0655,-78.5795, now() - interval '4 hours');
 
+-- Algunos pedidos ya verificados por una organización (para la demo).
+update public.publicaciones set verificada = true
+ where autor_id is null and titulo in (
+   'Casa inundada, necesitamos dónde dormir',
+   'Tengo 20 bidones de agua para repartir');
+
 -- Emergencia apagada al inicio. El moderador la activa desde la app.
 update public.emergencia
    set activa = false,

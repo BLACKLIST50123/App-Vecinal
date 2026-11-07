@@ -117,10 +117,20 @@ class Publicacion {
     this.origen = 'app',
     this.pendiente = false,
     this.ayudantes = 0,
+    this.verificada = false,
     DateTime? creado,
   }) : creado = creado ?? DateTime.now();
 
   final int ayudantes; // vecinos que dijeron "Yo ayudo"
+  final bool verificada; // verificada por organización o junta vecinal
+
+  /// Estados del reto: pendiente, en atención, atendido, no verificado.
+  String get estadoTexto => switch (estado) {
+        'en_curso' => 'En atención',
+        'resuelta' => 'Atendido',
+        'no_verificado' => 'No verificado',
+        _ => 'Pendiente',
+      };
   final String id;
   final String tipo; // 'pido' | 'ofrezco'
   final String categoria, titulo;
@@ -165,6 +175,7 @@ class Publicacion {
         origen: (m['origen'] ?? 'app') as String,
         pendiente: pendiente,
         ayudantes: _conteo(m['ayudas']),
+        verificada: m['verificada'] == true,
         creado: _fecha(m['created_at'] ?? m['creado_offline_en']),
       );
 

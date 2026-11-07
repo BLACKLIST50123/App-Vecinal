@@ -8,6 +8,7 @@ import '../state/app_state.dart';
 import '../ui/widgets.dart';
 import '../util.dart';
 import 'auth_screen.dart';
+import 'confianza.dart';
 
 String traducirError(Object e) {
   if (e is PostgrestException) {
@@ -127,7 +128,21 @@ class _ServicioDetalleState extends State<ServicioDetalle> {
     final dist = s.punto == null ? null : distanciaKm(st.referencia, s.punto!);
 
     return Scaffold(
-      appBar: AppBar(title: Text(cat.nombre)),
+      appBar: AppBar(title: Text(cat.nombre), actions: [
+        IconButton(
+          tooltip: 'Compartir por WhatsApp',
+          icon: const Icon(Icons.share),
+          onPressed: () => compartirWhatsapp(
+              'Te recomiendo "${s.titulo}"${s.sector != null ? ' en ${s.sector}' : ''}, '
+              '${s.vistosBuenos} vecinos le dieron su Visto Bueno en App Vecinal ${Zona.nombre}.'),
+        ),
+        if (!esMio && !s.pendiente)
+          IconButton(
+            tooltip: 'Reportar',
+            icon: const Icon(Icons.flag_outlined),
+            onPressed: () => reportarContenido(context, tabla: 'servicios', id: s.id, titulo: s.titulo),
+          ),
+      ]),
       body: ListView(padding: const EdgeInsets.only(bottom: 32), children: [
         Padding(
           padding: const EdgeInsets.all(16),
@@ -164,7 +179,7 @@ class _ServicioDetalleState extends State<ServicioDetalle> {
         TituloSeccion('Visto Bueno Vecinal (${s.vistosBuenos})'),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Text('Recomendaciones de vecinos que ya usaron este servicio.',
+          child: Text('Experiencias de vecinos que ya lo usaron. No es una certificación profesional.',
               style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
         ),
         if (!esMio && !s.pendiente)
@@ -256,6 +271,20 @@ class _PublicacionDetalleState extends State<PublicacionDetalle> {
     }
   }
 
+  Future<void> _verificar(AppState st, bool verificada) async {
+    setState(() => _ocupado = true);
+    try {
+      await st.repo.verificar(p.id, verificada: verificada, estadoActual: p.estado);
+      avisar(verificada ? 'Pedido verificado' : 'Marcado como no verificado');
+      st.refrescar();
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      avisar(traducirError(e));
+    } finally {
+      if (mounted) setState(() => _ocupado = false);
+    }
+  }
+
   Future<void> _yoAyudo(AppState st, bool yaAyudo) async {
     if (!st.logueado) {
       await Navigator.push(context, MaterialPageRoute(
@@ -291,7 +320,20 @@ class _PublicacionDetalleState extends State<PublicacionDetalle> {
     final tel = p.contactoTelefono;
 
     return Scaffold(
-      appBar: AppBar(title: Text(p.esPedido ? 'Pedido' : 'Ofrecimiento')),
+      appBar: AppBar(title: Text(p.esPedido ? 'Pedido' : 'Ofrecimiento'), actions: [
+        if (!p.pendiente)
+          IconButton(
+            tooltip: 'Compartir por WhatsApp',
+            icon: const Icon(Icons.share),
+            onPressed: () => compartirWhatsapp(textoCompartir(p)),
+          ),
+        if (!esMio && !p.pendiente)
+          IconButton(
+            tooltip: 'Reportar',
+            icon: const Icon(Icons.flag_outlined),
+            onPressed: () => reportarContenido(context, tabla: 'publicaciones', id: p.id, titulo: p.titulo),
+          ),
+      ]),
       body: ListView(padding: const EdgeInsets.only(bottom: 32), children: [
         Padding(
           padding: const EdgeInsets.all(16),
@@ -329,13 +371,12 @@ class _PublicacionDetalleState extends State<PublicacionDetalle> {
           ),
         _Dato(Icons.description, 'Detalle', p.descripcion),
         _Dato(Icons.groups, 'Personas', p.personas?.toString()),
-        _Dato(Icons.place, 'Ubicación', [?p.sector, if (dist != null) formatoDistancia(dist)].join(' · ')),
+        _Dato(Icons.place, 'Ubicación aproximada (±200 m)',
+            '${[?p.sector, if (dist != null) formatoDistancia(dist)].join(' · ')}\n'
+            'Por seguridad, la dirección exacta se coordina por teléfono.'),
         _Dato(Icons.schedule, 'Publicado', haceCuanto(p.creado)),
-        _Dato(Icons.flag, 'Estado', switch (p.estado) {
-          'en_curso' => 'Ya están ayudando',
-          'resuelta' => 'Resuelto',
-          _ => 'Esperando ayuda',
-        }),
+        _Dato(p.verificada ? Icons.verified : Icons.flag, 'Estado',
+            '${p.estadoTexto}${p.verificada ? ' · Verificado por organización o junta vecinal' : (p.esEmergencia ? ' · Reporte ciudadano sin verificar' : '')}'),
         if (p.origen == 'qr')
           const _Dato(Icons.qr_code_2, 'Cómo llegó', 'Un vecino trajo este pedido por código QR porque no tenía internet.'),
         if (p.pendiente)
@@ -392,11 +433,29 @@ class _PublicacionDetalleState extends State<PublicacionDetalle> {
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              if (esOrg && p.esEmergencia && !p.verificada)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: FilledButton.tonalIcon(
+                    onPressed: _ocupado ? null : () => _verificar(st, true),
+                    icon: const Icon(Icons.verified),
+                    label: const Text('Verificar (lo confirmamos)'),
+                  ),
+                ),
               if (esOrg && p.esEmergencia && p.estado == 'abierta')
                 FilledButton.icon(
                   onPressed: _ocupado ? null : () => _cambiar(st, 'en_curso', atender: true),
                   icon: const Icon(Icons.health_and_safety),
                   label: const Text('Nuestra organización lo atiende'),
+                ),
+              if (esOrg && p.esEmergencia && p.estado != 'no_verificado' && p.estado != 'resuelta')
+                Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: OutlinedButton.icon(
+                    onPressed: _ocupado ? null : () => _verificar(st, false),
+                    icon: const Icon(Icons.help_outline),
+                    label: const Text('Marcar como no verificado'),
+                  ),
                 ),
               if (p.estado != 'resuelta') ...[
                 const SizedBox(height: 12),

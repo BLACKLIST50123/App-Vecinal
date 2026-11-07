@@ -377,6 +377,8 @@ class TarjetaPublicacion extends StatelessWidget {
                     _Etiqueta('${p.ayudantes} ${p.ayudantes == 1 ? 'VA' : 'VAN'} A AYUDAR', const Color(0xFF1565C0))
                   else if (p.estado == 'en_curso')
                     const _Etiqueta('YA ESTÁN AYUDANDO', Color(0xFF1565C0)),
+                  if (p.verificada) const _Etiqueta('✓ VERIFICADO', Color(0xFF00695C)),
+                  if (p.estado == 'no_verificado') const _Etiqueta('NO VERIFICADO', Color(0xFF616161)),
                   if (p.origen == 'qr') const _Etiqueta('LLEGÓ POR QR', Color(0xFF6A1B9A)),
                   if (p.pendiente) const _Etiqueta('POR ENVIAR', Color(0xFF616161)),
                 ]),

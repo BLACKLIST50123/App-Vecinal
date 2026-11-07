@@ -5,6 +5,7 @@ import '../config.dart';
 import '../models.dart';
 import '../state/app_state.dart';
 import '../ui/widgets.dart';
+import 'confianza.dart';
 import 'publicar.dart';
 import 'qr_screens.dart';
 import 'tutorial.dart';
@@ -183,23 +184,18 @@ class EmergenciaScreen extends StatelessWidget {
           _AccionGrande(icono: Icons.health_and_safety, texto: 'Grupos de apoyo', onTap: () => irA(1)),
           _AccionGrande(icono: Icons.map, texto: 'Mapa de ayuda', onTap: () => irA(3)),
         ]),
-        const TituloSeccion('Números de emergencia'),
-        Card(
-          child: Column(children: [
-            for (final (nombre, numero, icono) in numerosEmergencia)
-              ListTile(
-                leading: Icon(icono, color: rojo, size: 32),
-                title: Text(nombre, style: const TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: Text('Llamada gratuita: $numero'),
-                trailing: FilledButton.icon(
-                  style: FilledButton.styleFrom(backgroundColor: rojo, foregroundColor: Colors.white),
-                  onPressed: () => llamar(numero),
-                  icon: const Icon(Icons.call),
-                  label: Text(numero),
-                ),
-              ),
-          ]),
-        ),
+        const SizedBox(height: 8),
+        const AvisoAutoridades(),
+        if (st.esOrganizacion || st.esModerador)
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.dashboard, size: 36),
+              title: const Text('Panel de coordinación', style: TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: const Text('Pendientes, en atención, verificados y reportes'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PanelCoordinacionScreen())),
+            ),
+          ),
         Card(
           color: const Color(0xFFEDE7F6),
           child: ListTile(

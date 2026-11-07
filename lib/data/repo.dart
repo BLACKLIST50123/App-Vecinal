@@ -174,6 +174,61 @@ class Repo {
     return (pubs.map(Publicacion.fromMap).toList(), servs.map(Servicio.fromMap).toList());
   }
 
+  // ------------------------------------------- confianza y coordinación
+
+  Future<void> reportar({
+    required String tabla,
+    required String id,
+    required String titulo,
+    required String motivo,
+    String? detalle,
+  }) =>
+      db.from('reportes').insert({
+        'tabla': tabla,
+        'objeto_id': id,
+        'titulo': titulo,
+        'motivo': motivo,
+        if (detalle != null && detalle.trim().isNotEmpty) 'detalle': detalle.trim(),
+      });
+
+  /// Reportes sin revisar (solo los ve el moderador, lo valida RLS).
+  Future<List<Map<String, dynamic>>> reportesPendientes() => db
+      .from('reportes')
+      .select('id, tabla, objeto_id, titulo, motivo, detalle, created_at')
+      .eq('revisado', false)
+      .order('created_at', ascending: false);
+
+  Future<void> marcarReportesRevisados(String tabla, String objetoId) =>
+      db.from('reportes').update({'revisado': true}).eq('tabla', tabla).eq('objeto_id', objetoId);
+
+  Future<void> verificar(String id, {required bool verificada, required String estadoActual}) =>
+      db.from('publicaciones').update({
+        'verificada': verificada,
+        if (!verificada) 'estado': 'no_verificado',
+        if (verificada && estadoActual == 'no_verificado') 'estado': 'abierta',
+      }).eq('id', id);
+
+  /// Indicadores para el panel de coordinación (todas las publicaciones,
+  /// incluidas las atendidas).
+  Future<Map<String, int>> indicadores({required bool emergencia}) async {
+    final filas = await _consultar(
+      'indicadores_$emergencia',
+      () => db.from('publicaciones').select('estado, tipo, verificada, ayudas(count)').eq('es_emergencia', emergencia).limit(2000),
+    );
+    final r = <String, int>{'abierta': 0, 'en_curso': 0, 'resuelta': 0, 'no_verificado': 0, 'verificadas': 0, 'ayudantes': 0, 'total': 0};
+    for (final f in filas) {
+      final e = (f['estado'] ?? 'abierta') as String;
+      r[e] = (r[e] ?? 0) + 1;
+      r['total'] = r['total']! + 1;
+      if (f['verificada'] == true) r['verificadas'] = r['verificadas']! + 1;
+      r['ayudantes'] = r['ayudantes']! + _contar(f['ayudas']);
+    }
+    return r;
+  }
+
+  static int _contar(dynamic x) =>
+      x is List && x.isNotEmpty && x.first is Map ? (((x.first as Map)['count'] as num?)?.toInt() ?? 0) : 0;
+
   Future<void> ofrecerAyuda(String publicacionId) =>
       db.from('ayudas').insert({'publicacion_id': publicacionId});
 
