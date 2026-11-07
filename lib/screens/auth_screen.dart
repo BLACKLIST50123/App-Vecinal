@@ -129,7 +129,10 @@ class _AuthScreenState extends State<AuthScreen> {
     try {
       await Supabase.instance.client.auth.signInWithPassword(email: id, password: _clave.text);
       if (!mounted) return;
-      await context.read<AppState>().cargarPerfil();
+      final st = context.read<AppState>();
+      await st.cargarPerfil();
+      // Cuenta que ya existía: sin tutorial ni "¿Quién soy hoy?".
+      st.entrarConCuentaExistente();
       avisar('¡Bienvenido de nuevo!');
       if (mounted) Navigator.pop(context);
     } catch (e) {

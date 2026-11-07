@@ -225,6 +225,24 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Inició sesión con una cuenta que ya existía: el tutorial y "¿Quién soy
+  /// hoy?" son solo para cuentas nuevas, así que se saltan (aunque sea un
+  /// celular nuevo). Si en este celular nunca eligió rol, se toma de su
+  /// perfil (prestador o vecino).
+  void entrarConCuentaExistente() {
+    if (!prefs.containsKey('rol_simulado')) {
+      rolSimulado = perfil?['es_prestador'] == true ? 'prestador' : 'vecino';
+      prefs.setString('rol_simulado', rolSimulado);
+    }
+    tutorialVisto = true;
+    rolElegido = true;
+    invitado = false;
+    prefs.setBool('tutorial_visto', true);
+    prefs.setBool('rol_elegido', true);
+    prefs.setBool('modo_invitado', false);
+    notifyListeners();
+  }
+
   /// Emergencia en la bienvenida: entra sin cuenta y sin pasos previos,
   /// directo a la pantalla de ayuda.
   void entrarEnEmergencia() {
