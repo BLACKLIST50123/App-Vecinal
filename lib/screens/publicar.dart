@@ -40,7 +40,9 @@ enum TipoForm {
         grupoApoyo => categoriasApoyo,
         necesitoAyuda => categoriasEmergencia.where((c) => c.id != 'recurso' && c.id != 'vulnerable').toList(),
         reportarVulnerable => categoriasEmergencia.where((c) => c.id == 'vulnerable').toList(),
-        ofrezcoRecurso => categoriasEmergencia.where((c) => c.id != 'vulnerable' && c.id != 'rescate').toList(),
+        ofrezcoRecurso => categoriasEmergencia
+            .where((c) => !{'vulnerable', 'rescate', 'inseguridad', 'sismo'}.contains(c.id))
+            .toList(),
       };
 
   String get pista => switch (this) {

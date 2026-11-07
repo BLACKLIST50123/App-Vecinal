@@ -84,6 +84,8 @@ const categoriasEmergencia = <Categoria>[
   Categoria('agua_alimento', 'Agua y comida', Icons.water_drop),
   Categoria('albergue', 'Un lugar para dormir', Icons.night_shelter),
   Categoria('recurso', 'Cosas para compartir', Icons.inventory_2),
+  Categoria('inseguridad', 'Inseguridad', Icons.shield_outlined),
+  Categoria('sismo', 'Daños por sismo', Icons.house_outlined),
   Categoria('otros', 'Otros', Icons.more_horiz),
 ];
 

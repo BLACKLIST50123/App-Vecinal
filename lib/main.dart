@@ -5,6 +5,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'data/repo.dart';
+import 'features/sos/sos_atajo.dart';
+import 'features/sos/sos_boton.dart';
+import 'features/sos/sos_navegacion.dart';
 import 'screens/home_shell.dart';
 import 'screens/tutorial.dart';
 import 'state/app_state.dart';
@@ -24,6 +27,7 @@ Future<void> main() async {
   final prefs = await SharedPreferences.getInstance();
   await Supabase.initialize(url: supabaseUrl, publishableKey: supabaseKey);
   final estado = AppState(prefs, Repo(prefs, Supabase.instance.client));
+  AtajoVolumenSos.instalar();
   runApp(ChangeNotifierProvider.value(value: estado, child: const AppVecinal()));
 }
 
@@ -37,6 +41,8 @@ class AppVecinal extends StatelessWidget {
       title: 'App Vecinal',
       debugShowCheckedModeBanner: false,
       scaffoldMessengerKey: mensajero,
+      navigatorKey: navegador,
+      navigatorObservers: [observadorSos],
       locale: const Locale('es', 'PE'),
       supportedLocales: const [Locale('es', 'PE'), Locale('es')],
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
@@ -46,7 +52,8 @@ class AppVecinal extends StatelessWidget {
         final sistema = mq.textScaler.scale(1);
         return MediaQuery(
           data: mq.copyWith(textScaler: TextScaler.linear(sistema > st.escala ? sistema : st.escala)),
-          child: child!,
+          // Botón SOS sobre todas las pantallas.
+          child: CapaSos(child: child!),
         );
       },
       home: st.tutorialVisto ? const HomeShell() : const TutorialScreen(inicial: true),

@@ -1,5 +1,6 @@
 import 'package:app_vecinal/config.dart';
 import 'package:app_vecinal/data/qr_codec.dart';
+import 'package:app_vecinal/features/sos/sos_tipos.dart';
 import 'package:app_vecinal/main.dart';
 import 'package:app_vecinal/models.dart';
 import 'package:app_vecinal/util.dart';
@@ -43,6 +44,19 @@ void main() {
       expect(QrCodec.decodificar('https://ejemplo.com'), isNull);
       expect(QrCodec.decodificar('{"app":"otra","d":{}}'), isNull);
       expect(QrCodec.decodificar('{"app":"vecinal","v":1,"d":{"id":"x","tipo":"pido","categoria":"a","titulo":"abc"}}'), isNull);
+    });
+  });
+
+  group('Modo SOS', () {
+    test('los 4 reportes de un toque y sus prioridades', () {
+      expect(TipoSos.values.map((t) => t.titulo), ['Auxilio Médico', 'Inseguridad', 'Falta de Agua', 'Sismo']);
+      expect(TipoSos.medico.prioridad, 'critica');
+      expect(TipoSos.agua.prioridad, 'alta');
+    });
+
+    test('solo Sismo va resaltado en ámbar de advertencia', () {
+      expect(TipoSos.values.where((t) => t.advertencia), [TipoSos.sismo]);
+      expect(TipoSos.medico.color, ColoresSos.rojo);
     });
   });
 
