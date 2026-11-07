@@ -34,7 +34,7 @@ Future<bool> confirmarEliminar(BuildContext context, AppState st, String tabla, 
       actions: [
         TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancelar')),
         FilledButton(
-          style: FilledButton.styleFrom(backgroundColor: const Color(0xFFB71C1C), foregroundColor: Colors.white),
+          style: FilledButton.styleFrom(backgroundColor: const Color(0xFFE53935), foregroundColor: Colors.white),
           onPressed: () => Navigator.pop(c, true),
           child: const Text('Eliminar'),
         ),
@@ -224,7 +224,7 @@ class _ServicioDetalleState extends State<ServicioDetalle> {
           Padding(
             padding: const EdgeInsets.all(16),
             child: OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFFB71C1C)),
+              style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFFE53935)),
               onPressed: () async {
                 final ok = await confirmarEliminar(context, st, 'servicios', s.id, esModeracion: !esMio);
                 if (ok && context.mounted) Navigator.pop(context);
@@ -662,7 +662,7 @@ class _PublicacionDetalleState extends State<PublicacionDetalle> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFFB71C1C)),
+              style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFFE53935)),
               onPressed: () async {
                 final ok = await confirmarEliminar(context, st, 'publicaciones', p.id, esModeracion: !esMio);
                 if (ok && context.mounted) Navigator.pop(context);

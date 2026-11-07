@@ -93,7 +93,7 @@ Future<void> abrirMenuPublicar(BuildContext context) {
               padding: const EdgeInsets.only(bottom: 10),
               child: Material(
                 color: o == TipoForm.necesitoAyuda
-                    ? const Color(0xFFB71C1C)
+                    ? const Color(0xFFE53935)
                     : Theme.of(c).colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(16),
                 child: ListTile(
@@ -515,7 +515,7 @@ class _FormularioPublicarState extends State<FormularioPublicar> {
             height: 60,
             child: FilledButton.icon(
               style: t == TipoForm.necesitoAyuda || t == TipoForm.reportarVulnerable
-                  ? FilledButton.styleFrom(backgroundColor: const Color(0xFFB71C1C), foregroundColor: Colors.white)
+                  ? FilledButton.styleFrom(backgroundColor: const Color(0xFFE53935), foregroundColor: Colors.white)
                   : null,
               onPressed: _enviando ? null : _publicar,
               icon: _enviando

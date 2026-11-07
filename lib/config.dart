@@ -87,10 +87,18 @@ const categoriasEmergencia = <Categoria>[
   Categoria('otros', 'Otros', Icons.more_horiz),
 ];
 
+/// Reportes rápidos del botón SOS (Modo Emergencia).
+const categoriasSOS = <Categoria>[
+  Categoria('sos_medico', 'Auxilio médico', Icons.medical_services),
+  Categoria('sos_inseguridad', 'Inseguridad', Icons.local_police),
+  Categoria('sos_agua', 'Falta de agua', Icons.water_drop),
+  Categoria('sos_sismo', 'Sismo', Icons.house_siding),
+];
+
 Categoria buscarCategoria(String id, {bool emergencia = false}) {
   final listas = emergencia
-      ? [categoriasEmergencia, categoriasApoyo, categoriasFavor, categoriasServicio]
-      : [categoriasServicio, categoriasFavor, categoriasApoyo, categoriasEmergencia];
+      ? [categoriasSOS, categoriasEmergencia, categoriasApoyo, categoriasFavor, categoriasServicio]
+      : [categoriasServicio, categoriasFavor, categoriasApoyo, categoriasEmergencia, categoriasSOS];
   for (final l in listas) {
     for (final c in l) {
       if (c.id == id) return c;

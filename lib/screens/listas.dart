@@ -174,7 +174,7 @@ class _FavoresScreenState extends State<FavoresScreen> {
               subtitulo: e
                   ? 'Mira quién necesita ayuda y qué hay para compartir.'
                   : 'Entre vecinos, sin dinero de por medio.',
-              colores: e ? const [Color(0xFFB71C1C), Color(0xFFD84343)] : const [Paleta.terracota1, Paleta.terracota2],
+              colores: e ? const [Color(0xFFE53935), Color(0xFFEF5350)] : const [Paleta.acentoOscuro, Paleta.acento],
               colorIcono: Colors.white,
             ),
             Padding(

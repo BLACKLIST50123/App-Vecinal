@@ -114,7 +114,7 @@ class BannerEmergencia extends StatelessWidget {
       liveRegion: true,
       child: Container(
         width: double.infinity,
-        color: const Color(0xFFB71C1C),
+        color: const Color(0xFFE53935),
         padding: EdgeInsets.symmetric(horizontal: 16, vertical: grande ? 16 : 8),
         child: Row(children: [
           const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 32),
@@ -408,7 +408,7 @@ class _TarjetaPublicacionState extends State<TarjetaPublicacion> {
     final (fg, bg) = p.esColecta
         ? (const Color(0xFF6A1B9A), const Color(0xFFF3E5F5))
         : critica
-            ? (const Color(0xFFB71C1C), const Color(0xFFFDE7E7))
+            ? (const Color(0xFFE53935), const Color(0xFFFDECEA))
             : p.esPedido
                 ? (esquema.primary, esquema.primaryContainer)
                 : (const Color(0xFF376A89), const Color(0xFFE3EFF5));
@@ -416,7 +416,7 @@ class _TarjetaPublicacionState extends State<TarjetaPublicacion> {
 
     return Card(
       shape: critica
-          ? RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: const BorderSide(color: Color(0xFFB71C1C), width: 2))
+          ? RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: const BorderSide(color: Color(0xFFE53935), width: 2))
           : null,
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
@@ -437,7 +437,7 @@ class _TarjetaPublicacionState extends State<TarjetaPublicacion> {
                 Wrap(spacing: 6, runSpacing: 4, children: [
                   if (p.esColecta) const _Etiqueta('COLECTA', Color(0xFF6A1B9A)),
                   if (!p.esPedido) const _Etiqueta('OFRECE', Color(0xFF376A89)),
-                  if (critica) const _Etiqueta('MUY URGENTE', Color(0xFFB71C1C)),
+                  if (critica) const _Etiqueta('MUY URGENTE', Color(0xFFE53935)),
                   if (p.esEmergencia && p.prioridad == 'alta') const _Etiqueta('URGENTE', Color(0xFFC62828)),
                   if (p.verificada) const _Etiqueta('✓ VERIFICADO', Color(0xFF00695C)),
                   if (p.estado == 'no_verificado') const _Etiqueta('SIN CONFIRMAR', Color(0xFF616161)),

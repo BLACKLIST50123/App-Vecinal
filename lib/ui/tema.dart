@@ -1,26 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// Paleta del diseño de Figma ("App Vecinal").
+/// Paleta del proyecto: azul marino #1E293B, crema #FAF8F5, blanco,
+/// naranja #E8956B y rojo alerta crítica #E53935.
 class Paleta {
-  static const verde = Color(0xFF22644F);
-  static const verdeOscuro = Color(0xFF164B3A);
-  static const verdeClaro = Color(0xFF367A61);
-  static const verdeSuave = Color(0xFFE4F1EB);
-  static const crema = Color(0xFFFAF9F5);
-  static const tinta = Color(0xFF1D2925);
-  static const gris = Color(0xFF718079);
-  static const grisClaro = Color(0xFF8B9791);
-  static const linea = Color(0xFFE7EBE8);
-  static const coral = Color(0xFFEC6C4A);
-  static const terracota1 = Color(0xFFBB6249);
-  static const terracota2 = Color(0xFFD27D5E);
-  static const rojo = Color(0xFFB71C1C);
-  static const rojoSuave = Color(0xFFFDE7E7);
+  // Principal (azul marino) y sus variantes.
+  static const primario = Color(0xFF1E293B);
+  static const primarioOscuro = Color(0xFF0F172A);
+  static const primarioClaro = Color(0xFF334155);
+  static const primarioSuave = Color(0xFFE8ECF2);
+  // Fondo.
+  static const crema = Color(0xFFFAF8F5);
+  // Acento naranja.
+  static const acento = Color(0xFFE8956B);
+  static const acentoOscuro = Color(0xFFC96F45);
+  static const acentoSuave = Color(0xFFFCEEE6);
+  // Texto y líneas.
+  static const tinta = Color(0xFF1E293B);
+  static const gris = Color(0xFF64748B);
+  static const grisClaro = Color(0xFF94A3B8);
+  static const linea = Color(0xFFE5E7EB);
+  // Rojo alerta crítica.
+  static const rojo = Color(0xFFE53935);
+  static const rojoOscuro = Color(0xFFE53935);
+  static const rojoSuave = Color(0xFFFDECEA);
 
-  // Pares (texto, fondo) de las categorías del diseño.
-  static const naranja = (Color(0xFFA8512F), Color(0xFFFBE9DE));
-  static const azul = (Color(0xFF376A89), Color(0xFFE3EFF5));
+  // Pares (texto, fondo) de las categorías.
+  static const naranja = (Color(0xFFA9532B), Color(0xFFFCEEE6));
+  static const azul = (Color(0xFF334155), Color(0xFFE8ECF2));
   static const verdeCat = (Color(0xFF397158), Color(0xFFE2F0E8));
   static const morado = (Color(0xFF725984), Color(0xFFEEE8F2));
 }
@@ -62,14 +69,14 @@ TextTheme _dmSans(TextTheme t) => TextTheme(
 /// blancas con borde fino, botones de al menos 52 px y color distinto en
 /// emergencia. En alto contraste se refuerzan bordes y colores.
 ThemeData construirTema({required bool emergencia, required bool altoContraste}) {
-  final primario = emergencia ? Paleta.rojo : Paleta.verde;
-  final suave = emergencia ? Paleta.rojoSuave : Paleta.verdeSuave;
+  final primario = emergencia ? Paleta.rojo : Paleta.primario;
+  final suave = emergencia ? Paleta.rojoSuave : Paleta.primarioSuave;
   final fondo = altoContraste ? Colors.white : Paleta.crema;
   final borde = altoContraste ? Colors.black : Paleta.linea;
 
   final esquema = altoContraste
       ? ColorScheme.highContrastLight(
-          primary: emergencia ? const Color(0xFF8B0000) : const Color(0xFF003D2E),
+          primary: emergencia ? const Color(0xFF8B0000) : const Color(0xFF0F172A),
           primaryContainer: suave,
           onPrimaryContainer: Colors.black,
           secondary: Colors.black,
@@ -80,13 +87,13 @@ ThemeData construirTema({required bool emergencia, required bool altoContraste})
           primary: primario,
           onPrimary: Colors.white,
           primaryContainer: suave,
-          onPrimaryContainer: emergencia ? const Color(0xFF7F1010) : Paleta.verdeOscuro,
+          onPrimaryContainer: emergencia ? const Color(0xFF7F1010) : Paleta.primarioOscuro,
           surface: fondo,
           onSurface: Paleta.tinta,
           onSurfaceVariant: Paleta.gris,
-          outline: const Color(0xFF9AA59F),
+          outline: const Color(0xFF94A3B8),
           outlineVariant: Paleta.linea,
-          surfaceContainerHighest: const Color(0xFFF1F4F2),
+          surfaceContainerHighest: const Color(0xFFF1F5F9),
         );
 
   final base = ThemeData(colorScheme: esquema, useMaterial3: true, scaffoldBackgroundColor: fondo);
@@ -157,7 +164,7 @@ ThemeData construirTema({required bool emergencia, required bool altoContraste})
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: borde)),
       enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: borde)),
       focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: primario, width: 2)),
-      hintStyle: const TextStyle(color: Color(0xFF93A098)),
+      hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
     ),
     chipTheme: base.chipTheme.copyWith(
       backgroundColor: Colors.white,
@@ -174,7 +181,7 @@ ThemeData construirTema({required bool emergencia, required bool altoContraste})
         backgroundColor: Colors.white,
         selectedBackgroundColor: primario,
         selectedForegroundColor: Colors.white,
-        foregroundColor: const Color(0xFF64726B),
+        foregroundColor: const Color(0xFF64748B),
         side: BorderSide(color: borde),
         textStyle: GoogleFonts.dmSans(fontSize: 14, fontWeight: FontWeight.w600),
       ),

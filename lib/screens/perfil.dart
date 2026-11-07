@@ -14,6 +14,7 @@ import 'confianza.dart';
 import 'detalles.dart';
 import 'publicar.dart';
 import 'qr_screens.dart';
+import 'roles.dart';
 import 'tutorial.dart';
 
 /// Pestaña "Perfil" (diseño Figma): tarjeta de perfil, impacto en el barrio
@@ -149,6 +150,13 @@ class PerfilScreen extends StatelessWidget {
 
       const TituloDiseno('Comunidad'),
       ListaAjustes(filas: [
+        FilaAjuste(
+          icono: infoRol(st.rolSimulado).icono,
+          texto: '¿Quién soy hoy?',
+          valor: st.esPrestadorRol && st.especialidad != null ? st.especialidad! : infoRol(st.rolSimulado).titulo.split(' /').first,
+          color: infoRol(st.rolSimulado).color,
+          onTap: () => _ir(context, const SelectorRolScreen(inicial: false)),
+        ),
         FilaAjuste(icono: Icons.location_on_outlined, texto: 'Mi barrio', valor: st.sector ?? Zona.nombre),
         FilaAjuste(icono: Icons.group_add_outlined, texto: 'Invitar vecinos por WhatsApp', onTap: () => compartirWhatsapp(textoInvitacion)),
         FilaAjuste(icono: Icons.rule, texto: 'Normas del barrio', onTap: () => mostrarNormas(context)),
@@ -547,14 +555,14 @@ class _PanelModeradorState extends State<_PanelModerador> {
         padding: const EdgeInsets.all(16),
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Text(activa ? 'La emergencia está ACTIVA' : 'Sin emergencia activa',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: activa ? const Color(0xFFB71C1C) : null)),
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: activa ? const Color(0xFFE53935) : null)),
           const SizedBox(height: 12),
           TextField(controller: _titulo, decoration: const InputDecoration(labelText: 'Tipo de emergencia')),
           const SizedBox(height: 12),
           TextField(controller: _mensaje, maxLines: 3, decoration: const InputDecoration(labelText: 'Mensaje para los vecinos')),
           const SizedBox(height: 12),
           FilledButton.icon(
-            style: activa ? null : FilledButton.styleFrom(backgroundColor: const Color(0xFFB71C1C), foregroundColor: Colors.white),
+            style: activa ? null : FilledButton.styleFrom(backgroundColor: const Color(0xFFE53935), foregroundColor: Colors.white),
             onPressed: _cargando ? null : () => _cambiar(!activa),
             icon: Icon(activa ? Icons.check_circle : Icons.warning),
             label: Text(activa ? 'Terminar emergencia' : 'Activar modo emergencia'),
