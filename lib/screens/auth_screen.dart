@@ -252,50 +252,87 @@ class _AuthScreenState extends State<AuthScreen> {
           ),
         );
 
+  /// Un solo formulario a la vez: Ingresar o Crear cuenta. Se cambia con
+  /// el enlace de abajo (sin pestañas que confundan).
+  late bool _registro = widget.tabInicial == 1;
+
+  void _cambiarModo() {
+    FocusScope.of(context).unfocus();
+    setState(() {
+      _registro = !_registro;
+      _paso = 0;
+      _error = null;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final dentro = _gps != null && enZona(_gps!);
-    return DefaultTabController(
-      length: 2,
-      initialIndex: widget.tabInicial,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Mi cuenta de vecino'),
-          bottom: const TabBar(tabs: [Tab(text: 'Ingresar'), Tab(text: 'Crear cuenta')]),
-        ),
-        body: TabBarView(children: [
-          ListView(padding: const EdgeInsets.all(16), children: [
-            if (widget.mensaje != null) Card(child: ListTile(leading: const Icon(Icons.info_outline), title: Text(widget.mensaje!))),
-            const SizedBox(height: 8),
-            _campoCorreoClave(),
-            _mensajeError(),
-            const SizedBox(height: 20),
-            FilledButton(onPressed: _cargando ? null : _ingresar, child: Text(_cargando ? 'Ingresando...' : 'Ingresar')),
-          ]),
-          // Abajo, espacio extra para que el botón SOS flotante no tape los botones.
-          ListView(padding: const EdgeInsets.fromLTRB(16, 16, 16, 120), children: [
-            if (widget.mensaje != null) ...[
-              Card(child: ListTile(leading: const Icon(Icons.info_outline), title: Text(widget.mensaje!))),
-              const SizedBox(height: 12),
-            ],
-            _IndicadorPasos(paso: _paso),
-            const SizedBox(height: 20),
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 250),
-              transitionBuilder: (child, a) => FadeTransition(
-                opacity: a,
-                child: SlideTransition(
-                  position: Tween(begin: const Offset(0.06, 0), end: Offset.zero).animate(a),
-                  child: child,
-                ),
-              ),
-              child: _paso == 0 ? _pasoDatos() : _pasoBarrio(dentro),
+    return Scaffold(
+      appBar: AppBar(title: Text(_registro ? 'Crear cuenta' : 'Iniciar sesión')),
+      body: SafeArea(
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 300),
+          transitionBuilder: (child, a) => FadeTransition(
+            opacity: a,
+            child: SlideTransition(
+              position: Tween(begin: const Offset(0, 0.03), end: Offset.zero).animate(a),
+              child: child,
             ),
-          ]),
-        ]),
+          ),
+          // Abajo, espacio extra para que el botón SOS flotante no tape los botones.
+          child: _registro
+              ? ListView(key: const ValueKey('registro'), padding: const EdgeInsets.fromLTRB(16, 16, 16, 120), children: [
+                  if (widget.mensaje != null) ...[_aviso(), const SizedBox(height: 12)],
+                  _IndicadorPasos(paso: _paso),
+                  const SizedBox(height: 20),
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 250),
+                    transitionBuilder: (child, a) => FadeTransition(
+                      opacity: a,
+                      child: SlideTransition(
+                        position: Tween(begin: const Offset(0.06, 0), end: Offset.zero).animate(a),
+                        child: child,
+                      ),
+                    ),
+                    child: _paso == 0 ? _pasoDatos() : _pasoBarrio(dentro),
+                  ),
+                  if (_paso == 0) ...[
+                    const SizedBox(height: 20),
+                    _EnlaceCambio(pregunta: '¿Ya tienes cuenta?', accion: 'Iniciar sesión', onTap: _cambiarModo),
+                  ],
+                ])
+              : ListView(key: const ValueKey('ingresar'), padding: const EdgeInsets.fromLTRB(16, 24, 16, 120), children: [
+                  Center(child: Image.asset('assets/images/logo_icono.png', width: 72, semanticLabel: 'Logo de Conecta Vecino')),
+                  const SizedBox(height: 16),
+                  const _TituloPaso(titulo: '¡Hola de nuevo!', texto: 'Entra con tu celular y tu clave de 6 números.'),
+                  const SizedBox(height: 16),
+                  if (widget.mensaje != null) ...[_aviso(), const SizedBox(height: 16)],
+                  _campoCorreoClave(),
+                  _mensajeError(),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    height: 58,
+                    child: FilledButton.icon(
+                      onPressed: _cargando ? null : _ingresar,
+                      icon: _cargando
+                          ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 3, color: Colors.white))
+                          : const Icon(Icons.login),
+                      label: Text(_cargando ? 'Ingresando...' : 'Ingresar', style: const TextStyle(fontSize: 18)),
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+                  _EnlaceCambio(pregunta: '¿Primera vez aquí?', accion: 'Crear cuenta gratis', onTap: _cambiarModo, destacado: true),
+                ]),
+        ),
       ),
     );
   }
+
+  Widget _aviso() => Card(
+        margin: EdgeInsets.zero,
+        child: ListTile(leading: const Icon(Icons.info_outline), title: Text(widget.mensaje!)),
+      );
 
   // ------------------------------------------------ paso 1: tus datos
 
@@ -506,5 +543,44 @@ class _TituloPaso extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Text(texto, style: const TextStyle(color: Paleta.gris, fontSize: 15, height: 1.35)),
+      ]);
+}
+
+/// "¿Primera vez aquí? Crear cuenta gratis" / "¿Ya tienes cuenta? Iniciar sesión".
+class _EnlaceCambio extends StatelessWidget {
+  const _EnlaceCambio({required this.pregunta, required this.accion, required this.onTap, this.destacado = false});
+  final String pregunta, accion;
+  final VoidCallback onTap;
+  final bool destacado;
+
+  @override
+  Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Row(children: [
+          const Expanded(child: Divider(color: Paleta.linea)),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Text(pregunta, style: const TextStyle(color: Paleta.gris, fontSize: 15)),
+          ),
+          const Expanded(child: Divider(color: Paleta.linea)),
+        ]),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: destacado ? 56 : 48,
+          child: destacado
+              ? OutlinedButton.icon(
+                  onPressed: onTap,
+                  style: OutlinedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    side: const BorderSide(color: Paleta.primario, width: 1.5),
+                  ),
+                  icon: const Icon(Icons.person_add_alt_1),
+                  label: Text(accion, style: const TextStyle(fontSize: 17)),
+                )
+              : TextButton.icon(
+                  onPressed: onTap,
+                  icon: const Icon(Icons.login),
+                  label: Text(accion, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+                ),
+        ),
       ]);
 }
