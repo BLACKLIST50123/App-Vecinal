@@ -26,6 +26,8 @@ class AppState extends ChangeNotifier {
     altoContraste = prefs.getBool('alto_contraste') ?? false;
     voz = prefs.getBool('voz') ?? true;
     tutorialVisto = prefs.getBool('tutorial_visto') ?? false;
+    rolSimulado = prefs.getString('rol_simulado') ?? 'vecino';
+    especialidad = prefs.getString('especialidad');
     repo.forzarOffline = prefs.getBool('forzar_offline') ?? false;
     final p = prefs.getString('perfil');
     if (p != null) perfil = Map<String, dynamic>.from(jsonDecode(p) as Map);
@@ -39,6 +41,12 @@ class AppState extends ChangeNotifier {
   late bool altoContraste;
   late bool voz;
   late bool tutorialVisto;
+
+  /// Rol elegido en "¿Quién soy hoy?": 'vecino', 'prestador' o 'brigadista'.
+  /// Se recuerda la última elección, pero se pregunta en cada apertura.
+  late String rolSimulado;
+  String? especialidad; // oficio del prestador (gasfitero, electricista...)
+  bool rolElegido = false;
 
   bool _red = true;
   EstadoEmergencia emergencia = const EstadoEmergencia.inactiva();
@@ -207,6 +215,20 @@ class AppState extends ChangeNotifier {
   void marcarTutorial(bool visto) {
     tutorialVisto = visto;
     prefs.setBool('tutorial_visto', visto);
+    notifyListeners();
+  }
+
+  bool get esBrigadista => rolSimulado == 'brigadista';
+  bool get esPrestadorRol => rolSimulado == 'prestador';
+
+  void elegirRol(String rol, {String? oficio}) {
+    rolSimulado = rol;
+    rolElegido = true;
+    prefs.setString('rol_simulado', rol);
+    if (oficio != null && oficio.trim().isNotEmpty) {
+      especialidad = oficio.trim();
+      prefs.setString('especialidad', especialidad!);
+    }
     notifyListeners();
   }
 

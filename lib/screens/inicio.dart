@@ -11,6 +11,8 @@ import '../util.dart';
 import 'confianza.dart';
 import 'publicar.dart';
 import 'qr_screens.dart';
+import 'roles.dart';
+import 'detalles.dart';
 
 typedef IrA = void Function(int tab, {String? grupo, String? consulta});
 
@@ -31,11 +33,13 @@ class InicioScreen extends StatelessWidget {
       child: ListView(padding: const EdgeInsets.only(bottom: 110), children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: PildoraUbicacion(texto: st.sector ?? Zona.nombre, onTap: () => irA(3)),
-          ),
+          child: Wrap(spacing: 8, runSpacing: 8, children: [
+            PildoraUbicacion(texto: st.sector ?? Zona.nombre, onTap: () => irA(3)),
+            const PildoraRol(),
+          ]),
         ),
+        if (st.esBrigadista) const PanelBrigadista(),
+        if (st.esPrestadorRol) const TarjetaPrestador(),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
           child: CajaBusqueda(
@@ -61,7 +65,7 @@ class InicioScreen extends StatelessWidget {
           icono: Icons.favorite_border,
           titulo: 'Entre vecinos nos ayudamos',
           subtitulo: 'Pide una mano o responde a una solicitud',
-          colores: const [Paleta.verde, Paleta.verdeClaro],
+          colores: const [Paleta.primario, Paleta.primarioClaro],
           onTap: () => irA(2),
         ),
 
@@ -110,10 +114,11 @@ class EmergenciaScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final st = context.watch<AppState>();
     const rojo = Paleta.rojo;
-    const rojoCat = (Color(0xFFB71C1C), Color(0xFFFDE7E7));
+    const rojoCat = (Color(0xFFE53935), Color(0xFFFDECEA));
     return RefreshIndicator(
       onRefresh: () async => st.refrescar(),
       child: ListView(padding: const EdgeInsets.only(bottom: 110), children: [
+        if (st.esBrigadista) ...[const PanelBrigadista(), const SizedBox(height: 12)],
         if (st.emergencia.mensaje != null)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 8, 8),
@@ -175,7 +180,7 @@ class EmergenciaScreen extends StatelessWidget {
         const AvisoAutoridades(),
         const SizedBox(height: 6),
         ListaAjustes(filas: [
-          if (st.esOrganizacion || st.esModerador)
+          if (st.esOrganizacion || st.esModerador || st.esBrigadista)
             FilaAjuste(
               icono: Icons.dashboard_outlined,
               texto: 'Panel de coordinación',
@@ -201,6 +206,121 @@ class EmergenciaScreen extends StatelessWidget {
             }
             return Column(children: [for (final p in pedidos.take(5)) TarjetaPublicacion(p)]);
           },
+        ),
+      ]),
+    );
+  }
+}
+
+// ============================================================== roles
+
+/// Brigadista / líder comunitario: punto focal que recibe las alertas SOS.
+class PanelBrigadista extends StatelessWidget {
+  const PanelBrigadista({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final st = context.watch<AppState>();
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Paleta.rojo.withValues(alpha: 0.35), width: 1.5),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Container(
+          color: Paleta.rojoSuave,
+          padding: const EdgeInsets.all(14),
+          child: Row(children: [
+            const Icon(Icons.health_and_safety, color: Paleta.rojo, size: 28),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Text('Eres punto focal de tu brigada',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Paleta.rojoOscuro)),
+                Text(st.modoEmergencia ? 'Modo crítico activo: coordina la ayuda y el reparto de recursos.' : 'Aquí llegan las alertas SOS de tus vecinos.',
+                    style: const TextStyle(fontSize: 13, color: Paleta.tinta)),
+              ]),
+            ),
+          ]),
+        ),
+        Cargador<List<Publicacion>>(
+          cargar: (st) => st.repo.publicaciones(emergencia: true),
+          builder: (c, lista) {
+            final alertas = lista.where((p) => p.categoria.startsWith('sos_')).toList();
+            if (alertas.isEmpty) {
+              return const Padding(
+                padding: EdgeInsets.all(14),
+                child: Text('Sin alertas SOS abiertas. Todo tranquilo por ahora.', style: TextStyle(color: Paleta.gris)),
+              );
+            }
+            return Column(children: [
+              for (final p in alertas.take(4))
+                ListTile(
+                  leading: Icon(buscarCategoria(p.categoria, emergencia: true).icono, color: Paleta.rojo),
+                  title: Text(p.titulo, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                  subtitle: Text([p.autorNombre ?? 'Vecino', if (p.sector != null) p.sector!, haceCuanto(p.creado)].join(' · ')),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.push(c, MaterialPageRoute(builder: (_) => PublicacionDetalle(publicacion: p))),
+                ),
+            ]);
+          },
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+          child: OutlinedButton.icon(
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PanelCoordinacionScreen())),
+            icon: const Icon(Icons.dashboard_outlined),
+            label: const Text('Panel de coordinación'),
+          ),
+        ),
+      ]),
+    );
+  }
+}
+
+/// Prestador de servicios: muestra su oficio y sus Vistos Buenos.
+class TarjetaPrestador extends StatelessWidget {
+  const TarjetaPrestador({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final st = context.watch<AppState>();
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: Paleta.acentoSuave, borderRadius: BorderRadius.circular(20)),
+      child: Row(children: [
+        Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(color: Paleta.acento, borderRadius: BorderRadius.circular(15)),
+          child: const Icon(Icons.handyman, color: Colors.white),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(st.especialidad ?? 'Prestador de servicios', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+            if (st.logueado)
+              Cargador<(List<Publicacion>, List<Servicio>)>(
+                cargar: (st) => st.repo.misPublicaciones(),
+                builder: (c, datos) {
+                  final vb = datos.$2.fold<int>(0, (a, s) => a + s.vistosBuenos);
+                  return Text('$vb Vistos Buenos vecinales · ${datos.$2.length} servicios publicados',
+                      style: const TextStyle(color: Paleta.gris, fontSize: 13));
+                },
+              )
+            else
+              const Text('Crea tu cuenta para acumular reseñas del Visto Bueno Vecinal.',
+                  style: TextStyle(color: Paleta.gris, fontSize: 13)),
+          ]),
+        ),
+        IconButton(
+          tooltip: 'Publicar mi servicio',
+          onPressed: () => abrirFormulario(context, TipoForm.servicio),
+          icon: const Icon(Icons.add_circle, color: Paleta.acentoOscuro, size: 30),
         ),
       ]),
     );

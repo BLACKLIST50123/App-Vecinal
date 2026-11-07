@@ -6,6 +6,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'data/repo.dart';
 import 'screens/home_shell.dart';
+import 'screens/roles.dart';
+import 'screens/sos.dart';
 import 'screens/tutorial.dart';
 import 'state/app_state.dart';
 import 'ui/tema.dart';
@@ -24,6 +26,7 @@ Future<void> main() async {
   final prefs = await SharedPreferences.getInstance();
   await Supabase.initialize(url: supabaseUrl, publishableKey: supabaseKey);
   final estado = AppState(prefs, Repo(prefs, Supabase.instance.client));
+  AtajoVolumen.instalar();
   runApp(ChangeNotifierProvider.value(value: estado, child: const AppVecinal()));
 }
 
@@ -37,6 +40,7 @@ class AppVecinal extends StatelessWidget {
       title: 'App Vecinal',
       debugShowCheckedModeBanner: false,
       scaffoldMessengerKey: mensajero,
+      navigatorKey: navegador,
       locale: const Locale('es', 'PE'),
       supportedLocales: const [Locale('es', 'PE'), Locale('es')],
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
@@ -46,10 +50,18 @@ class AppVecinal extends StatelessWidget {
         final sistema = mq.textScaler.scale(1);
         return MediaQuery(
           data: mq.copyWith(textScaler: TextScaler.linear(sistema > st.escala ? sistema : st.escala)),
-          child: child!,
+          child: Stack(children: [
+            child!,
+            // Botón de pánico accesible desde cualquier pantalla.
+            if (st.tutorialVisto && st.rolElegido) const BotonSOSFlotante(),
+          ]),
         );
       },
-      home: st.tutorialVisto ? const HomeShell() : const TutorialScreen(inicial: true),
+      home: !st.tutorialVisto
+          ? const TutorialScreen(inicial: true)
+          : !st.rolElegido
+              ? const SelectorRolScreen()
+              : const HomeShell(),
     );
   }
 }
