@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -97,17 +98,18 @@ class _AuthScreenState extends State<AuthScreen> {
 
   Future<void> _registrar() async {
     final id = _id;
-    final faltante = _nombre.text.trim().length < 2
-        ? 'Escribe tu nombre.'
-        : id == null
+    final faltante = validarNombre(_nombre.text) ??
+        (id == null
             ? _errorId
+            : _usarCorreo && validarTelefono(_telefono.text) != null
+                ? validarTelefono(_telefono.text)
             : _clave.text.length < 6
                 ? 'La clave debe tener al menos 6 números.'
                 : _sector == null
                     ? 'Elige tu sector.'
                     : !_aceptaNormas
                         ? 'Para unirte, acepta las normas del barrio.'
-                        : null;
+                        : null);
     if (faltante != null) {
       setState(() => _error = faltante);
       return;
@@ -168,6 +170,7 @@ class _AuthScreenState extends State<AuthScreen> {
           key: ValueKey(_usarCorreo),
           controller: _correo,
           keyboardType: _usarCorreo ? TextInputType.emailAddress : TextInputType.phone,
+          inputFormatters: _usarCorreo ? null : formatoTelefono,
           autofillHints: [_usarCorreo ? AutofillHints.email : AutofillHints.telephoneNumberNational],
           style: const TextStyle(fontSize: 18),
           decoration: InputDecoration(
@@ -230,7 +233,8 @@ class _AuthScreenState extends State<AuthScreen> {
             TextField(
               controller: _nombre,
               textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(labelText: 'Tu nombre', prefixIcon: Icon(Icons.person)),
+              inputFormatters: [soloLetras, LengthLimitingTextInputFormatter(60)],
+              decoration: const InputDecoration(labelText: 'Tu nombre y apellido', prefixIcon: Icon(Icons.person)),
             ),
             const SizedBox(height: 12),
             _campoCorreoClave(),
@@ -239,7 +243,8 @@ class _AuthScreenState extends State<AuthScreen> {
               TextField(
                 controller: _telefono,
                 keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(labelText: 'Teléfono o WhatsApp (opcional)', prefixIcon: Icon(Icons.phone)),
+                inputFormatters: formatoTelefono,
+                decoration: const InputDecoration(labelText: 'Celular o WhatsApp (opcional)', hintText: '987654321', prefixIcon: Icon(Icons.phone)),
               ),
             ],
             const SizedBox(height: 16),
