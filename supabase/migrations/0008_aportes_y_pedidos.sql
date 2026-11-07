@@ -1,5 +1,5 @@
 -- =====================================================================
--- Migración 0006 · Aportes y Pedidos de Servicios
+-- Migración 0008 · Aportes y Pedidos de Servicios
 -- Permite a los vecinos solicitar servicios/productos/clases desde la app,
 -- y a los prestadores administrar sus pedidos y publicaciones en "Mis aportes".
 -- =====================================================================
@@ -75,6 +75,6 @@ begin
 end $$;
 
 insert into public.migraciones (version, nombre)
-values ('0006', 'Aportes y Pedidos de Servicios')
+values ('0008', 'Aportes y Pedidos de Servicios')
 on conflict do nothing;
 
