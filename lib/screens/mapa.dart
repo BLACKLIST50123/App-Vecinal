@@ -148,7 +148,12 @@ class _MapaScreenState extends State<MapaScreen> {
 
             return Stack(children: [
               FlutterMap(
-                options: MapOptions(initialCenter: LatLng(ref.lat, ref.lng), initialZoom: 14),
+                options: MapOptions(
+                  initialCenter: LatLng(ref.lat, ref.lng),
+                  initialZoom: st.ubicacion != null ? 14.5 : 12.6,
+                  minZoom: 11,
+                  maxZoom: 18,
+                ),
                 children: [
                   TileLayer(
                     urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',

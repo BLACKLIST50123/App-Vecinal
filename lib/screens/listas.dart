@@ -49,7 +49,7 @@ class _ServiciosScreenState extends State<ServiciosScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 12),
         child: SegmentedButton<bool>(
           segments: const [
-            ButtonSegment(value: false, icon: Icon(Icons.thumb_up), label: Text('Más recomendados')),
+            ButtonSegment(value: false, icon: Icon(Icons.thumb_up), label: Text('Recomendados')),
             ButtonSegment(value: true, icon: Icon(Icons.near_me), label: Text('Más cerca')),
           ],
           selected: {_porCercania},
