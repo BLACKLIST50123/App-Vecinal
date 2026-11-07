@@ -14,6 +14,10 @@ double distanciaKm(Punto a, Punto b) {
   return 2 * r * asin(min(1.0, sqrt(h)));
 }
 
+/// Distancia redondeada a 500 m, para ordenar "cerca" sin que unos metros
+/// de diferencia ganen a un servicio mucho mejor recomendado.
+double distanciaKmRedondeada(Punto a, Punto b) => (distanciaKm(a, b) * 2).roundToDouble() / 2;
+
 bool enZona(Punto p) => distanciaKm(p, Zona.centro) <= Zona.radioKm;
 
 /// Privacidad: los pedidos de ayuda se publican con ubicación aproximada

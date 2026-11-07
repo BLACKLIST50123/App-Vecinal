@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../config.dart';
 import '../models.dart';
 import '../state/app_state.dart';
+import '../ui/diseno.dart';
+import '../ui/tema.dart';
 import '../ui/widgets.dart';
 import '../util.dart';
 import 'confianza.dart';
@@ -11,92 +13,102 @@ import 'confianza.dart';
 // ======================================= Módulo 1 · Servicios de Proximidad
 
 class ServiciosScreen extends StatefulWidget {
-  const ServiciosScreen({super.key, required this.emergencia});
+  const ServiciosScreen({super.key, required this.emergencia, this.grupoInicial, this.consultaInicial});
   final bool emergencia;
+  final String? grupoInicial; // servicios | productos | clases
+  final String? consultaInicial;
 
   @override
   State<ServiciosScreen> createState() => _ServiciosScreenState();
 }
 
 class _ServiciosScreenState extends State<ServiciosScreen> {
-  String _busqueda = '';
-  String? _categoria;
+  late final TextEditingController _buscar = TextEditingController(text: widget.consultaInicial ?? '');
+  late String _busqueda = (widget.consultaInicial ?? '').toLowerCase();
+  late String _filtro = widget.grupoInicial ?? 'todos';
   bool _porCercania = false;
 
   @override
-  void didUpdateWidget(covariant ServiciosScreen old) {
-    super.didUpdateWidget(old);
-    if (old.emergencia != widget.emergencia) _categoria = null;
+  void dispose() {
+    _buscar.dispose();
+    super.dispose();
+  }
+
+  bool _pasaFiltro(Servicio s) {
+    if (_filtro == 'todos') return true;
+    if (widget.emergencia) return s.categoria == _filtro;
+    return grupoServicio(s.categoria) == _filtro;
   }
 
   @override
   Widget build(BuildContext context) {
     final st = context.read<AppState>();
-    final cats = widget.emergencia ? categoriasApoyo : categoriasServicio;
-    return Column(children: [
-      Padding(
-        padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
-        child: TextField(
-          onChanged: (v) => setState(() => _busqueda = v.trim().toLowerCase()),
-          decoration: InputDecoration(
-            prefixIcon: const Icon(Icons.search),
-            labelText: widget.emergencia ? 'Buscar grupo de apoyo' : 'Buscar servicio o producto',
-            hintText: widget.emergencia ? 'Ej: albergue, primeros auxilios' : 'Ej: gasfitero, pan, bodega, clases',
-          ),
-        ),
-      ),
-      SelectorCategorias(categorias: cats, seleccion: _categoria, onCambio: (c) => setState(() => _categoria = c)),
-      Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        child: SegmentedButton<bool>(
-          segments: const [
-            ButtonSegment(value: false, icon: Icon(Icons.thumb_up), label: Text('Recomendados')),
-            ButtonSegment(value: true, icon: Icon(Icons.near_me), label: Text('Más cerca')),
-          ],
-          selected: {_porCercania},
-          onSelectionChanged: (s) => setState(() => _porCercania = s.first),
-        ),
-      ),
-      Expanded(
-        child: RefreshIndicator(
-          onRefresh: () async => st.refrescar(),
-          child: Cargador<List<Servicio>>(
-            claves: [widget.emergencia],
-            cargar: (st) => st.repo.servicios(emergencia: widget.emergencia),
-            builder: (context, todos) {
-              final ref = context.read<AppState>().referencia;
-              final lista = todos.where((s) {
-                if (_categoria != null && s.categoria != _categoria) return false;
-                if (_busqueda.isEmpty) return true;
-                final texto = '${s.titulo} ${s.descripcion ?? ''} ${s.autorNombre ?? ''} '
-                        '${buscarCategoria(s.categoria).nombre} ${s.sector ?? ''}'
-                    .toLowerCase();
-                return texto.contains(_busqueda);
-              }).toList();
-              double d(Servicio s) => s.punto == null ? 999 : distanciaKm(ref, s.punto!);
-              lista.sort(_porCercania
-                  ? (a, b) => d(a).compareTo(d(b))
-                  : (a, b) => b.vistosBuenos.compareTo(a.vistosBuenos));
-              if (lista.isEmpty) {
-                return ListView(children: [
-                  EstadoVacio(
-                    icono: Icons.search_off,
-                    texto: widget.emergencia
-                        ? 'No hay grupos de apoyo con ese filtro.'
-                        : 'No encontramos ese servicio en tu barrio todavía.\n¿Conoces a alguien bueno? Invítalo a publicarse.',
+    final e = widget.emergencia;
+    final opciones = e
+        ? [('todos', 'Todos'), for (final c in categoriasApoyo) (c.id, c.nombre)]
+        : const [('todos', 'Todos'), ('servicios', 'Servicios'), ('productos', 'Productos'), ('clases', 'Clases')];
+
+    return RefreshIndicator(
+      onRefresh: () async => st.refrescar(),
+      child: Cargador<List<Servicio>>(
+        claves: [e],
+        cargar: (st) => st.repo.servicios(emergencia: e),
+        builder: (context, todos) {
+          final ref = context.read<AppState>().referencia;
+          final lista = todos.where((s) {
+            if (!_pasaFiltro(s)) return false;
+            if (_busqueda.isEmpty) return true;
+            final texto = '${s.titulo} ${s.descripcion ?? ''} ${s.autorNombre ?? ''} '
+                    '${buscarCategoria(s.categoria).nombre} ${s.sector ?? ''}'
+                .toLowerCase();
+            return texto.contains(_busqueda);
+          }).toList();
+          double d(Servicio s) => s.punto == null ? 999 : distanciaKm(ref, s.punto!);
+          lista.sort(_porCercania ? (a, b) => d(a).compareTo(d(b)) : (a, b) => b.vistosBuenos.compareTo(a.vistosBuenos));
+
+          return ListView(padding: const EdgeInsets.only(bottom: 110), children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+              child: CajaBusqueda(
+                controller: _buscar,
+                pista: e ? 'Ej: albergue, primeros auxilios' : 'Buscar servicios o productos',
+                etiqueta: e ? 'Buscar grupo de apoyo' : 'Buscar servicios o productos',
+                onChanged: (v) => setState(() => _busqueda = v.trim().toLowerCase()),
+              ),
+            ),
+            FilaPildoras(opciones: opciones, seleccion: _filtro, onCambio: (v) => setState(() => _filtro = v)),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 14, 12, 10),
+              child: Row(children: [
+                Expanded(
+                  child: Semantics(
+                    header: true,
+                    child: Text(_porCercania ? 'Más cerca de ti' : 'Recomendados',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 19)),
                   ),
-                ]);
-              }
-              return ListView.builder(
-                padding: const EdgeInsets.only(top: 4, bottom: 96),
-                itemCount: lista.length,
-                itemBuilder: (_, i) => TarjetaServicio(lista[i]),
-              );
-            },
-          ),
-        ),
+                ),
+                Text('${lista.length} ${lista.length == 1 ? 'resultado' : 'resultados'}',
+                    style: const TextStyle(color: Paleta.gris, fontSize: 13)),
+                IconButton(
+                  tooltip: _porCercania ? 'Ordenar por recomendaciones' : 'Ordenar por cercanía',
+                  onPressed: () => setState(() => _porCercania = !_porCercania),
+                  icon: Icon(_porCercania ? Icons.thumb_up_outlined : Icons.near_me_outlined),
+                ),
+              ]),
+            ),
+            if (lista.isEmpty)
+              EstadoVacio(
+                icono: Icons.search_off,
+                texto: e
+                    ? 'No hay grupos de apoyo con ese filtro.'
+                    : 'No encontramos eso en tu barrio todavía.\n¿Conoces a alguien bueno? Invítalo a publicarse.',
+              )
+            else
+              Cuadricula2(hijos: [for (final s in lista) TarjetaMercado(s)]),
+          ]);
+        },
       ),
-    ]);
+    );
   }
 }
 
@@ -154,32 +166,33 @@ class _FavoresScreenState extends State<FavoresScreen> {
             return _porCercania ? d(a).compareTo(d(b)) : b.creado.compareTo(a.creado);
           });
 
-          return ListView(padding: const EdgeInsets.only(bottom: 96), children: [
-            // Bienvenida
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 8, 4),
-              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Expanded(child: Text(bienvenida, style: Theme.of(context).textTheme.titleMedium)),
-                BotonEscuchar(bienvenida, compacto: true),
-              ]),
+          return ListView(padding: const EdgeInsets.only(bottom: 110), children: [
+            // Bienvenida (banner terracota del diseño)
+            BannerDegradado(
+              icono: e ? Icons.volunteer_activism : Icons.favorite_border,
+              titulo: e ? 'Cada ayuda cuenta' : 'Una pequeña ayuda cambia el día',
+              subtitulo: bienvenida,
+              colores: e ? const [Color(0xFFB71C1C), Color(0xFFD84343)] : const [Paleta.terracota1, Paleta.terracota2],
+              colorIcono: Colors.white,
             ),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: TextButton.icon(
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Row(children: [
+                TextButton.icon(
                   onPressed: () => mostrarConsejos(context),
                   icon: const Icon(Icons.shield_outlined),
-                  label: const Text('Consejos para ayudar con seguridad'),
+                  label: const Text('Ayudar con seguridad'),
                 ),
-              ),
+                const Spacer(),
+                BotonEscuchar(bienvenida, compacto: true),
+              ]),
             ),
 
             // Colectas activas
             if (colectas.isNotEmpty && _categoria == null && _tipo != 'ofrezco') ...[
-              const TituloSeccion('Colectas del barrio'),
+              const TituloDiseno('Colectas del barrio', ceja: 'Responsabilidad social'),
               SizedBox(
-                height: 196,
+                height: 206,
                 child: ListView(
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -195,7 +208,7 @@ class _FavoresScreenState extends State<FavoresScreen> {
                 builder: (c, destacados) {
                   if (destacados.isEmpty) return const SizedBox.shrink();
                   return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                    const TituloSeccion('Vecinos que más ayudan'),
+                    const TituloDiseno('Vecinos que más ayudan', ceja: 'Reconocimiento'),
                     SizedBox(
                       height: 112,
                       child: ListView(
@@ -236,30 +249,29 @@ class _FavoresScreenState extends State<FavoresScreen> {
 
             // Filtros
             Padding(
-              padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
-              child: SegmentedButton<String>(
-                segments: [
-                  const ButtonSegment(value: 'todos', label: Text('Todo')),
-                  ButtonSegment(value: 'pido', icon: const Icon(Icons.front_hand), label: Text(e ? 'Necesitan ayuda' : 'Necesitan')),
-                  ButtonSegment(value: 'ofrezco', icon: const Icon(Icons.volunteer_activism), label: Text(e ? 'Para compartir' : 'Ofrecen')),
-                ],
-                selected: {_tipo},
-                onSelectionChanged: (s) => setState(() => _tipo = s.first),
-              ),
+              padding: const EdgeInsets.fromLTRB(20, 20, 12, 4),
+              child: Row(children: [
+                Expanded(
+                  child: Semantics(
+                    header: true,
+                    child: Text(e ? 'Pedidos y recursos' : 'Solicitudes recientes',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 19)),
+                  ),
+                ),
+                Text('${lista.length} cerca', style: const TextStyle(color: Paleta.gris, fontSize: 13)),
+                IconButton(
+                  tooltip: _porCercania ? 'Ordenar por lo más reciente' : 'Ordenar por lo más cerca',
+                  onPressed: () => setState(() => _porCercania = !_porCercania),
+                  icon: Icon(_porCercania ? Icons.schedule : Icons.near_me_outlined),
+                ),
+              ]),
+            ),
+            FilaPildoras(
+              opciones: [('todos', 'Todo'), ('pido', e ? 'Necesitan ayuda' : 'Necesitan'), ('ofrezco', e ? 'Para compartir' : 'Ofrecen')],
+              seleccion: _tipo,
+              onCambio: (v) => setState(() => _tipo = v),
             ),
             SelectorCategorias(categorias: cats, seleccion: _categoria, onCambio: (c) => setState(() => _categoria = c)),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: FilterChip(
-                  avatar: const Icon(Icons.near_me, size: 18),
-                  label: const Text('Lo más cerca primero'),
-                  selected: _porCercania,
-                  onSelected: (v) => setState(() => _porCercania = v),
-                ),
-              ),
-            ),
 
             // Publicaciones
             if (lista.isEmpty)

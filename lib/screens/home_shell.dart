@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../config.dart';
 import '../state/app_state.dart';
+import '../ui/diseno.dart';
 import '../ui/widgets.dart';
 import 'inicio.dart';
 import 'listas.dart';
@@ -10,9 +12,9 @@ import 'perfil.dart';
 import 'publicar.dart';
 import 'qr_screens.dart';
 
-/// Estructura principal. Cuando el moderador activa la emergencia, la app
-/// entera cambia: color rojo, nuevo inicio y pestañas de emergencia de
-/// ambos módulos (grupos de apoyo y tablero humanitario).
+/// Estructura principal (diseño Figma): encabezado propio en cada pestaña,
+/// barra inferior blanca y botón de publicar. Con emergencia activa, toda
+/// la app cambia a rojo y las pestañas pasan a modo emergencia.
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
 
@@ -23,8 +25,14 @@ class HomeShell extends StatefulWidget {
 class _HomeShellState extends State<HomeShell> {
   int _tab = 0;
   bool? _modoAnterior;
+  String? _grupo; // filtro inicial para Servicios (desde Inicio)
+  String? _consulta; // búsqueda inicial para Servicios (desde Inicio)
 
-  void _irA(int i) => setState(() => _tab = i);
+  void _irA(int i, {String? grupo, String? consulta}) => setState(() {
+        _tab = i;
+        _grupo = grupo;
+        _consulta = consulta;
+      });
 
   @override
   Widget build(BuildContext context) {
@@ -33,74 +41,75 @@ class _HomeShellState extends State<HomeShell> {
     if (_modoAnterior != null && _modoAnterior != e) _tab = 0;
     _modoAnterior = e;
 
-    final paginas = e
-        ? [
-            EmergenciaScreen(irA: _irA),
-            const ServiciosScreen(emergencia: true),
-            const FavoresScreen(emergencia: true),
-            const MapaScreen(),
-          ]
-        : [
-            InicioScreen(irA: _irA),
-            const ServiciosScreen(emergencia: false),
-            const FavoresScreen(emergencia: false),
-            const MapaScreen(),
-          ];
-    final destinos = e
-        ? const [
-            NavigationDestination(icon: Icon(Icons.sos_outlined), selectedIcon: Icon(Icons.sos), label: 'Emergencia'),
-            NavigationDestination(icon: Icon(Icons.health_and_safety_outlined), selectedIcon: Icon(Icons.health_and_safety), label: 'Apoyo'),
-            NavigationDestination(icon: Icon(Icons.volunteer_activism_outlined), selectedIcon: Icon(Icons.volunteer_activism), label: 'Ayuda'),
-            NavigationDestination(icon: Icon(Icons.map_outlined), selectedIcon: Icon(Icons.map), label: 'Mapa'),
-          ]
-        : const [
-            NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Inicio'),
-            NavigationDestination(icon: Icon(Icons.handyman_outlined), selectedIcon: Icon(Icons.handyman), label: 'Servicios'),
-            NavigationDestination(icon: Icon(Icons.diversity_3_outlined), selectedIcon: Icon(Icons.diversity_3), label: 'Solidaridad'),
-            NavigationDestination(icon: Icon(Icons.map_outlined), selectedIcon: Icon(Icons.map), label: 'Mapa'),
-          ];
-    final titulos = e
-        ? const ['Emergencia', 'Grupos de apoyo', 'Tablero de ayuda', 'Mapa de ayuda']
-        : const ['App Vecinal', 'Servicios y productos', 'Favores y solidaridad', 'Mapa del barrio'];
+    final paginas = <Widget>[
+      e ? EmergenciaScreen(irA: (i) => _irA(i)) : InicioScreen(irA: _irA),
+      ServiciosScreen(
+        key: ValueKey('serv-$e-$_grupo-$_consulta'),
+        emergencia: e,
+        grupoInicial: _grupo,
+        consultaInicial: _consulta,
+      ),
+      FavoresScreen(emergencia: e),
+      const MapaScreen(),
+      const PerfilScreen(),
+    ];
+
+    final encabezados = <(String, String?)>[
+      e ? ('Emergencia', st.emergencia.titulo) : ('Hola, ${st.logueado ? st.nombre.split(' ').first : 'vecino'}', fechaLarga(DateTime.now())),
+      e ? ('Grupos de apoyo', 'Emergencia') : ('Servicios y productos', 'Compra local en ${Zona.nombre}'),
+      e ? ('Tablero de ayuda', 'Emergencia') : ('Solidaridad', 'Juntos hacemos más'),
+      e ? ('Mapa de ayuda', 'Emergencia') : ('Mapa del barrio', 'Todo cerca de ti'),
+      ('Mi perfil', st.logueado ? null : 'Estás como visitante'),
+    ];
+
+    final destinos = <NavigationDestination>[
+      e
+          ? const NavigationDestination(icon: Icon(Icons.sos_outlined), selectedIcon: Icon(Icons.sos), label: 'Emergencia')
+          : const NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Inicio'),
+      e
+          ? const NavigationDestination(icon: Icon(Icons.health_and_safety_outlined), selectedIcon: Icon(Icons.health_and_safety), label: 'Apoyo')
+          : const NavigationDestination(icon: Icon(Icons.storefront_outlined), selectedIcon: Icon(Icons.storefront), label: 'Servicios'),
+      e
+          ? const NavigationDestination(icon: Icon(Icons.volunteer_activism_outlined), selectedIcon: Icon(Icons.volunteer_activism), label: 'Ayuda')
+          : const NavigationDestination(icon: Icon(Icons.favorite_border), selectedIcon: Icon(Icons.favorite), label: 'Solidaridad'),
+      const NavigationDestination(icon: Icon(Icons.map_outlined), selectedIcon: Icon(Icons.map), label: 'Mapa'),
+      const NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Perfil'),
+    ];
+
+    final (titulo, subtitulo) = encabezados[_tab];
 
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: e ? const Color(0xFFB71C1C) : null,
-        foregroundColor: e ? Colors.white : null,
-        title: Text(titulos[_tab], style: const TextStyle(fontWeight: FontWeight.bold)),
-        actions: [
-          IconButton(
-            tooltip: 'Llevar mensajes por QR',
-            icon: Badge(
-              isLabelVisible: st.pendientes > 0,
-              label: Text('${st.pendientes}'),
-              child: const Icon(Icons.qr_code_scanner),
+      body: SafeArea(
+        bottom: false,
+        child: Column(children: [
+          if (e && _tab != 0) const BannerEmergencia(),
+          const BannerConexion(),
+          EncabezadoPantalla(
+            titulo: titulo,
+            subtitulo: subtitulo,
+            acciones: [
+              BotonCuadrado(
+                icono: Icons.qr_code_scanner,
+                tooltip: 'Llevar mensajes por QR',
+                contador: st.pendientes,
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PendientesScreen())),
+              ),
+            ],
+          ),
+          Expanded(child: paginas[_tab]),
+        ]),
+      ),
+      floatingActionButton: _tab == 4
+          ? null
+          : FloatingActionButton.extended(
+              heroTag: 'publicar',
+              onPressed: () => abrirMenuPublicar(context),
+              icon: const Icon(Icons.add, size: 26),
+              label: Text(e ? 'Pedir o dar ayuda' : (_tab == 2 ? 'Pedir ayuda' : 'Publicar')),
             ),
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PendientesScreen())),
-          ),
-          IconButton(
-            tooltip: st.logueado ? 'Mi perfil y ajustes' : 'Ingresar y ajustes de accesibilidad',
-            icon: Icon(st.logueado ? Icons.account_circle : Icons.settings_accessibility),
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PerfilScreen())),
-          ),
-        ],
-      ),
-      body: Column(children: [
-        if (e && _tab != 0) const BannerEmergencia(),
-        const BannerConexion(),
-        Expanded(child: paginas[_tab]),
-      ]),
-      floatingActionButton: FloatingActionButton.extended(
-        heroTag: 'publicar',
-        backgroundColor: e ? const Color(0xFFB71C1C) : null,
-        foregroundColor: e ? Colors.white : null,
-        onPressed: () => abrirMenuPublicar(context),
-        icon: const Icon(Icons.add_circle, size: 28),
-        label: Text(e ? 'Pedir o dar ayuda' : 'Publicar'),
-      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tab,
-        onDestinationSelected: _irA,
+        onDestinationSelected: (i) => _irA(i),
         destinations: destinos,
       ),
     );

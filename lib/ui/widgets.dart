@@ -1,15 +1,19 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../config.dart';
 import '../models.dart';
+import '../screens/auth_screen.dart';
 import '../screens/detalles.dart';
 import '../screens/qr_screens.dart';
 import '../services/voz.dart';
 import '../state/app_state.dart';
 import '../util.dart';
+import 'diseno.dart';
+import 'tema.dart';
 
 // ------------------------------------------------------------ acciones
 
@@ -336,9 +340,61 @@ class TarjetaServicio extends StatelessWidget {
   }
 }
 
-class TarjetaPublicacion extends StatelessWidget {
+/// Tarjeta de solicitud (diseño Figma): iniciales, título, detalle y la
+/// acción principal en la misma tarjeta ("Quiero ayudar" / "Me he ofrecido").
+class TarjetaPublicacion extends StatefulWidget {
   const TarjetaPublicacion(this.p, {super.key});
   final Publicacion p;
+
+  @override
+  State<TarjetaPublicacion> createState() => _TarjetaPublicacionState();
+}
+
+class _TarjetaPublicacionState extends State<TarjetaPublicacion> {
+  bool _respondi = false;
+  bool _ocupado = false;
+
+  Publicacion get p => widget.p;
+
+  Future<void> _responder(AppState st) async {
+    if (!st.logueado) {
+      await Navigator.push(context, MaterialPageRoute(
+        builder: (_) => const AuthScreen(mensaje: 'Para responder necesitas una cuenta de vecino. Es gratis y toma 1 minuto.'),
+      ));
+      return;
+    }
+    setState(() => _ocupado = true);
+    try {
+      if (_respondi) {
+        await st.repo.retirarAyuda(p.id);
+        setState(() => _respondi = false);
+        avisar('Listo, ya no apareces en la lista.');
+      } else {
+        await st.repo.ofrecerAyuda(p.id);
+        setState(() => _respondi = true);
+        mensajero.currentState
+          ?..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(
+            content: Text('¡Gracias! Ahora ponte de acuerdo con ${p.autorVisible}.'),
+            action: SnackBarAction(
+              label: 'Ver',
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PublicacionDetalle(publicacion: p))),
+            ),
+          ));
+      }
+      st.refrescar();
+    } on PostgrestException catch (e) {
+      if (e.code == '23505') {
+        setState(() => _respondi = true);
+      } else {
+        avisar(traducirError(e));
+      }
+    } catch (e) {
+      avisar(traducirError(e));
+    } finally {
+      if (mounted) setState(() => _ocupado = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -346,71 +402,105 @@ class TarjetaPublicacion extends StatelessWidget {
     final cat = buscarCategoria(p.categoria, emergencia: p.esEmergencia);
     final dist = p.punto == null ? null : distanciaKm(st.referencia, p.punto!);
     final esquema = Theme.of(context).colorScheme;
-    final colorTipo = p.esPedido ? const Color(0xFFE65100) : const Color(0xFF2E7D32);
     final critica = p.esEmergencia && p.prioridad == 'critica';
+    final esMio = p.autorId != null && p.autorId == st.uid;
+    final puedeResponder = !esMio && !p.pendiente && p.estado != 'resuelta';
+    final (fg, bg) = p.esColecta
+        ? (const Color(0xFF6A1B9A), const Color(0xFFF3E5F5))
+        : critica
+            ? (const Color(0xFFB71C1C), const Color(0xFFFDE7E7))
+            : p.esPedido
+                ? (esquema.primary, esquema.primaryContainer)
+                : (const Color(0xFF376A89), const Color(0xFFE3EFF5));
+    final textoRespondido = p.esColecta ? 'Ya aportaste' : (p.esPedido ? 'Me he ofrecido' : 'Te interesa');
+
     return Card(
       shape: critica
-          ? RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-              side: const BorderSide(color: Color(0xFFB71C1C), width: 3),
-            )
+          ? RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: const BorderSide(color: Color(0xFFB71C1C), width: 2))
           : null,
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PublicacionDetalle(publicacion: p))),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
+          padding: const EdgeInsets.fromLTRB(14, 14, 6, 12),
           child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
             CircleAvatar(
-              radius: 26,
-              backgroundColor: colorTipo.withValues(alpha: 0.15),
-              child: Icon(cat.icono, color: colorTipo, size: 28),
+              radius: 23,
+              backgroundColor: bg,
+              child: p.esColecta
+                  ? Icon(Icons.diversity_1, color: fg)
+                  : Text(iniciales(p.autorVisible), style: TextStyle(color: fg, fontWeight: FontWeight.w700, fontSize: 14)),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Wrap(spacing: 6, runSpacing: 4, children: [
-                  _Etiqueta(p.esColecta ? 'COLECTA' : (p.esPedido ? 'NECESITA' : 'OFRECE'),
-                      p.esColecta ? const Color(0xFF6A1B9A) : colorTipo),
+                  if (p.esColecta) const _Etiqueta('COLECTA', Color(0xFF6A1B9A)),
+                  if (!p.esPedido) const _Etiqueta('OFRECE', Color(0xFF376A89)),
                   if (critica) const _Etiqueta('MUY URGENTE', Color(0xFFB71C1C)),
                   if (p.esEmergencia && p.prioridad == 'alta') const _Etiqueta('URGENTE', Color(0xFFC62828)),
-                  if (!p.esColecta && p.ayudantes > 0)
-                    _Etiqueta(
-                      p.esPedido
-                          ? '${p.ayudantes} ${p.ayudantes == 1 ? 'VA' : 'VAN'} A AYUDAR'
-                          : '${p.ayudantes} ${p.ayudantes == 1 ? 'INTERESADO' : 'INTERESADOS'}',
-                      const Color(0xFF1565C0),
-                    )
-                  else if (p.estado == 'en_curso' && !p.esColecta)
-                    const _Etiqueta('YA LA ESTÁN AYUDANDO', Color(0xFF1565C0)),
                   if (p.verificada) const _Etiqueta('✓ VERIFICADO', Color(0xFF00695C)),
-                  if (p.estado == 'no_verificado') const _Etiqueta('NO VERIFICADO', Color(0xFF616161)),
+                  if (p.estado == 'no_verificado') const _Etiqueta('SIN CONFIRMAR', Color(0xFF616161)),
                   if (p.origen == 'qr') const _Etiqueta('LLEGÓ POR QR', Color(0xFF6A1B9A)),
                   if (p.pendiente) const _Etiqueta('POR ENVIAR', Color(0xFF616161)),
                 ]),
-                const SizedBox(height: 6),
-                Text(p.titulo, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-                if (p.descripcion != null && p.descripcion!.isNotEmpty)
-                  Text(p.descripcion!, maxLines: 2, overflow: TextOverflow.ellipsis),
-                if (p.esColecta && p.meta != null)
-                  Padding(padding: const EdgeInsets.only(top: 8), child: BarraColecta(p)),
-                const SizedBox(height: 4),
-                Wrap(crossAxisAlignment: WrapCrossAlignment.center, children: [
-                  Text(p.autorVisible, style: const TextStyle(fontWeight: FontWeight.w600)),
-                  InsigniaRol(p.autorRol),
-                ]),
+                const SizedBox(height: 2),
+                Text(p.titulo, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, height: 1.25)),
+                const SizedBox(height: 3),
                 Text(
                   [
+                    cat.nombre,
                     ?p.sector,
                     if (dist != null) formatoDistancia(dist),
                     haceCuanto(p.creado),
-                    if (p.personas != null) '${p.personas} pers.',
                   ].join(' · '),
-                  style: TextStyle(color: esquema.onSurfaceVariant),
+                  style: const TextStyle(color: Paleta.gris, fontSize: 13),
                 ),
+                if (p.esColecta && p.meta != null)
+                  Padding(padding: const EdgeInsets.only(top: 8), child: BarraColecta(p)),
+                if (!p.esColecta && p.ayudantes > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      p.esPedido
+                          ? '💛 ${p.ayudantes} ${p.ayudantes == 1 ? 'vecino va' : 'vecinos van'} a ayudar'
+                          : '🙋 ${p.ayudantes} ${p.ayudantes == 1 ? 'interesado' : 'interesados'}',
+                      style: TextStyle(color: esquema.primary, fontWeight: FontWeight.w600, fontSize: 13),
+                    ),
+                  ),
+                const SizedBox(height: 8),
+                Row(children: [
+                  if (puedeResponder)
+                    _respondi
+                        ? FilledButton.tonalIcon(
+                            style: FilledButton.styleFrom(
+                              minimumSize: const Size(0, 42),
+                              padding: const EdgeInsets.symmetric(horizontal: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                            ),
+                            onPressed: _ocupado ? null : () => _responder(st),
+                            icon: const Icon(Icons.check, size: 18),
+                            label: Text(textoRespondido),
+                          )
+                        : FilledButton(
+                            style: FilledButton.styleFrom(
+                              minimumSize: const Size(0, 42),
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              backgroundColor: p.esColecta ? const Color(0xFF6A1B9A) : null,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                            ),
+                            onPressed: _ocupado ? null : () => _responder(st),
+                            child: Text(p.esColecta ? 'Yo aporto' : (p.esPedido ? 'Quiero ayudar' : 'Me interesa')),
+                          )
+                  else if (p.estado == 'resuelta')
+                    Text(p.estadoTexto, style: const TextStyle(color: Color(0xFF2E7D32), fontWeight: FontWeight.w700)),
+                  const Spacer(),
+                  BotonEscuchar(p.textoParaVoz, compacto: true),
+                ]),
               ]),
             ),
-            BotonEscuchar(p.textoParaVoz, compacto: true),
           ]),
         ),
       ),

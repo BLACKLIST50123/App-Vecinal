@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../config.dart';
 import '../models.dart';
 import '../state/app_state.dart';
+import '../ui/diseno.dart';
+import '../ui/tema.dart';
 import '../ui/widgets.dart';
 import '../util.dart';
 import 'auth_screen.dart';
@@ -13,204 +16,288 @@ import 'publicar.dart';
 import 'qr_screens.dart';
 import 'tutorial.dart';
 
+/// Pestaña "Perfil" (diseño Figma): tarjeta de perfil, impacto en el barrio
+/// y lista de opciones.
 class PerfilScreen extends StatelessWidget {
   const PerfilScreen({super.key});
+
+  void _ir(BuildContext context, Widget pantalla) =>
+      Navigator.push(context, MaterialPageRoute(builder: (_) => pantalla));
 
   @override
   Widget build(BuildContext context) {
     final st = context.watch<AppState>();
-    final rolTexto = switch (st.rol) {
-      'moderador' => 'Moderador (junta vecinal)',
-      'organizacion' => 'Organización de apoyo',
-      'vecino' => 'Vecino',
-      _ => 'Visitante',
-    };
+    final ayudas = (st.perfil?['ayudas_confirmadas'] as num?)?.toInt() ?? 0;
+    final nivel = Nivel.de(ayudas);
     final esPrestador = st.perfil?['es_prestador'] == true;
+    final rolTexto = switch (st.rol) {
+      'moderador' => 'Junta vecinal',
+      'organizacion' => 'Organización de apoyo',
+      _ => 'Vecino de ${st.sector ?? Zona.nombre}',
+    };
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Mi perfil y ajustes')),
-      body: ListView(padding: const EdgeInsets.only(bottom: 40), children: [
-        if (st.logueado)
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(8),
-              child: Column(children: [
-                ListTile(
-                  leading: CircleAvatar(radius: 28, child: Text(st.nombre.characters.first.toUpperCase(), style: const TextStyle(fontSize: 24))),
-                  title: Text(st.nombre, style: Theme.of(context).textTheme.titleLarge),
-                  subtitle: Text([rolTexto, ?st.sector].join(' · ')),
-                ),
-                ListTile(
-                  leading: Icon(st.verificado ? Icons.verified : Icons.gpp_maybe,
-                      color: st.verificado ? const Color(0xFF2E7D32) : const Color(0xFFEF6C00)),
-                  title: Text(st.verificado ? 'Vecino verificado por GPS' : 'Sin verificación GPS'),
-                ),
+    return ListView(padding: const EdgeInsets.only(bottom: 40), children: [
+      if (st.logueado) ...[
+        // ------------------------------------------- tarjeta de perfil
+        Container(
+          margin: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: Paleta.linea)),
+          child: Row(children: [
+            Container(
+              width: 60,
+              height: 60,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(color: Theme.of(context).colorScheme.primary, borderRadius: BorderRadius.circular(19)),
+              child: Text(iniciales(st.nombre), style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700)),
+            ),
+            const SizedBox(width: 13),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(st.nombre, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+                Text(rolTexto, style: const TextStyle(color: Paleta.gris, fontSize: 14)),
+                const SizedBox(height: 4),
+                Row(children: [
+                  Icon(st.verificado ? Icons.verified_user : Icons.gpp_maybe_outlined,
+                      size: 16, color: st.verificado ? Theme.of(context).colorScheme.primary : const Color(0xFFEF6C00)),
+                  const SizedBox(width: 4),
+                  Text(st.verificado ? 'Vecino verificado' : 'Sin verificación GPS',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: st.verificado ? Theme.of(context).colorScheme.primary : const Color(0xFFEF6C00),
+                      )),
+                ]),
               ]),
             ),
-          )
-        else
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                const Text('Estás como visitante. Puedes ver todo; para publicar, crea tu cuenta gratis.',
-                    style: TextStyle(fontSize: 16)),
-                const SizedBox(height: 12),
-                FilledButton.icon(
-                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AuthScreen())),
-                  icon: const Icon(Icons.login),
-                  label: const Text('Ingresar o crear cuenta'),
-                ),
+            InsigniaNivel(ayudas, mostrarSiCero: true),
+          ]),
+        ),
+
+        // ------------------------------------------- tarjeta de impacto
+        Container(
+          margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: Paleta.linea)),
+          child: Cargador<(List<Publicacion>, List<Servicio>)>(
+            cargar: (st) => st.repo.misPublicaciones(),
+            builder: (c, datos) => IntrinsicHeight(
+              child: Row(children: [
+                ImpactoNumero('$ayudas', 'Ayudas confirmadas'),
+                const VerticalDivider(width: 1),
+                ImpactoNumero('${datos.$1.length + datos.$2.length}', 'Publicaciones'),
+                const VerticalDivider(width: 1),
+                ImpactoNumero(nivel.emoji, nivel.nombre),
               ]),
             ),
           ),
-
-        if (st.logueado) ...[
-          const TituloSeccion('Mi aporte al barrio'),
-          _TarjetaReconocimiento(ayudas: (st.perfil?['ayudas_confirmadas'] as num?)?.toInt() ?? 0),
-          ListTile(
-            leading: const Icon(Icons.history, size: 32),
-            title: const Text('Mi historial de ayudas', style: TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: const Text('A quién ayudaste, colectas y agradecimientos'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const HistorialScreen())),
-          ),
-          ListTile(
-            leading: const Icon(Icons.list_alt, size: 32),
-            title: const Text('Mis publicaciones', style: TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: const Text('Ver, marcar como resueltas o eliminar'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MisPublicacionesScreen())),
-          ),
-          const TituloSeccion('Perfil prestador'),
-          SwitchListTile(
-            secondary: const Icon(Icons.handyman),
-            title: const Text('Ofrezco un oficio, servicio o producto'),
-            subtitle: const Text('Aparecerás en el directorio de tu barrio'),
-            value: esPrestador,
-            onChanged: st.online
-                ? (v) async {
-                    try {
-                      await st.repo.actualizarPerfil({'es_prestador': v});
-                      await st.cargarPerfil();
-                    } catch (e) {
-                      avisar(traducirError(e));
+        ),
+        const SizedBox(height: 4),
+        _TarjetaReconocimiento(ayudas: ayudas),
+        const TituloDiseno('Mi actividad'),
+        ListaAjustes(filas: [
+          FilaAjuste(icono: Icons.history, texto: 'Mi historial de ayudas', onTap: () => _ir(context, const HistorialScreen())),
+          FilaAjuste(icono: Icons.list_alt, texto: 'Mis publicaciones', onTap: () => _ir(context, const MisPublicacionesScreen())),
+          FilaAjuste(
+            icono: Icons.storefront_outlined,
+            texto: 'Ofrezco un servicio o producto',
+            final_: Switch(
+              value: esPrestador,
+              onChanged: st.online
+                  ? (v) async {
+                      try {
+                        await st.repo.actualizarPerfil({'es_prestador': v});
+                        await st.cargarPerfil();
+                        if (v && context.mounted) abrirFormulario(context, TipoForm.servicio);
+                      } catch (e) {
+                        avisar(traducirError(e));
+                      }
                     }
-                  }
-                : null,
-          ),
-          if (esPrestador)
-            ListTile(
-              leading: const Icon(Icons.add_business),
-              title: const Text('Publicar mi servicio'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => abrirFormulario(context, TipoForm.servicio),
+                  : null,
             ),
-        ],
-
-        if (st.esOrganizacion || st.esModerador)
-          ListTile(
-            leading: const Icon(Icons.dashboard, size: 32),
-            title: const Text('Panel de coordinación', style: TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: Text(st.esModerador ? 'Indicadores, pedidos por estado y reportes' : 'Indicadores y pedidos por estado'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PanelCoordinacionScreen())),
           ),
-
-        const TituloSeccion('Comunidad'),
-        ListTile(
-          leading: const Icon(Icons.group_add, size: 32),
-          title: const Text('Invitar vecinos por WhatsApp'),
-          subtitle: const Text('Mientras más vecinos, más rápido llega la ayuda'),
-          onTap: () => compartirWhatsapp(textoInvitacion),
+          if (st.esOrganizacion || st.esModerador)
+            FilaAjuste(icono: Icons.dashboard_outlined, texto: 'Panel de coordinación', onTap: () => _ir(context, const PanelCoordinacionScreen())),
+          if (st.esModerador)
+            FilaAjuste(
+              icono: Icons.campaign_outlined,
+              texto: 'Junta vecinal: emergencia',
+              valor: st.modoEmergencia ? 'Activa' : 'Apagada',
+              color: st.modoEmergencia ? Paleta.rojo : null,
+              onTap: () => _ir(context, const JuntaVecinalScreen()),
+            ),
+        ]),
+      ] else ...[
+        Container(
+          margin: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: Paleta.linea)),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            const Text('Únete a tu barrio', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 6),
+            const Text('Puedes ver todo sin cuenta. Para publicar, ayudar y ganar reconocimiento, crea tu cuenta gratis con tu celular.',
+                style: TextStyle(color: Paleta.gris, fontSize: 15)),
+            const SizedBox(height: 14),
+            FilledButton.icon(
+              onPressed: () => _ir(context, const AuthScreen()),
+              icon: const Icon(Icons.login),
+              label: const Text('Ingresar o crear cuenta'),
+            ),
+          ]),
         ),
-        ListTile(
-          leading: const Icon(Icons.rule, size: 32),
-          title: const Text('Normas del barrio'),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () => mostrarNormas(context),
-        ),
+      ],
 
-        const TituloSeccion('Accesibilidad'),
-        ListTile(
-          leading: const Icon(Icons.format_size),
-          title: const Text('Tamaño de letra'),
-          subtitle: Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: SegmentedButton<double>(
+      const TituloDiseno('Comunidad'),
+      ListaAjustes(filas: [
+        FilaAjuste(icono: Icons.location_on_outlined, texto: 'Mi barrio', valor: st.sector ?? Zona.nombre),
+        FilaAjuste(icono: Icons.group_add_outlined, texto: 'Invitar vecinos por WhatsApp', onTap: () => compartirWhatsapp(textoInvitacion)),
+        FilaAjuste(icono: Icons.rule, texto: 'Normas del barrio', onTap: () => mostrarNormas(context)),
+        FilaAjuste(icono: Icons.shield_outlined, texto: 'Ayudar con seguridad', onTap: () => mostrarConsejos(context)),
+      ]),
+
+      const TituloDiseno('Ajustes'),
+      ListaAjustes(filas: [
+        FilaAjuste(
+          icono: Icons.accessibility_new,
+          texto: 'Accesibilidad',
+          valor: [if (st.escala > 1) 'Letra ${st.escala >= 1.6 ? 'A++' : 'A+'}', if (st.altoContraste) 'Contraste'].join(' · '),
+          onTap: () => _ir(context, const AccesibilidadScreen()),
+        ),
+        FilaAjuste(
+          icono: st.online ? Icons.cloud_done_outlined : Icons.cloud_off,
+          texto: 'Conexión y mensajes QR',
+          valor: st.pendientes > 0 ? '${st.pendientes} por enviar' : (st.online ? 'Con internet' : 'Sin internet'),
+          onTap: () => _ir(context, const ConexionScreen()),
+        ),
+        FilaAjuste(icono: Icons.help_outline, texto: 'Cómo usar la app', onTap: () => _ir(context, const TutorialScreen())),
+        if (st.logueado)
+          FilaAjuste(
+            icono: Icons.logout,
+            texto: 'Cerrar sesión',
+            color: Paleta.rojo,
+            onTap: () async {
+              await Supabase.instance.client.auth.signOut();
+              await st.cargarPerfil();
+            },
+          ),
+      ]),
+      const Padding(
+        padding: EdgeInsets.all(20),
+        child: Text('App Vecinal · Equipo AlphaCoders · Hackathon UTP 2026',
+            textAlign: TextAlign.center, style: TextStyle(color: Paleta.grisClaro)),
+      ),
+    ]);
+  }
+}
+
+
+class AccesibilidadScreen extends StatelessWidget {
+  const AccesibilidadScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final st = context.watch<AppState>();
+    return Scaffold(
+      appBar: AppBar(title: const Text('Accesibilidad')),
+      body: ListView(padding: const EdgeInsets.only(bottom: 32), children: [
+        const Padding(
+          padding: EdgeInsets.fromLTRB(20, 4, 20, 12),
+          child: Text('Ajusta la app para leerla y usarla con comodidad.', style: TextStyle(color: Paleta.gris, fontSize: 15)),
+        ),
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(19), border: Border.all(color: Paleta.linea)),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            const Text('Tamaño de letra', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 10),
+            SegmentedButton<double>(
               segments: const [
                 ButtonSegment(value: 1.0, label: Text('A', style: TextStyle(fontSize: 16)), tooltip: 'Letra normal'),
                 ButtonSegment(value: 1.3, label: Text('A+', style: TextStyle(fontSize: 20)), tooltip: 'Letra grande'),
                 ButtonSegment(value: 1.6, label: Text('A++', style: TextStyle(fontSize: 24)), tooltip: 'Letra muy grande'),
               ],
               selected: {st.escala},
+              showSelectedIcon: false,
               onSelectionChanged: (s) => st.setEscala(s.first),
             ),
+          ]),
+        ),
+        const SizedBox(height: 12),
+        ListaAjustes(filas: [
+          FilaAjuste(
+            icono: Icons.contrast,
+            texto: 'Alto contraste',
+            final_: Switch(value: st.altoContraste, onChanged: st.setAltoContraste),
           ),
-        ),
-        SwitchListTile(
-          secondary: const Icon(Icons.contrast),
-          title: const Text('Alto contraste'),
-          subtitle: const Text('Colores más fuertes y bordes marcados'),
-          value: st.altoContraste,
-          onChanged: st.setAltoContraste,
-        ),
-        SwitchListTile(
-          secondary: const Icon(Icons.record_voice_over),
-          title: const Text('Botón "Escuchar"'),
-          subtitle: const Text('Lee en voz alta cada publicación'),
-          value: st.voz,
-          onChanged: st.setVoz,
-        ),
-        ListTile(
-          leading: const Icon(Icons.school),
-          title: const Text('Ver el tutorial otra vez'),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TutorialScreen())),
-        ),
-
-        const TituloSeccion('Conexión'),
-        ListTile(
-          leading: Icon(st.online ? Icons.cloud_done : Icons.cloud_off),
-          title: Text(st.online ? 'Con internet' : 'Sin internet'),
-          subtitle: Text('${st.pendientes} publicación(es) por enviar'),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PendientesScreen())),
-        ),
-        SwitchListTile(
-          secondary: const Icon(Icons.wifi_off),
-          title: const Text('Simular sin internet'),
-          subtitle: const Text('Para probar el modo offline en una demostración'),
-          value: st.simulandoOffline,
-          onChanged: st.setSimularOffline,
-        ),
-
-        if (st.esModerador) ...[
-          const TituloSeccion('Junta vecinal (moderador)'),
-          const _PanelModerador(),
-        ],
-
-        if (st.logueado)
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: OutlinedButton.icon(
-              onPressed: () async {
-                await Supabase.instance.client.auth.signOut();
-                await st.cargarPerfil();
-                if (context.mounted) Navigator.pop(context);
-              },
-              icon: const Icon(Icons.logout),
-              label: const Text('Cerrar sesión'),
-            ),
+          FilaAjuste(
+            icono: Icons.record_voice_over_outlined,
+            texto: 'Botón "Escuchar"',
+            final_: Switch(value: st.voz, onChanged: st.setVoz),
           ),
-        const Padding(
-          padding: EdgeInsets.all(16),
-          child: Text('App Vecinal · Equipo AlphaCoders · Hackathon UTP 2026',
-              textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
-        ),
+          FilaAjuste(
+            icono: Icons.school_outlined,
+            texto: 'Ver el tutorial otra vez',
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TutorialScreen())),
+          ),
+        ]),
       ]),
     );
   }
+}
+
+class ConexionScreen extends StatelessWidget {
+  const ConexionScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final st = context.watch<AppState>();
+    return Scaffold(
+      appBar: AppBar(title: const Text('Conexión y mensajes QR')),
+      body: ListView(padding: const EdgeInsets.only(bottom: 32), children: [
+        const Padding(
+          padding: EdgeInsets.fromLTRB(20, 4, 20, 12),
+          child: Text('Sin internet, lo que publiques se guarda y puedes compartirlo por QR para que otro vecino lo envíe.',
+              style: TextStyle(color: Paleta.gris, fontSize: 15)),
+        ),
+        ListaAjustes(filas: [
+          FilaAjuste(
+            icono: st.online ? Icons.cloud_done_outlined : Icons.cloud_off,
+            texto: st.online ? 'Con internet' : 'Sin internet',
+            valor: '${st.pendientes} por enviar',
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PendientesScreen())),
+          ),
+          FilaAjuste(
+            icono: Icons.qr_code_scanner,
+            texto: 'Escanear QR de un vecino',
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EscanearQrScreen())),
+          ),
+          FilaAjuste(
+            icono: Icons.wifi_off,
+            texto: 'Simular sin internet (para demostración)',
+            final_: Switch(value: st.simulandoOffline, onChanged: st.setSimularOffline),
+          ),
+        ]),
+      ]),
+    );
+  }
+}
+
+class JuntaVecinalScreen extends StatelessWidget {
+  const JuntaVecinalScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        appBar: AppBar(title: const Text('Junta vecinal')),
+        body: ListView(padding: const EdgeInsets.only(bottom: 32), children: const [
+          Padding(
+            padding: EdgeInsets.fromLTRB(20, 4, 20, 8),
+            child: Text('Activa el modo emergencia cuando el barrio lo necesite. Todos los vecinos lo verán al instante.',
+                style: TextStyle(color: Paleta.gris, fontSize: 15)),
+          ),
+          _PanelModerador(),
+        ]),
+      );
 }
 
 /// Nivel de reconocimiento y cuánto falta para el siguiente.
