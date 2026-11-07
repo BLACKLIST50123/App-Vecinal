@@ -49,3 +49,7 @@ app.*.map.json
 
 # Credenciales Supabase (no subir)
 supabase.json
+
+# Cuentas y claves de demo (solo locales)
+*.local.sql
+*.local.md
