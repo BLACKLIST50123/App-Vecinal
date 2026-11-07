@@ -125,7 +125,7 @@ class _ServiciosScreenState extends State<ServiciosScreen> {
                     : 'No encontramos eso en tu barrio todavía.\n¿Conoces a alguien bueno? Invítalo a publicarse.',
               )
             else
-              Cuadricula2(hijos: [for (final s in lista) TarjetaMercado(s)]),
+              Column(children: [for (final s in lista) TarjetaMercado(s)]),
           ]);
         },
       ),
