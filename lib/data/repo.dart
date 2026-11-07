@@ -152,7 +152,7 @@ class Repo {
       'ayudas_$publicacionId',
       () => db
           .from('ayudas')
-          .select('vecino_id, vecino_nombre, created_at')
+          .select('vecino_id, vecino_nombre, created_at, perfiles(ayudas_confirmadas)')
           .eq('publicacion_id', publicacionId)
           .order('created_at'),
     );
@@ -228,6 +228,97 @@ class Repo {
 
   static int _contar(dynamic x) =>
       x is List && x.isNotEmpty && x.first is Map ? (((x.first as Map)['count'] as num?)?.toInt() ?? 0) : 0;
+
+  // ------------------------------------------------ reconocimiento vecinal
+
+  /// "¡Ya me ayudaron!": el autor confirma quién lo ayudó.
+  Future<void> agradecer(String publicacionId, List<String> vecinos, {String? mensaje}) async {
+    if (vecinos.isEmpty) return;
+    await db.from('agradecimientos').upsert([
+      for (final v in vecinos)
+        {
+          'publicacion_id': publicacionId,
+          'para_id': v,
+          if (mensaje != null && mensaje.trim().isNotEmpty) 'mensaje': mensaje.trim(),
+        },
+    ], onConflict: 'publicacion_id,para_id', ignoreDuplicates: true);
+  }
+
+  /// Historial del vecino: a quién respondió, agradecimientos recibidos,
+  /// Vistos Buenos que dio y lo que publicó.
+  Future<List<EntradaHistorial>> historial() async {
+    final id = uid;
+    if (id == null) return [];
+    final respuestas = await _consultar(
+      'hist_resp_$id',
+      () => db
+          .from('ayudas')
+          .select('created_at, publicaciones(*)')
+          .eq('vecino_id', id)
+          .order('created_at', ascending: false)
+          .limit(100),
+    );
+    final gracias = await _consultar(
+      'hist_gracias_$id',
+      () => db
+          .from('agradecimientos')
+          .select('created_at, de_nombre, titulo, mensaje')
+          .eq('para_id', id)
+          .order('created_at', ascending: false)
+          .limit(100),
+    );
+    final vbs = await _consultar(
+      'hist_vb_$id',
+      () => db
+          .from('vistos_buenos')
+          .select('created_at, comentario, servicios(titulo)')
+          .eq('autor_id', id)
+          .order('created_at', ascending: false)
+          .limit(100),
+    );
+    final lista = <EntradaHistorial>[
+      for (final r in respuestas)
+        if (r['publicaciones'] is Map)
+          () {
+            final p = Publicacion.fromMap(Map<String, dynamic>.from(r['publicaciones'] as Map));
+            return EntradaHistorial(
+              tipo: 'respondi',
+              titulo: p.titulo,
+              detalle: p.esColecta
+                  ? 'Aportaste a la colecta de ${p.autorVisible}'
+                  : (p.esPedido ? 'Ofreciste ayuda a ${p.autorVisible}' : 'Te interesó lo que ofreció ${p.autorVisible}'),
+              fecha: DateTime.tryParse(r['created_at'].toString())?.toLocal() ?? DateTime.now(),
+              publicacion: p,
+            );
+          }(),
+      for (final g in gracias)
+        EntradaHistorial(
+          tipo: 'agradecimiento',
+          titulo: '${g['de_nombre'] ?? 'Un vecino'} te agradeció',
+          detalle: [g['titulo'], if (g['mensaje'] != null) '"${g['mensaje']}"'].whereType<String>().join(' · '),
+          fecha: DateTime.tryParse(g['created_at'].toString())?.toLocal() ?? DateTime.now(),
+        ),
+      for (final v in vbs)
+        EntradaHistorial(
+          tipo: 'visto_bueno',
+          titulo: 'Diste tu Visto Bueno',
+          detalle: [((v['servicios'] as Map?)?['titulo']), v['comentario']].whereType<String>().join(' · '),
+          fecha: DateTime.tryParse(v['created_at'].toString())?.toLocal() ?? DateTime.now(),
+        ),
+    ]..sort((a, b) => b.fecha.compareTo(a.fecha));
+    return lista;
+  }
+
+  /// Vecinos con más ayudas confirmadas (reconocimiento público).
+  Future<List<Map<String, dynamic>>> vecinosDestacados() => _consultar(
+        'destacados',
+        () => db
+            .from('perfiles')
+            .select('id, nombre, sector, ayudas_confirmadas')
+            .gt('ayudas_confirmadas', 0)
+            .order('ayudas_confirmadas', ascending: false)
+            .limit(5),
+      );
 
   /// Colectas: quien organiza anota las donaciones recibidas en persona.
   Future<void> actualizarAvance(String id, int avance) =>

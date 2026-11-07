@@ -8,7 +8,7 @@
 1. **Cada rol es dueño de sus archivos** (columna "Archivos"). Si necesitas tocar el archivo de otro, avísale primero.
 2. **Una rama por tarea**: `fe1/identidad-visual`, `be2/sms`, etc. Nada directo a `main`.
 3. **Pull Request pequeño** y que otro integrante lo revise antes de unir. Antes de abrirlo: `flutter analyze` sin errores y `flutter test` en verde.
-4. **Base de datos**: solo **BE1** cambia `supabase/schema.sql`. Los demás le piden el cambio.
+4. **Base de datos**: solo **BE1** crea migraciones nuevas en `supabase/migrations/` (nunca edita una ya aplicada). Los demás le piden el cambio. Ver `supabase/README.md`.
 5. **Credenciales**: `supabase.json` nunca se sube. La URL y la key se pasan por privado.
 6. Cada 3 horas, **5 minutos de sincronización**: qué terminé, qué sigue y qué me bloquea.
 
@@ -67,7 +67,7 @@
 | 6 | Multi-zona (escalabilidad) | Diseñar (aunque no se implemente) una columna `zona` para escalar a otras ciudades, y explicarlo en la lámina de arquitectura. | Baja |
 | 7 | Respaldo | Exportar un respaldo de la base antes de la demo y tener lista la forma de reiniciar los datos. | Alta (sábado) |
 
-**Archivos:** `supabase/schema.sql`, `supabase/seed.sql` (dueño único).
+**Archivos:** `supabase/migrations/`, `supabase/seed.sql` (dueño único).
 **Entregable:** matriz de permisos por rol (sirve para responder al jurado), anti-spam activo y cuentas de demo.
 
 ---

@@ -226,18 +226,54 @@ class VistoBueno {
       );
 }
 
-/// Vecino que se comprometió a ayudar en un pedido ("Yo ayudo").
+/// Vecino que respondió a una publicación ("Yo te ayudo", "Yo aporto"...).
 class Ayuda {
-  Ayuda({required this.vecinoId, this.vecinoNombre, required this.creado});
+  Ayuda({required this.vecinoId, this.vecinoNombre, this.ayudasConfirmadas = 0, required this.creado});
   final String vecinoId;
   final String? vecinoNombre;
+  final int ayudasConfirmadas; // del perfil del vecino, para mostrar su nivel
   final DateTime creado;
 
   factory Ayuda.fromMap(Map<String, dynamic> m) => Ayuda(
         vecinoId: m['vecino_id'] as String,
         vecinoNombre: m['vecino_nombre'] as String?,
+        ayudasConfirmadas: ((m['perfiles'] as Map?)?['ayudas_confirmadas'] as num?)?.toInt() ?? 0,
         creado: _fecha(m['created_at']),
       );
+}
+
+/// Reconocimiento vecinal según ayudas CONFIRMADAS por quien fue ayudado.
+class Nivel {
+  const Nivel(this.nombre, this.emoji, this.minimo, this.descripcion);
+  final String nombre, emoji, descripcion;
+  final int minimo;
+
+  static const todos = [
+    Nivel('Vecino nuevo', '🏠', 0, 'Tu primera ayuda confirmada te da tu primer reconocimiento.'),
+    Nivel('Buen vecino', '🌱', 1, 'Ya ayudaste a alguien del barrio.'),
+    Nivel('Vecino solidario', '🤝', 3, 'Tus vecinos saben que pueden contar contigo.'),
+    Nivel('Corazón del barrio', '💛', 7, 'Eres parte de lo que mantiene unido al barrio.'),
+    Nivel('Guardián del barrio', '🛡️', 15, 'Un ejemplo para toda la comunidad.'),
+  ];
+
+  static Nivel de(int ayudas) => todos.lastWhere((n) => ayudas >= n.minimo);
+
+  static Nivel? siguiente(int ayudas) {
+    for (final n in todos) {
+      if (n.minimo > ayudas) return n;
+    }
+    return null;
+  }
+}
+
+/// Una entrada del historial del vecino.
+class EntradaHistorial {
+  EntradaHistorial({required this.tipo, required this.titulo, required this.fecha, this.detalle, this.publicacion});
+  final String tipo; // 'respondi' | 'agradecimiento' | 'visto_bueno' | 'publique'
+  final String titulo;
+  final String? detalle;
+  final DateTime fecha;
+  final Publicacion? publicacion;
 }
 
 class EstadoEmergencia {

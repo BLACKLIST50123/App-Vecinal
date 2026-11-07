@@ -275,6 +275,69 @@ class _PublicacionDetalleState extends State<PublicacionDetalle> {
     }
   }
 
+  /// Al cerrar un pedido o colecta propio, preguntar quién ayudó:
+  /// ese agradecimiento es el que da reconocimiento al vecino.
+  Future<void> _cerrar(AppState st) async {
+    final esMio = p.autorId != null && p.autorId == st.uid;
+    if (esMio && p.esPedido) {
+      var respuestas = <Ayuda>[];
+      try {
+        respuestas = (await st.repo.ayudas(p.id)).where((a) => a.vecinoId != st.uid).toList();
+      } catch (_) {}
+      if (respuestas.isNotEmpty && mounted) {
+        final elegidos = respuestas.map((a) => a.vecinoId).toSet();
+        final mensaje = TextEditingController();
+        final ok = await showDialog<bool>(
+          context: context,
+          builder: (c) => StatefulBuilder(
+            builder: (c, setD) => AlertDialog(
+              icon: const Icon(Icons.favorite, color: Color(0xFFC2185B), size: 40),
+              title: Text(p.esColecta ? '¿Quiénes aportaron?' : '¿Quién te ayudó?'),
+              content: SingleChildScrollView(
+                child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Text('Tu agradecimiento le da reconocimiento en el barrio.'),
+                  const SizedBox(height: 8),
+                  for (final a in respuestas)
+                    CheckboxListTile(
+                      contentPadding: EdgeInsets.zero,
+                      value: elegidos.contains(a.vecinoId),
+                      onChanged: (v) => setD(() => v == true ? elegidos.add(a.vecinoId) : elegidos.remove(a.vecinoId)),
+                      title: Text(a.vecinoNombre ?? 'Vecino'),
+                      subtitle: InsigniaNivel(a.ayudasConfirmadas, mostrarSiCero: true),
+                    ),
+                  TextField(
+                    controller: mensaje,
+                    maxLength: 200,
+                    textCapitalization: TextCapitalization.sentences,
+                    decoration: const InputDecoration(labelText: 'Mensaje de gracias (opcional)', hintText: 'Ej: ¡Mil gracias por venir tan rápido!'),
+                  ),
+                ]),
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(c), child: const Text('Cancelar')),
+                FilledButton.icon(
+                  onPressed: () => Navigator.pop(c, true),
+                  icon: const Icon(Icons.favorite),
+                  label: Text(elegidos.isEmpty ? 'Cerrar sin agradecer' : 'Agradecer y cerrar'),
+                ),
+              ],
+            ),
+          ),
+        );
+        if (ok != true) return;
+        try {
+          await st.repo.agradecer(p.id, elegidos.toList(), mensaje: mensaje.text);
+          if (elegidos.isNotEmpty) {
+            avisar(elegidos.length == 1 ? 'Le enviaste tu agradecimiento 💛' : 'Les enviaste tu agradecimiento 💛');
+          }
+        } catch (e) {
+          avisar(traducirError(e));
+        }
+      }
+    }
+    await _cambiar(st, 'resuelta');
+  }
+
   Future<void> _verificar(AppState st, bool verificada) async {
     setState(() => _ocupado = true);
     try {
@@ -484,9 +547,12 @@ class _PublicacionDetalleState extends State<PublicacionDetalle> {
                 else
                   for (final a in lista)
                     ListTile(
-                      leading: const CircleAvatar(child: Icon(Icons.favorite, size: 20)),
+                      leading: CircleAvatar(child: Text(Nivel.de(a.ayudasConfirmadas).emoji)),
                       title: Text(a.vecinoId == st.uid ? 'Tú' : (a.vecinoNombre ?? 'Vecino')),
-                      subtitle: Text('Respondió ${haceCuanto(a.creado)}'),
+                      subtitle: Wrap(spacing: 6, crossAxisAlignment: WrapCrossAlignment.center, children: [
+                        Text('Respondió ${haceCuanto(a.creado)}'),
+                        InsigniaNivel(a.ayudasConfirmadas),
+                      ]),
                     ),
               ]);
             },
@@ -582,7 +648,7 @@ class _PublicacionDetalleState extends State<PublicacionDetalle> {
                 const SizedBox(height: 12),
                 FilledButton.icon(
                   style: FilledButton.styleFrom(backgroundColor: const Color(0xFF2E7D32), foregroundColor: Colors.white),
-                  onPressed: _ocupado ? null : () => _cambiar(st, 'resuelta'),
+                  onPressed: _ocupado ? null : () => _cerrar(st),
                   icon: const Icon(Icons.check_circle),
                   label: Text(!esMio
                       ? 'Marcar como atendido'

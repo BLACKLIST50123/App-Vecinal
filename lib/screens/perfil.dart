@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models.dart';
 import '../state/app_state.dart';
 import '../ui/widgets.dart';
+import '../util.dart';
 import 'auth_screen.dart';
 import 'confianza.dart';
 import 'detalles.dart';
@@ -65,6 +66,15 @@ class PerfilScreen extends StatelessWidget {
           ),
 
         if (st.logueado) ...[
+          const TituloSeccion('Mi aporte al barrio'),
+          _TarjetaReconocimiento(ayudas: (st.perfil?['ayudas_confirmadas'] as num?)?.toInt() ?? 0),
+          ListTile(
+            leading: const Icon(Icons.history, size: 32),
+            title: const Text('Mi historial de ayudas', style: TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: const Text('A quién ayudaste, colectas y agradecimientos'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const HistorialScreen())),
+          ),
           ListTile(
             leading: const Icon(Icons.list_alt, size: 32),
             title: const Text('Mis publicaciones', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -201,6 +211,154 @@ class PerfilScreen extends StatelessWidget {
       ]),
     );
   }
+}
+
+/// Nivel de reconocimiento y cuánto falta para el siguiente.
+class _TarjetaReconocimiento extends StatelessWidget {
+  const _TarjetaReconocimiento({required this.ayudas});
+  final int ayudas;
+
+  @override
+  Widget build(BuildContext context) {
+    final n = Nivel.de(ayudas);
+    final sig = Nivel.siguiente(ayudas);
+    final progreso = sig == null ? 1.0 : ((ayudas - n.minimo) / (sig.minimo - n.minimo)).clamp(0.0, 1.0);
+    final faltan = sig == null ? 0 : sig.minimo - ayudas;
+    final texto = 'Tu reconocimiento: ${n.nombre}. ${n.descripcion} '
+        '${sig == null ? '¡Llegaste al nivel más alto!' : 'Te faltan $faltan ayudas confirmadas para ser ${sig.nombre}.'}';
+    return Card(
+      color: const Color(0xFFFFF8E1),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Text(n.emoji, style: const TextStyle(fontSize: 48)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(n.nombre, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black)),
+                Text('$ayudas ${ayudas == 1 ? 'ayuda confirmada' : 'ayudas confirmadas'}',
+                    style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w600)),
+              ]),
+            ),
+            BotonEscuchar(texto, compacto: true),
+          ]),
+          const SizedBox(height: 8),
+          Text(n.descripcion, style: const TextStyle(color: Colors.black87, fontSize: 15)),
+          const SizedBox(height: 12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(
+              value: progreso,
+              minHeight: 12,
+              color: const Color(0xFFFFB300),
+              backgroundColor: const Color(0xFFFFE082),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            sig == null
+                ? '¡Llegaste al nivel más alto! Gracias por cuidar tu barrio.'
+                : 'Te ${faltan == 1 ? 'falta 1 ayuda confirmada' : 'faltan $faltan ayudas confirmadas'} para ser ${sig.emoji} ${sig.nombre}',
+            style: const TextStyle(color: Colors.black87),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Una ayuda se confirma cuando la persona a la que ayudaste te agradece en la app.',
+            style: TextStyle(color: Colors.black54, fontSize: 13),
+          ),
+        ]),
+      ),
+    );
+  }
+}
+
+class HistorialScreen extends StatelessWidget {
+  const HistorialScreen({super.key});
+
+  static (IconData, Color) _icono(String tipo) => switch (tipo) {
+        'agradecimiento' => (Icons.favorite, const Color(0xFFC2185B)),
+        'visto_bueno' => (Icons.thumb_up, const Color(0xFF2E7D32)),
+        _ => (Icons.volunteer_activism, const Color(0xFF1565C0)),
+      };
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        appBar: AppBar(title: const Text('Mi historial de ayudas')),
+        body: Cargador<List<EntradaHistorial>>(
+          cargar: (st) => st.repo.historial(),
+          builder: (context, lista) {
+            if (lista.isEmpty) {
+              return EstadoVacio(
+                icono: Icons.volunteer_activism,
+                texto: 'Aquí verás cada vez que ayudes a un vecino.\n¡Tu primera ayuda está a un toque!',
+                accion: ('Ver quién necesita una mano', () => Navigator.pop(context)),
+              );
+            }
+            final respondi = lista.where((e) => e.tipo == 'respondi').toList();
+            final gracias = lista.where((e) => e.tipo == 'agradecimiento').length;
+            final colectas = respondi.where((e) => e.publicacion?.esColecta == true).length;
+            final emergencias = respondi.where((e) => e.publicacion?.esEmergencia == true).length;
+            final cuidado = respondi.where((e) => e.publicacion?.categoria == 'cuidado').length;
+            final vbs = lista.where((e) => e.tipo == 'visto_bueno').length;
+            return ListView(padding: const EdgeInsets.only(bottom: 32), children: [
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Wrap(spacing: 8, runSpacing: 8, children: [
+                  _Dato(Icons.volunteer_activism, 'Veces que respondiste', respondi.length),
+                  _Dato(Icons.favorite, 'Agradecimientos', gracias),
+                  _Dato(Icons.diversity_1, 'Colectas apoyadas', colectas),
+                  _Dato(Icons.thumb_up, 'Vistos Buenos dados', vbs),
+                ]),
+              ),
+              if (emergencias > 0 || cuidado > 0 || colectas > 0) ...[
+                const TituloSeccion('Tus distintivos'),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Wrap(spacing: 8, runSpacing: 8, children: [
+                    if (emergencias > 0) const Chip(avatar: Text('🚨'), label: Text('Ayudó en una emergencia')),
+                    if (cuidado > 0) const Chip(avatar: Text('👵'), label: Text('Acompaña a los mayores')),
+                    if (colectas > 0) const Chip(avatar: Text('🎁'), label: Text('Aporta a las colectas')),
+                  ]),
+                ),
+              ],
+              const TituloSeccion('Lo que has hecho'),
+              for (final e in lista)
+                ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: _icono(e.tipo).$2.withValues(alpha: 0.15),
+                    child: Icon(_icono(e.tipo).$1, color: _icono(e.tipo).$2),
+                  ),
+                  title: Text(e.tipo == 'respondi' ? e.titulo : e.titulo, style: const TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: Text([?e.detalle, haceCuanto(e.fecha)].join('\n')),
+                  trailing: e.publicacion?.estado == 'resuelta' ? const Icon(Icons.check_circle, color: Color(0xFF2E7D32)) : null,
+                ),
+            ]);
+          },
+        ),
+      );
+}
+
+class _Dato extends StatelessWidget {
+  const _Dato(this.icono, this.texto, this.valor);
+  final IconData icono;
+  final String texto;
+  final int valor;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: 160,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.primaryContainer,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Icon(icono),
+          Text('$valor', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900)),
+          Text(texto, style: const TextStyle(fontWeight: FontWeight.w600)),
+        ]),
+      );
 }
 
 class MisPublicacionesScreen extends StatelessWidget {

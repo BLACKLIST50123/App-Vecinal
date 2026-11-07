@@ -47,7 +47,7 @@ lib/
   screens/             inicio, emergencia, servicios, favores, mapa, publicar, QR, perfil, tutorial
   ui/                  tema accesible y componentes
 supabase/
-  schema.sql           tablas, triggers y políticas RLS por rol
+  migrations/          migraciones numeradas 0001…: tablas, triggers y políticas RLS por rol
   seed.sql             datos de demostración de Chimbote
 ```
 
@@ -55,7 +55,7 @@ La seguridad vive en el servidor (RLS): el nombre y rol del autor los pone un tr
 
 ## Cómo ejecutarlo
 
-1. En Supabase > SQL Editor ejecuta `supabase/schema.sql` y luego `supabase/seed.sql`.
+1. En Supabase > SQL Editor ejecuta en orden las migraciones de `supabase/migrations/` (0001, 0002…) y luego `supabase/seed.sql`. Ver `supabase/README.md`.
 2. En Authentication > Email desactiva "Confirm email" (para la demo).
 3. Copia `supabase.example.json` como `supabase.json` y pon tu Project URL y publishable key (este archivo no se sube a Git).
 4. Ejecuta:

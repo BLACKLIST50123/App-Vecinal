@@ -177,6 +177,7 @@ class AppState extends ChangeNotifier {
     version++;
     notifyListeners();
     actualizarEmergencia();
+    if (logueado) cargarPerfil(); // actualiza el nivel de reconocimiento
   }
 
   Future<bool> publicar(String tabla, Map<String, dynamic> datos) async {

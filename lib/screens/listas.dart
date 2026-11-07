@@ -188,6 +188,52 @@ class _FavoresScreenState extends State<FavoresScreen> {
               ),
             ],
 
+            // Reconocimiento público
+            if (!e && _categoria == null && _tipo == 'todos')
+              Cargador<List<Map<String, dynamic>>>(
+                cargar: (st) => st.repo.vecinosDestacados(),
+                builder: (c, destacados) {
+                  if (destacados.isEmpty) return const SizedBox.shrink();
+                  return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                    const TituloSeccion('Vecinos que más ayudan'),
+                    SizedBox(
+                      height: 112,
+                      child: ListView(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        children: [
+                          for (final d in destacados)
+                            () {
+                              final n = (d['ayudas_confirmadas'] as num?)?.toInt() ?? 0;
+                              final nivel = Nivel.de(n);
+                              return Semantics(
+                                label: '${d['nombre']}, ${nivel.nombre}, $n ayudas confirmadas',
+                                excludeSemantics: true,
+                                child: Card(
+                                  color: const Color(0xFFFFF8E1),
+                                  child: Container(
+                                    width: 150,
+                                    padding: const EdgeInsets.all(10),
+                                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                      Text(nivel.emoji, style: const TextStyle(fontSize: 26)),
+                                      Text((d['nombre'] ?? 'Vecino') as String,
+                                          maxLines: 1, overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
+                                      Text('$n ${n == 1 ? 'ayuda' : 'ayudas'} · ${d['sector'] ?? ''}',
+                                          maxLines: 1, overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(color: Colors.black87, fontSize: 12)),
+                                    ]),
+                                  ),
+                                ),
+                              );
+                            }(),
+                        ],
+                      ),
+                    ),
+                  ]);
+                },
+              ),
+
             // Filtros
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),

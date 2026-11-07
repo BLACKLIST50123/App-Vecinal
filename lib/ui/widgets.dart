@@ -418,6 +418,28 @@ class TarjetaPublicacion extends StatelessWidget {
   }
 }
 
+/// Insignia de reconocimiento vecinal ("🤝 Vecino solidario").
+class InsigniaNivel extends StatelessWidget {
+  const InsigniaNivel(this.ayudas, {super.key, this.mostrarSiCero = false});
+  final int ayudas;
+  final bool mostrarSiCero;
+
+  @override
+  Widget build(BuildContext context) {
+    if (ayudas == 0 && !mostrarSiCero) return const SizedBox.shrink();
+    final n = Nivel.de(ayudas);
+    return Semantics(
+      label: 'Reconocimiento: ${n.nombre}, $ayudas ayudas confirmadas',
+      excludeSemantics: true,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        decoration: BoxDecoration(color: const Color(0xFFFFF8E1), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFFFB300))),
+        child: Text('${n.emoji} ${n.nombre}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
+      ),
+    );
+  }
+}
+
 /// Avance de una colecta: "18 de 30 donaciones · faltan 12".
 class BarraColecta extends StatelessWidget {
   const BarraColecta(this.p, {super.key, this.grande = false});

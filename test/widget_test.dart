@@ -1,6 +1,7 @@
 import 'package:app_vecinal/config.dart';
 import 'package:app_vecinal/data/qr_codec.dart';
 import 'package:app_vecinal/main.dart';
+import 'package:app_vecinal/models.dart';
 import 'package:app_vecinal/util.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -42,6 +43,22 @@ void main() {
       expect(QrCodec.decodificar('https://ejemplo.com'), isNull);
       expect(QrCodec.decodificar('{"app":"otra","d":{}}'), isNull);
       expect(QrCodec.decodificar('{"app":"vecinal","v":1,"d":{"id":"x","tipo":"pido","categoria":"a","titulo":"abc"}}'), isNull);
+    });
+  });
+
+  group('Reconocimiento vecinal', () {
+    test('niveles según ayudas confirmadas', () {
+      expect(Nivel.de(0).nombre, 'Vecino nuevo');
+      expect(Nivel.de(1).nombre, 'Buen vecino');
+      expect(Nivel.de(3).nombre, 'Vecino solidario');
+      expect(Nivel.de(6).nombre, 'Vecino solidario');
+      expect(Nivel.de(7).nombre, 'Corazón del barrio');
+      expect(Nivel.de(40).nombre, 'Guardián del barrio');
+    });
+
+    test('siguiente nivel y fin de la escala', () {
+      expect(Nivel.siguiente(1)!.nombre, 'Vecino solidario');
+      expect(Nivel.siguiente(15), isNull);
     });
   });
 
