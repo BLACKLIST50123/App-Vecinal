@@ -27,6 +27,9 @@ class AppState extends ChangeNotifier {
     voz = prefs.getBool('voz') ?? true;
     tutorialVisto = prefs.getBool('tutorial_visto') ?? false;
     rolSimulado = prefs.getString('rol_simulado') ?? 'vecino';
+    // El rol se elige una sola vez; después se cambia desde Perfil.
+    rolElegido = prefs.getBool('rol_elegido') ?? false;
+    invitado = prefs.getBool('modo_invitado') ?? false;
     especialidad = prefs.getString('especialidad');
     repo.forzarOffline = prefs.getBool('forzar_offline') ?? false;
     final p = prefs.getString('perfil');
@@ -43,10 +46,17 @@ class AppState extends ChangeNotifier {
   late bool tutorialVisto;
 
   /// Rol elegido en "¿Quién soy hoy?": 'vecino', 'prestador' o 'brigadista'.
-  /// Se recuerda la última elección, pero se pregunta en cada apertura.
+  /// Se pregunta solo la primera vez (no en cada apertura: en una
+  /// emergencia cada paso extra cuesta). Se cambia desde Perfil.
   late String rolSimulado;
   String? especialidad; // oficio del prestador (gasfitero, electricista...)
-  bool rolElegido = false;
+  late bool rolElegido;
+
+  /// Entró sin cuenta desde la pantalla de bienvenida.
+  late bool invitado;
+
+  /// Ya pasó la bienvenida: con cuenta o como invitado.
+  bool get entro => logueado || invitado;
 
   bool _red = true;
   EstadoEmergencia emergencia = const EstadoEmergencia.inactiva();
@@ -200,6 +210,43 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Botón "Aa": A → A+ → A++ → A. Devuelve el nombre del tamaño nuevo.
+  String cambiarLetra() {
+    const tamanos = [1.0, 1.3, 1.6];
+    final i = tamanos.indexWhere((t) => (t - escala).abs() < 0.05);
+    final nuevo = tamanos[(i + 1) % tamanos.length];
+    setEscala(nuevo);
+    return switch (nuevo) { 1.0 => 'normal', 1.3 => 'grande', _ => 'muy grande' };
+  }
+
+  void entrarComoInvitado() {
+    invitado = true;
+    prefs.setBool('modo_invitado', true);
+    notifyListeners();
+  }
+
+  /// Emergencia en la bienvenida: entra sin cuenta y sin pasos previos,
+  /// directo a la pantalla de ayuda.
+  void entrarEnEmergencia() {
+    invitado = true;
+    tutorialVisto = true;
+    rolElegido = true;
+    prefs.setBool('modo_invitado', true);
+    prefs.setBool('tutorial_visto', true);
+    prefs.setBool('rol_elegido', true);
+    notifyListeners();
+  }
+
+  /// Cerrar sesión vuelve a la pantalla de bienvenida.
+  Future<void> cerrarSesion() async {
+    try {
+      await repo.db.auth.signOut();
+    } catch (_) {}
+    invitado = false;
+    await prefs.setBool('modo_invitado', false);
+    await cargarPerfil();
+  }
+
   void setAltoContraste(bool v) {
     altoContraste = v;
     prefs.setBool('alto_contraste', v);
@@ -225,6 +272,7 @@ class AppState extends ChangeNotifier {
     rolSimulado = rol;
     rolElegido = true;
     prefs.setString('rol_simulado', rol);
+    prefs.setBool('rol_elegido', true);
     if (oficio != null && oficio.trim().isNotEmpty) {
       especialidad = oficio.trim();
       prefs.setString('especialidad', especialidad!);

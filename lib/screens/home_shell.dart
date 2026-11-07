@@ -120,6 +120,17 @@ class _HomeShellState extends State<HomeShell> {
             titulo: titulo,
             subtitulo: subtitulo,
             acciones: [
+              // Letra grande a 1 toque: A → A+ → A++.
+              BotonCuadrado(
+                icono: Icons.format_size,
+                texto: 'Aa',
+                tooltip: 'Cambiar tamaño de letra',
+                onTap: () {
+                  final tamano = st.cambiarLetra();
+                  avisar('Letra $tamano');
+                  if (st.voz) Voz.hablar('Letra $tamano');
+                },
+              ),
               if (st.voz)
                 BotonCuadrado(
                   icono: Icons.volume_up_outlined,
@@ -158,10 +169,17 @@ class _HomeShellState extends State<HomeShell> {
                 ),
               ),
             ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _tab,
-        onDestinationSelected: (i) => _irA(i),
-        destinations: destinos,
+      // Con letra grande, las etiquetas de la barra crecen poco para no partirse
+      // ("Solidari-dad"); el resto de la pantalla sí usa el tamaño elegido.
+      bottomNavigationBar: MediaQuery(
+        data: MediaQuery.of(context).copyWith(
+          textScaler: MediaQuery.textScalerOf(context).clamp(maxScaleFactor: 1.1),
+        ),
+        child: NavigationBar(
+          selectedIndex: _tab,
+          onDestinationSelected: (i) => _irA(i),
+          destinations: destinos,
+        ),
       ),
     );
   }

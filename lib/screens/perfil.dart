@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../config.dart';
 import '../models.dart';
@@ -183,10 +182,7 @@ class PerfilScreen extends StatelessWidget {
             icono: Icons.logout,
             texto: 'Cerrar sesión',
             color: Paleta.rojo,
-            onTap: () async {
-              await Supabase.instance.client.auth.signOut();
-              await st.cargarPerfil();
-            },
+            onTap: () => st.cerrarSesion(),
           ),
       ]),
       const Padding(

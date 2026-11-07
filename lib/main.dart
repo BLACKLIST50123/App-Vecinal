@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'data/repo.dart';
+import 'screens/bienvenida.dart';
 import 'screens/home_shell.dart';
 import 'screens/roles.dart';
 import 'screens/sos.dart';
@@ -53,15 +54,19 @@ class AppVecinal extends StatelessWidget {
           child: Stack(children: [
             child!,
             // Botón de pánico accesible desde cualquier pantalla.
-            if (st.tutorialVisto && st.rolElegido) const BotonSOSFlotante(),
+            if (st.entro && st.tutorialVisto && st.rolElegido) const BotonSOSFlotante(),
           ]),
         );
       },
-      home: !st.tutorialVisto
-          ? const TutorialScreen(inicial: true)
-          : !st.rolElegido
-              ? const SelectorRolScreen()
-              : const HomeShell(),
+      // Bienvenida (iniciar sesión / crear cuenta / invitado) → tutorial y
+      // rol solo la primera vez → la app.
+      home: !st.entro
+          ? const BienvenidaScreen()
+          : !st.tutorialVisto
+              ? const TutorialScreen(inicial: true)
+              : !st.rolElegido
+                  ? const SelectorRolScreen()
+                  : const HomeShell(),
     );
   }
 }

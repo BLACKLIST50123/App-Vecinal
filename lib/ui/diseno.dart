@@ -47,8 +47,11 @@ class EncabezadoPantalla extends StatelessWidget {
 
 /// Botón cuadrado blanco con borde (como la campana del diseño).
 class BotonCuadrado extends StatelessWidget {
-  const BotonCuadrado({super.key, required this.icono, required this.tooltip, required this.onTap, this.contador = 0, this.color});
+  const BotonCuadrado({super.key, required this.icono, required this.tooltip, required this.onTap, this.contador = 0, this.color, this.texto});
   final IconData icono;
+
+  /// Si se indica, se muestra este texto (ej. "Aa") en lugar del ícono.
+  final String? texto;
   final String tooltip;
   final VoidCallback onTap;
   final int contador;
@@ -71,7 +74,10 @@ class BotonCuadrado extends StatelessWidget {
                 width: 48,
                 height: 48,
                 child: Stack(alignment: Alignment.center, children: [
-                  Icon(icono, color: const Color(0xFF475569)),
+                  if (texto != null)
+                    Text(texto!, textScaler: TextScaler.noScaling, style: const TextStyle(color: Color(0xFF475569), fontSize: 19, fontWeight: FontWeight.w800, height: 1))
+                  else
+                    Icon(icono, color: const Color(0xFF475569)),
                   if (contador > 0)
                     Positioned(
                       top: 8,

@@ -37,8 +37,11 @@ String? _identificador(String entrada, {required bool usarCorreo}) {
 }
 
 class AuthScreen extends StatefulWidget {
-  const AuthScreen({super.key, this.mensaje});
+  const AuthScreen({super.key, this.mensaje, this.tabInicial = 0});
   final String? mensaje;
+
+  /// 0 = Ingresar, 1 = Crear cuenta.
+  final int tabInicial;
 
   @override
   State<AuthScreen> createState() => _AuthScreenState();
@@ -254,6 +257,7 @@ class _AuthScreenState extends State<AuthScreen> {
     final dentro = _gps != null && enZona(_gps!);
     return DefaultTabController(
       length: 2,
+      initialIndex: widget.tabInicial,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Mi cuenta de vecino'),
