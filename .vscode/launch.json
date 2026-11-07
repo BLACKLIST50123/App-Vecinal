@@ -1,0 +1,31 @@
+{
+  // F5 en VS Code: elige la configuración en el panel "Ejecutar y depurar".
+  // Todas leen las credenciales desde supabase.json (no se sube a Git).
+  // Para Android, elige el celular en la barra de estado de VS Code (abajo a la derecha).
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Web (Chrome)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "deviceId": "chrome",
+      "toolArgs": ["--dart-define-from-file=supabase.json"]
+    },
+    {
+      "name": "Celular Android",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "toolArgs": ["--dart-define-from-file=supabase.json"]
+    },
+    {
+      "name": "Celular Android (release)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "flutterMode": "release",
+      "toolArgs": ["--dart-define-from-file=supabase.json"]
+    }
+  ]
+}
