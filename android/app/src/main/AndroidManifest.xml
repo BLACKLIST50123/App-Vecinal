@@ -2,7 +2,7 @@
     <!-- Necesario en release para conectarse a Supabase -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <application
-        android:label="prueba_alphacoders"
+        android:label="App Vecinal"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

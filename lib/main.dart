@@ -20,7 +20,7 @@ class PruebaApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Prueba AlphaCoders',
+      title: 'App Vecinal',
       theme: ThemeData(colorSchemeSeed: Colors.indigo, useMaterial3: true),
       home: const MensajePage(),
     );

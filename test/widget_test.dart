@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:prueba_alphacoders/main.dart';
+import 'package:app_vecinal/main.dart';
 
 void main() {
   testWidgets('Muestra aviso si faltan credenciales', (tester) async {

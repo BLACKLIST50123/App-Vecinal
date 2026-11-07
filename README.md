@@ -1,4 +1,4 @@
-# prueba_alphacoders
+# App Vecinal
 
 A new Flutter project.
 

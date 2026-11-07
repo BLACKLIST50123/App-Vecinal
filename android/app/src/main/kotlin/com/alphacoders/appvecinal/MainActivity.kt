@@ -1,4 +1,4 @@
-package com.example.prueba_alphacoders
+package com.alphacoders.appvecinal
 
 import io.flutter.embedding.android.FlutterActivity
 
