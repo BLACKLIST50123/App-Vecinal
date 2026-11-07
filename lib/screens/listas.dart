@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../config.dart';
+import '../features/sos/sos_alertas.dart';
 import '../models.dart';
 import '../state/app_state.dart';
 import '../ui/diseno.dart';
@@ -167,6 +168,8 @@ class _FavoresScreenState extends State<FavoresScreen> {
           });
 
           return ListView(padding: const EdgeInsets.only(bottom: 40), children: [
+            // 0 ─ Alertas SOS (día a día; en emergencia ya están en el tablero)
+            if (!e) const FranjaAlertasSos(maximo: 3),
             // 1 ─ Banner y dos caminos
             BannerDegradado(
               icono: e ? Icons.volunteer_activism : Icons.favorite_border,

@@ -127,6 +127,34 @@ class Repo {
     ];
   }
 
+  /// Alertas SOS sin atender de las últimas 24 h. Se muestran SIEMPRE,
+  /// aunque la junta no haya activado el modo emergencia.
+  Future<List<Publicacion>> alertasSos() async {
+    final desde = DateTime.now().toUtc().subtract(const Duration(hours: 24)).toIso8601String();
+    final filas = await _consultar(
+      'alertas_sos',
+      () => db
+          .from('publicaciones')
+          .select('*, ayudas(count)')
+          .eq('origen', 'sos')
+          .neq('estado', 'resuelta')
+          .gte('created_at', desde)
+          .order('created_at', ascending: false)
+          .limit(20),
+    );
+    final enviadas = filas.map(Publicacion.fromMap).toList();
+    final ids = enviadas.map((p) => p.id).toSet();
+    return [
+      ...pendientes
+          .where((p) => p.tabla == 'publicaciones' && p.datos['origen'] == 'sos' && !ids.contains(p.id))
+          .map((p) => Publicacion.fromMap(p.datos, pendiente: true)),
+      ...enviadas,
+    ]..sort((a, b) {
+        final x = b.pesoPrioridad.compareTo(a.pesoPrioridad);
+        return x != 0 ? x : b.creado.compareTo(a.creado);
+      });
+  }
+
   Future<EstadoEmergencia> emergencia() async {
     final filas = await _consultar('emergencia', () async {
       final r = await db.from('emergencia').select().eq('id', 1).maybeSingle();

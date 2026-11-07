@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../config.dart';
+import '../features/sos/sos_alertas.dart';
 import '../models.dart';
 import '../state/app_state.dart';
 import '../ui/widgets.dart';
@@ -201,6 +202,8 @@ class _PanelCoordinacionScreenState extends State<PanelCoordinacionScreen> {
           st.refrescar();
         },
         child: ListView(padding: const EdgeInsets.only(bottom: 32), children: [
+          // Los SOS se atienden siempre, haya o no emergencia activa.
+          if (!emergencia) const FranjaAlertasSos(maximo: 5),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
             child: Text(emergencia ? 'Emergencia en curso' : 'Cadena de favores (día a día)',

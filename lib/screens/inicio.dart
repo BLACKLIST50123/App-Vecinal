@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../config.dart';
+import '../features/sos/sos_alertas.dart';
 import '../models.dart';
 import '../state/app_state.dart';
 import '../ui/diseno.dart';
@@ -29,6 +30,8 @@ class InicioScreen extends StatelessWidget {
     return RefreshIndicator(
       onRefresh: () async => st.refrescar(),
       child: ListView(padding: const EdgeInsets.only(bottom: 110), children: [
+        // Lo más urgente primero: alertas SOS de vecinos (si las hay).
+        const FranjaAlertasSos(),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
           child: Align(
