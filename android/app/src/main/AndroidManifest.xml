@@ -6,6 +6,8 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <!-- Escanear QR de la "mula de datos" -->
     <uses-permission android:name="android.permission.CAMERA"/>
+    <!-- Publicar por voz (speech_to_text) -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
     <application
         android:label="App Vecinal"
@@ -61,6 +63,10 @@
         <!-- Lectura en voz alta (flutter_tts) -->
         <intent>
             <action android:name="android.intent.action.TTS_SERVICE"/>
+        </intent>
+        <!-- Dictado por voz (speech_to_text) -->
+        <intent>
+            <action android:name="android.speech.RecognitionService"/>
         </intent>
     </queries>
 </manifest>

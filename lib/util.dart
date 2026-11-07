@@ -20,6 +20,11 @@ double distanciaKmRedondeada(Punto a, Punto b) => (distanciaKm(a, b) * 2).roundT
 
 bool enZona(Punto p) => distanciaKm(p, Zona.centro) <= Zona.radioKm;
 
+/// Sector de la zona más cercano a un punto (para sugerirlo al registrarse).
+String sectorMasCercano(Punto p) => Zona.sectores.entries
+    .reduce((a, b) => distanciaKm(p, a.value) <= distanciaKm(p, b.value) ? a : b)
+    .key;
+
 /// Privacidad: los pedidos de ayuda se publican con ubicación aproximada
 /// (cuadrícula de ~220 m + desplazamiento aleatorio de hasta ~110 m), para
 /// no revelar dónde vive una persona vulnerable o quién está sola.

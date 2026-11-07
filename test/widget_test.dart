@@ -1,5 +1,6 @@
 import 'package:app_vecinal/config.dart';
 import 'package:app_vecinal/data/qr_codec.dart';
+import 'package:app_vecinal/data/sugerencias.dart';
 import 'package:app_vecinal/main.dart';
 import 'package:app_vecinal/models.dart';
 import 'package:app_vecinal/util.dart';
@@ -85,6 +86,51 @@ void main() {
     test('distancia aproximada correcta', () {
       final km = distanciaKm(Zona.sectores['Casco Urbano']!, Zona.sectores['Buenos Aires']!);
       expect(km, inInclusiveRange(7, 10));
+    });
+  });
+
+  group('Publicar sin escribir', () {
+    final favores = [for (final c in categoriasFavor) c.id];
+    final servicios = [for (final c in categoriasServicio) c.id];
+    final emergencia = [for (final c in categoriasEmergencia) c.id];
+
+    test('el texto dictado elige la categoría', () {
+      expect(sugerirCategoria('Necesito una escalera', favores), 'herramientas');
+      expect(sugerirCategoria('necesito que alguien me lleve al hospital', favores), 'movilidad');
+      expect(sugerirCategoria('Gasfitero a domicilio', servicios), 'gasfiteria');
+      expect(sugerirCategoria('se malogró la luz de mi casa', servicios), 'electricidad');
+      expect(sugerirCategoria('Necesitamos agua potable', emergencia), 'agua_alimento');
+      expect(sugerirCategoria('Estamos ATRAPADOS', emergencia), 'rescate');
+    });
+
+    test('sin coincidencia clara no cambia la categoría', () {
+      expect(sugerirCategoria('hola', favores), isNull);
+      expect(sugerirCategoria('ab', favores), isNull);
+      // "pan" no debe confundirse dentro de otra palabra que no empieza así
+      expect(sugerirCategoria('compañero', servicios), isNull);
+    });
+
+    test('cada frase rápida usa una categoría válida de su formulario', () {
+      final validas = {
+        'pidoFavor': favores.where((c) => c != 'colecta'),
+        'ofrezcoFavor': favores.where((c) => c != 'colecta'),
+        'colecta': ['colecta'],
+        'servicio': servicios,
+        'grupoApoyo': [for (final c in categoriasApoyo) c.id],
+        'necesitoAyuda': emergencia.where((c) => c != 'recurso' && c != 'vulnerable'),
+        'reportarVulnerable': ['vulnerable'],
+        'ofrezcoRecurso': emergencia.where((c) => c != 'vulnerable' && c != 'rescate'),
+      };
+      for (final e in frasesRapidas.entries) {
+        for (final f in e.value) {
+          expect(validas[e.key], contains(f.categoria), reason: '${e.key}: ${f.texto}');
+        }
+      }
+    });
+
+    test('el GPS sugiere el sector más cercano', () {
+      expect(sectorMasCercano(Zona.sectores['Bellamar']!), 'Bellamar');
+      expect(sectorMasCercano(const Punto(-9.0750, -78.5930)), 'Casco Urbano');
     });
   });
 }
