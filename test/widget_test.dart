@@ -1,6 +1,7 @@
 import 'package:app_vecinal/config.dart';
 import 'package:app_vecinal/data/qr_codec.dart';
 import 'package:app_vecinal/data/repo.dart';
+import 'package:app_vecinal/features/solidaridad/clasificador.dart';
 import 'package:app_vecinal/features/sos/sos_tipos.dart';
 import 'package:app_vecinal/main.dart';
 import 'package:app_vecinal/models.dart';
@@ -73,6 +74,32 @@ void main() {
     test('las alertas vencen: 24 h las muy urgentes, 6 h las demás', () {
       expect(Repo.vigenciaSos('critica'), const Duration(hours: 24));
       expect(Repo.vigenciaSos('alta'), const Duration(hours: 6));
+    });
+  });
+
+  group('Solidaridad: clasificador por palabras clave', () {
+    test('detecta las 5 categorías del reto', () {
+      expect(Clasificador.categoria('Necesito que me presten una escalera').categoria, 'herramientas');
+      expect(Clasificador.categoria('¿Alguien me lleva al hospital el jueves?').categoria, 'movilidad');
+      expect(Clasificador.categoria('Busco donación de útiles y cuadernos').categoria, 'donacion');
+      expect(Clasificador.categoria('Quiero clases de inglés, enseño matemática').categoria, 'habilidad');
+      expect(Clasificador.categoria('Ayuda para cargar muebles en la mudanza').categoria, 'ayuda');
+    });
+
+    test('si no reconoce nada queda en Otro (no detectada)', () {
+      final c = Clasificador.categoria('Necesito algo raro');
+      expect(c.categoria, 'otros');
+      expect(c.detectada, isFalse);
+    });
+
+    test('detecta urgencia por palabras', () {
+      expect(Clasificador.esUrgente('Lo necesito hoy, es urgente'), isTrue);
+      expect(Clasificador.esUrgente('Cuando puedas, el próximo mes'), isFalse);
+    });
+
+    test('fecha y hora legibles', () {
+      final ahora = DateTime.now();
+      expect(fechaHora(DateTime(ahora.year, ahora.month, ahora.day, 9, 5)), 'Hoy 09:05');
     });
   });
 

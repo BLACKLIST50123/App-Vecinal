@@ -163,6 +163,28 @@ class PerfilScreen extends StatelessWidget {
         FilaAjuste(icono: Icons.shield_outlined, texto: 'Ayudar con seguridad', onTap: () => mostrarConsejos(context)),
       ]),
 
+      // Reconocimiento público (antes estaba en Solidaridad).
+      Cargador<List<Map<String, dynamic>>>(
+        cargar: (st) => st.repo.vecinosDestacados(),
+        builder: (c, destacados) {
+          if (destacados.isEmpty) return const SizedBox.shrink();
+          return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            const TituloDiseno('Vecinos que más ayudan', ceja: 'Reconocimiento'),
+            ListaAjustes(filas: [
+              for (final d in destacados)
+                FilaAjuste(
+                  icono: Icons.emoji_events_outlined,
+                  texto: (d['nombre'] ?? 'Vecino') as String,
+                  valor: () {
+                    final n = (d['ayudas_confirmadas'] as num?)?.toInt() ?? 0;
+                    return '${Nivel.de(n).emoji} $n ${n == 1 ? 'ayuda' : 'ayudas'}';
+                  }(),
+                ),
+            ]),
+          ]);
+        },
+      ),
+
       const TituloDiseno('Ajustes'),
       ListaAjustes(filas: [
         FilaAjuste(

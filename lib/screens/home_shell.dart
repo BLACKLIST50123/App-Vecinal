@@ -3,6 +3,7 @@ import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
 
 import '../config.dart';
+import '../features/solidaridad/solidaridad_screen.dart';
 import '../services/voz.dart';
 import '../state/app_state.dart';
 import '../ui/diseno.dart';
@@ -65,7 +66,8 @@ class _HomeShellState extends State<HomeShell> {
         grupoInicial: _grupo,
         consultaInicial: _consulta,
       ),
-      FavoresScreen(emergencia: e),
+      // Día a día: Solidaridad (colectas + apoyar/pedir). Emergencia: tablero.
+      e ? const FavoresScreen(emergencia: true) : const SolidaridadScreen(),
       const MapaScreen(),
       const PerfilScreen(),
     ];

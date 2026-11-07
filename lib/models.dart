@@ -130,6 +130,12 @@ class Publicacion {
 
   bool get esColecta => categoria == 'colecta';
 
+  /// Urgencia de una petición del día a día (2 niveles: urgente / puede
+  /// esperar). Una petición urgente deja de serlo a las 24 h, para que no se
+  /// quede arriba para siempre.
+  bool get esUrgente =>
+      prioridad != 'normal' && DateTime.now().difference(creado) < const Duration(hours: 24);
+
   /// Colectas: entregadas en persona + vecinos que se comprometieron.
   int get aportes => avance + ayudantes;
   double get progreso => (meta == null || meta == 0) ? 0 : (aportes / meta!).clamp(0, 1).toDouble();

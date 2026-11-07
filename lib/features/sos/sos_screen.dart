@@ -11,7 +11,6 @@ import '../../screens/detalles.dart';
 import '../../screens/qr_screens.dart';
 import '../../services/ubicacion.dart';
 import '../../state/app_state.dart';
-import '../../ui/widgets.dart';
 import '../../util.dart';
 import 'sos_navegacion.dart';
 import 'sos_tipos.dart';

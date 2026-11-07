@@ -64,17 +64,23 @@ const categoriasApoyo = <Categoria>[
   Categoria('otros', 'Otros', Icons.volunteer_activism),
 ];
 
-/// Módulo 2 · día a día: cadena de favores (sin dinero).
+/// Módulo 2 · día a día: muro comunitario sin dinero. Las 5 categorías del
+/// reto + "Otro" (y las colectas, que van en su propio bloque).
 const categoriasFavor = <Categoria>[
-  Categoria('ayuda', 'Una mano', Icons.front_hand),
-  Categoria('herramientas', 'Herramientas y cosas', Icons.build),
-  Categoria('donacion', 'Regalos y donaciones', Icons.card_giftcard),
-  Categoria('cuidado', 'Compañía y cuidado', Icons.elderly),
-  Categoria('habilidad', 'Enseño o aprendo', Icons.school),
-  Categoria('movilidad', 'Te llevo', Icons.directions_car),
+  Categoria('herramientas', 'Préstamo de herramientas', Icons.build_outlined),
+  Categoria('ayuda', 'Ayuda temporal', Icons.front_hand_outlined),
+  Categoria('donacion', 'Donación de materiales', Icons.card_giftcard_outlined),
+  Categoria('habilidad', 'Intercambio de habilidades', Icons.school_outlined),
+  Categoria('movilidad', 'Movilidad solidaria', Icons.directions_car_outlined),
   Categoria('colecta', 'Colectas del barrio', Icons.diversity_1),
-  Categoria('otros', 'Otros', Icons.more_horiz),
+  Categoria('otros', 'Otro', Icons.more_horiz),
 ];
+
+/// Categorías que se pueden pedir/filtrar en "Solidaridad vecinal".
+List<Categoria> get categoriasPeticion => categoriasFavor.where((c) => c.id != 'colecta').toList();
+
+/// Datos antiguos: "Compañía y cuidado" ahora es parte de "Ayuda temporal".
+String categoriaPeticion(String id) => id == 'cuidado' ? 'ayuda' : id;
 
 /// Módulo 2 · emergencia: tablero humanitario y recursos críticos.
 const categoriasEmergencia = <Categoria>[
@@ -101,6 +107,7 @@ const categoriasSOS = <Categoria>[
 ];
 
 Categoria buscarCategoria(String id, {bool emergencia = false}) {
+  if (id == 'cuidado') id = 'ayuda';
   final listas = emergencia
       ? [categoriasSOS, categoriasEmergencia, categoriasApoyo, categoriasFavor, categoriasServicio]
       : [categoriasServicio, categoriasFavor, categoriasApoyo, categoriasEmergencia, categoriasSOS];

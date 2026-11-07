@@ -74,9 +74,9 @@ Future<void> abrirMenuPublicar(BuildContext context) {
           TipoForm.ofrezcoRecurso,
           if (st.esOrganizacion || st.esModerador) TipoForm.grupoApoyo,
           TipoForm.pidoFavor,
-          TipoForm.ofrezcoFavor,
         ]
-      : [TipoForm.pidoFavor, TipoForm.ofrezcoFavor, TipoForm.colecta, TipoForm.servicio];
+      // Sin ofrecimientos: la solidaridad del día a día es pedir y apoyar.
+      : [TipoForm.pidoFavor, TipoForm.colecta, TipoForm.servicio];
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
