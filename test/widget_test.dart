@@ -1,10 +1,64 @@
-import 'package:flutter_test/flutter_test.dart';
+import 'package:app_vecinal/config.dart';
+import 'package:app_vecinal/data/qr_codec.dart';
 import 'package:app_vecinal/main.dart';
+import 'package:app_vecinal/util.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('Muestra aviso si faltan credenciales', (tester) async {
-    await tester.pumpWidget(const PruebaApp());
-    await tester.pumpAndSettle();
+  testWidgets('Sin credenciales muestra cómo ejecutar la app', (tester) async {
+    await tester.pumpWidget(const SinCredenciales());
     expect(find.textContaining('Faltan SUPABASE_URL'), findsOneWidget);
+  });
+
+  group('Mula de datos QR', () {
+    final datos = {
+      'id': nuevoId(),
+      'tipo': 'pido',
+      'categoria': 'agua_alimento',
+      'titulo': 'Familia sin agua',
+      'es_emergencia': true,
+      'prioridad': 'critica',
+      'autor_id': 'no-debe-viajar',
+      'estado': 'resuelta',
+      'atendido_por': 'no-debe-viajar',
+    };
+
+    test('ida y vuelta conserva el contenido', () {
+      final d = QrCodec.decodificar(QrCodec.codificar(datos))!;
+      expect(d['id'], datos['id']);
+      expect(d['titulo'], 'Familia sin agua');
+      expect(d['prioridad'], 'critica');
+    });
+
+    test('quien lleva el QR no queda como autor ni puede cambiar el estado', () {
+      final d = QrCodec.decodificar(QrCodec.codificar(datos))!;
+      expect(d['origen'], 'qr');
+      expect(d['autor_id'], isNull);
+      expect(d.containsKey('estado'), isFalse);
+      expect(d.containsKey('atendido_por'), isFalse);
+    });
+
+    test('rechaza QR ajenos o inválidos', () {
+      expect(QrCodec.decodificar('https://ejemplo.com'), isNull);
+      expect(QrCodec.decodificar('{"app":"otra","d":{}}'), isNull);
+      expect(QrCodec.decodificar('{"app":"vecinal","v":1,"d":{"id":"x","tipo":"pido","categoria":"a","titulo":"abc"}}'), isNull);
+    });
+  });
+
+  group('Geolocalización', () {
+    test('ID único con formato UUID v4', () {
+      expect(RegExp(r'^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$').hasMatch(nuevoId()), isTrue);
+    });
+
+    test('Casco Urbano y Nuevo Chimbote están en la zona; Lima no', () {
+      expect(enZona(Zona.sectores['Casco Urbano']!), isTrue);
+      expect(enZona(Zona.sectores['Buenos Aires']!), isTrue);
+      expect(enZona(const Punto(-12.0464, -77.0428)), isFalse);
+    });
+
+    test('distancia aproximada correcta', () {
+      final km = distanciaKm(Zona.sectores['Casco Urbano']!, Zona.sectores['Buenos Aires']!);
+      expect(km, inInclusiveRange(7, 10));
+    });
   });
 }

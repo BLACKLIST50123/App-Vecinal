@@ -1,0 +1,232 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../models.dart';
+
+/// Publicación creada sin conexión (o traída por QR) que espera enviarse.
+class EntradaPendiente {
+  EntradaPendiente({required this.tabla, required this.datos, this.viaQr = false, this.error});
+
+  final String tabla; // 'publicaciones' | 'servicios'
+  final Map<String, dynamic> datos;
+  final bool viaQr;
+  String? error;
+
+  String get id => datos['id'] as String;
+  String get titulo => (datos['titulo'] ?? '') as String;
+
+  Map<String, dynamic> toJson() => {'tabla': tabla, 'datos': datos, 'via_qr': viaQr, 'error': error};
+
+  factory EntradaPendiente.fromJson(Map<String, dynamic> j) => EntradaPendiente(
+        tabla: j['tabla'] as String,
+        datos: Map<String, dynamic>.from(j['datos'] as Map),
+        viaQr: j['via_qr'] == true,
+        error: j['error'] as String?,
+      );
+}
+
+/// Acceso a datos con estrategia offline-first:
+/// - Lecturas: se guardan en caché; sin red se muestra la última copia.
+/// - Escrituras: si no hay red, van a una cola local y se envían luego.
+///   Los IDs se generan en el teléfono, así reenviar nunca duplica.
+class Repo {
+  Repo(this.prefs, this.db) {
+    _cargarCola();
+  }
+
+  final SharedPreferences prefs;
+  final SupabaseClient db;
+  bool forzarOffline = false;
+  final List<EntradaPendiente> pendientes = [];
+
+  String? get uid => db.auth.currentUser?.id;
+
+  /// true si el error es de red (sin internet / tiempo agotado) y no un
+  /// rechazo del servidor (permisos, datos inválidos).
+  static bool esErrorDeRed(Object e) =>
+      e is! PostgrestException && e is! AuthException && e is! FormatException && e is! TypeError;
+
+  void _cargarCola() {
+    final raw = prefs.getString('cola_envio');
+    if (raw == null) return;
+    try {
+      pendientes.addAll((jsonDecode(raw) as List)
+          .map((e) => EntradaPendiente.fromJson(Map<String, dynamic>.from(e as Map))));
+    } catch (_) {}
+  }
+
+  Future<void> _guardarCola() =>
+      prefs.setString('cola_envio', jsonEncode(pendientes.map((e) => e.toJson()).toList()));
+
+  Future<List<Map<String, dynamic>>> _consultar(
+      String clave, Future<List<Map<String, dynamic>>> Function() consulta) async {
+    if (!forzarOffline) {
+      try {
+        final r = await consulta().timeout(const Duration(seconds: 10));
+        await prefs.setString('cache_$clave', jsonEncode(r));
+        return r;
+      } catch (e) {
+        if (!esErrorDeRed(e)) rethrow;
+      }
+    }
+    final raw = prefs.getString('cache_$clave');
+    if (raw == null) return [];
+    return (jsonDecode(raw) as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  }
+
+  // ------------------------------------------------------------ lecturas
+
+  Future<List<Servicio>> servicios({required bool emergencia}) async {
+    final filas = await _consultar(
+      'servicios_$emergencia',
+      () => db
+          .from('servicios')
+          .select('*, vistos_buenos(count)')
+          .eq('activo', true)
+          .eq('es_emergencia', emergencia)
+          .order('created_at', ascending: false)
+          .limit(300),
+    );
+    final enviados = filas.map(Servicio.fromMap).toList();
+    final ids = enviados.map((s) => s.id).toSet();
+    return [
+      ...pendientes
+          .where((p) =>
+              p.tabla == 'servicios' &&
+              (p.datos['es_emergencia'] == true) == emergencia &&
+              !ids.contains(p.id))
+          .map((p) => Servicio.fromMap(p.datos, pendiente: true)),
+      ...enviados,
+    ];
+  }
+
+  Future<List<Publicacion>> publicaciones({required bool emergencia}) async {
+    final filas = await _consultar(
+      'publicaciones_$emergencia',
+      () => db
+          .from('publicaciones')
+          .select()
+          .eq('es_emergencia', emergencia)
+          .neq('estado', 'resuelta')
+          .order('created_at', ascending: false)
+          .limit(300),
+    );
+    final enviadas = filas.map(Publicacion.fromMap).toList();
+    final ids = enviadas.map((p) => p.id).toSet();
+    return [
+      ...pendientes
+          .where((p) =>
+              p.tabla == 'publicaciones' &&
+              (p.datos['es_emergencia'] == true) == emergencia &&
+              !ids.contains(p.id))
+          .map((p) => Publicacion.fromMap(p.datos, pendiente: true)),
+      ...enviadas,
+    ];
+  }
+
+  Future<EstadoEmergencia> emergencia() async {
+    final filas = await _consultar('emergencia', () async {
+      final r = await db.from('emergencia').select().eq('id', 1).maybeSingle();
+      return r == null ? <Map<String, dynamic>>[] : [r];
+    });
+    return filas.isEmpty ? const EstadoEmergencia.inactiva() : EstadoEmergencia.fromMap(filas.first);
+  }
+
+  Future<List<VistoBueno>> vistosBuenos(String servicioId) async {
+    final filas = await _consultar(
+      'vb_$servicioId',
+      () => db
+          .from('vistos_buenos')
+          .select('id, autor_id, autor_nombre, comentario, created_at')
+          .eq('servicio_id', servicioId)
+          .order('created_at', ascending: false),
+    );
+    return filas.map(VistoBueno.fromMap).toList();
+  }
+
+  Future<Map<String, dynamic>?> miPerfil() async {
+    if (uid == null || forzarOffline) return null;
+    final r = await db.rpc('mi_perfil').timeout(const Duration(seconds: 10));
+    return r == null ? null : Map<String, dynamic>.from(r as Map);
+  }
+
+  // ----------------------------------------------------------- escrituras
+
+  Future<void> _enviar(EntradaPendiente e) => db
+      .from(e.tabla)
+      .upsert(e.datos, onConflict: 'id', ignoreDuplicates: true)
+      .timeout(const Duration(seconds: 12));
+
+  /// Devuelve true si se publicó ya; false si quedó guardada para después.
+  Future<bool> publicar(String tabla, Map<String, dynamic> datos) async {
+    final e = EntradaPendiente(tabla: tabla, datos: datos);
+    if (!forzarOffline) {
+      try {
+        await _enviar(e);
+        return true;
+      } catch (err) {
+        if (!esErrorDeRed(err)) rethrow;
+      }
+    }
+    pendientes.add(e);
+    await _guardarCola();
+    return false;
+  }
+
+  /// Envía la cola. Devuelve cuántas se enviaron.
+  Future<int> sincronizar() async {
+    if (forzarOffline || pendientes.isEmpty) return 0;
+    var enviados = 0;
+    for (final e in List.of(pendientes)) {
+      try {
+        await _enviar(e);
+        pendientes.remove(e);
+        enviados++;
+      } catch (err) {
+        if (esErrorDeRed(err)) break;
+        e.error = err is PostgrestException ? err.message : err.toString();
+      }
+    }
+    await _guardarCola();
+    return enviados;
+  }
+
+  /// Guarda un pedido recibido por QR. false si ya lo tenías.
+  Future<bool> agregarDesdeQr(Map<String, dynamic> datos) async {
+    if (pendientes.any((p) => p.id == datos['id'])) return false;
+    pendientes.add(EntradaPendiente(tabla: 'publicaciones', datos: datos, viaQr: true));
+    await _guardarCola();
+    return true;
+  }
+
+  Future<void> eliminarPendiente(EntradaPendiente e) async {
+    pendientes.remove(e);
+    await _guardarCola();
+  }
+
+  Future<void> darVistoBueno(String servicioId, String? comentario) => db.from('vistos_buenos').insert({
+        'servicio_id': servicioId,
+        if (comentario != null && comentario.trim().isNotEmpty) 'comentario': comentario.trim(),
+      });
+
+  Future<void> cambiarEstado(String id, String estado, {bool atender = false}) =>
+      db.from('publicaciones').update({
+        'estado': estado,
+        if (atender) 'atendido_por': uid,
+      }).eq('id', id);
+
+  Future<void> cambiarEmergencia({required bool activa, String? titulo, String? mensaje}) =>
+      db.from('emergencia').update({
+        'activa': activa,
+        'titulo': ?titulo,
+        'mensaje': ?mensaje,
+        'activada_por': uid,
+        'actualizado_en': DateTime.now().toUtc().toIso8601String(),
+      }).eq('id', 1);
+
+  Future<void> actualizarPerfil(Map<String, dynamic> cambios) =>
+      db.from('perfiles').update(cambios).eq('id', uid!);
+}
