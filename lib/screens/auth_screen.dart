@@ -144,7 +144,22 @@ class _AuthScreenState extends State<AuthScreen> {
     }
   }
 
-  Widget _campoCorreoClave() => Column(children: [
+  Widget _campoCorreoClave() => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        const Text('¿Con qué quieres entrar?', style: TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        SegmentedButton<bool>(
+          segments: const [
+            ButtonSegment(value: false, icon: Icon(Icons.phone_android), label: Text('Celular')),
+            ButtonSegment(value: true, icon: Icon(Icons.email), label: Text('Correo')),
+          ],
+          selected: {_usarCorreo},
+          onSelectionChanged: (s) => setState(() {
+            _usarCorreo = s.first;
+            _correo.clear();
+            _error = null;
+          }),
+        ),
+        const SizedBox(height: 12),
         TextField(
           key: ValueKey(_usarCorreo),
           controller: _correo,
@@ -157,17 +172,7 @@ class _AuthScreenState extends State<AuthScreen> {
             prefixIcon: Icon(_usarCorreo ? Icons.email : Icons.phone_android),
           ),
         ),
-        Align(
-          alignment: Alignment.centerRight,
-          child: TextButton(
-            onPressed: () => setState(() {
-              _usarCorreo = !_usarCorreo;
-              _correo.clear();
-              _error = null;
-            }),
-            child: Text(_usarCorreo ? 'Usar mi número de celular' : 'Prefiero usar correo'),
-          ),
-        ),
+        const SizedBox(height: 12),
         TextField(
           controller: _clave,
           obscureText: !_verClave,
