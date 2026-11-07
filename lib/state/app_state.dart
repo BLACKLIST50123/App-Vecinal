@@ -29,7 +29,9 @@ class AppState extends ChangeNotifier {
     rolSimulado = prefs.getString('rol_simulado') ?? 'vecino';
     // El rol se elige una sola vez; después se cambia desde Perfil.
     rolElegido = prefs.getBool('rol_elegido') ?? false;
-    invitado = prefs.getBool('modo_invitado') ?? false;
+    // El modo invitado no se recuerda: cada vez que se abre la app sin
+    // cuenta se vuelve a la bienvenida (invitando a crear una cuenta).
+    invitado = false;
     especialidad = prefs.getString('especialidad');
     repo.forzarOffline = prefs.getBool('forzar_offline') ?? false;
     final p = prefs.getString('perfil');
@@ -221,7 +223,8 @@ class AppState extends ChangeNotifier {
 
   void entrarComoInvitado() {
     invitado = true;
-    prefs.setBool('modo_invitado', true);
+    // Los invitados ven el tutorial siempre que entran (se puede saltar).
+    tutorialVisto = false;
     notifyListeners();
   }
 
@@ -239,7 +242,6 @@ class AppState extends ChangeNotifier {
     invitado = false;
     prefs.setBool('tutorial_visto', true);
     prefs.setBool('rol_elegido', true);
-    prefs.setBool('modo_invitado', false);
     notifyListeners();
   }
 
@@ -247,9 +249,8 @@ class AppState extends ChangeNotifier {
   /// directo a la pantalla de ayuda.
   void entrarEnEmergencia() {
     invitado = true;
-    tutorialVisto = true;
+    tutorialVisto = true; // en emergencia no se muestra el tutorial
     rolElegido = true;
-    prefs.setBool('modo_invitado', true);
     prefs.setBool('tutorial_visto', true);
     prefs.setBool('rol_elegido', true);
     notifyListeners();
@@ -261,7 +262,6 @@ class AppState extends ChangeNotifier {
       await repo.db.auth.signOut();
     } catch (_) {}
     invitado = false;
-    await prefs.setBool('modo_invitado', false);
     await cargarPerfil();
   }
 
