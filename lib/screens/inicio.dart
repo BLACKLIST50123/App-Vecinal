@@ -11,7 +11,6 @@ import '../util.dart';
 import 'confianza.dart';
 import 'publicar.dart';
 import 'qr_screens.dart';
-import 'tutorial.dart';
 
 typedef IrA = void Function(int tab, {String? grupo, String? consulta});
 
@@ -24,22 +23,18 @@ class InicioScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final st = context.watch<AppState>();
-    final resumenVoz = 'Hola ${st.nombre}. Aquí encuentras servicios y productos de tu barrio recomendados por tus vecinos, '
-        'puedes pedir o dar una mano sin dinero y ver todo en el mapa. Para publicar, toca el botón Publicar.';
 
+    // Estructura: 1) dónde estoy y qué busco  2) explorar  3) solidaridad
+    //             4) lo más cercano  5) quién necesita ayuda.
     return RefreshIndicator(
       onRefresh: () async => st.refrescar(),
       child: ListView(padding: const EdgeInsets.only(bottom: 110), children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 8, 0),
-          child: Row(children: [
-            PildoraUbicacion(
-              texto: st.sector ?? Zona.nombre,
-              onTap: () => irA(3),
-            ),
-            const Spacer(),
-            BotonEscuchar(resumenVoz, compacto: true),
-          ]),
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: PildoraUbicacion(texto: st.sector ?? Zona.nombre, onTap: () => irA(3)),
+          ),
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
@@ -89,47 +84,17 @@ class InicioScreen extends StatelessWidget {
           },
         ),
 
-        TituloDiseno('Vecinos que necesitan una mano', accion: ('Ver todo', () => irA(2))),
+        TituloDiseno('Necesitan una mano', accion: ('Ver todo', () => irA(2))),
         Cargador<List<Publicacion>>(
           cargar: (st) => st.repo.publicaciones(emergencia: false),
           builder: (c, lista) {
             final pedidos = lista.where((p) => p.esPedido && !p.esColecta).toList();
-            final colectas = lista.where((p) => p.esColecta).toList();
-            if (pedidos.isEmpty && colectas.isEmpty) {
+            if (pedidos.isEmpty) {
               return const EstadoVacio(icono: Icons.diversity_3, texto: 'Todavía nadie ha pedido ayuda. ¡Buena señal!');
             }
-            return Column(children: [
-              for (final p in pedidos.take(2)) TarjetaPublicacion(p),
-              if (colectas.isNotEmpty) ...[
-                const TituloDiseno('Colectas del barrio', ceja: 'Responsabilidad social'),
-                SizedBox(
-                  height: 206,
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    children: [for (final p in colectas) TarjetaColecta(p)],
-                  ),
-                ),
-              ],
-            ]);
+            return Column(children: [for (final p in pedidos.take(2)) TarjetaPublicacion(p)]);
           },
         ),
-
-        const TituloDiseno('Atajos'),
-        ListaAjustes(filas: [
-          FilaAjuste(
-            icono: Icons.qr_code_scanner,
-            texto: 'Llevar mensajes por QR',
-            valor: 'Sin internet',
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PendientesScreen())),
-          ),
-          FilaAjuste(icono: Icons.shield_outlined, texto: 'Ayudar con seguridad', onTap: () => mostrarConsejos(context)),
-          FilaAjuste(
-            icono: Icons.help_outline,
-            texto: 'Cómo usar la app',
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TutorialScreen())),
-          ),
-        ]),
       ]),
     );
   }

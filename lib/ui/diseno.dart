@@ -7,7 +7,6 @@ import '../screens/detalles.dart';
 import '../state/app_state.dart';
 import '../util.dart';
 import 'tema.dart';
-import 'widgets.dart';
 
 /// Piezas visuales del diseño de Figma, adaptadas a Flutter y a
 /// accesibilidad (texto mínimo 13 px, áreas táctiles de 48 px o más).
@@ -280,7 +279,39 @@ class BannerDegradado extends StatelessWidget {
       );
 }
 
-/// "Cerca de ti": tarjeta horizontal de un servicio o producto.
+/// Pie de tarjeta: Visto Bueno a la izquierda, precio a la derecha.
+class _PieServicio extends StatelessWidget {
+  const _PieServicio(this.s);
+  final Servicio s;
+
+  @override
+  Widget build(BuildContext context) => Row(children: [
+        if (s.pendiente)
+          const Text('Por enviar', style: TextStyle(fontWeight: FontWeight.w700, color: Paleta.gris, fontSize: 13))
+        else
+          Semantics(
+            label: '${s.vistosBuenos} Vistos Buenos',
+            excludeSemantics: true,
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              const Icon(Icons.thumb_up_alt_rounded, size: 16, color: Color(0xFF2E7D32)),
+              const SizedBox(width: 4),
+              Text('${s.vistosBuenos}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF2E7D32))),
+            ]),
+          ),
+        const SizedBox(width: 8),
+        if (s.precioRef != null)
+          Expanded(
+            child: Text(s.precioRef!,
+                textAlign: TextAlign.right,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 14, fontWeight: FontWeight.w700)),
+          ),
+      ]);
+}
+
+/// "Cerca de ti": tarjeta horizontal. Orden de lectura: qué → quién y dónde
+/// → confianza y precio. Nada a la derecha que corte el título.
 class TarjetaCerca extends StatelessWidget {
   const TarjetaCerca(this.s, {super.key});
   final Servicio s;
@@ -296,28 +327,23 @@ class TarjetaCerca extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ServicioDetalle(servicio: s))),
         child: Padding(
-          padding: const EdgeInsets.all(10),
+          padding: const EdgeInsets.all(12),
           child: Row(children: [
-            IconoCategoria(icono: cat.icono, colores: colorGrupo(grupo), tamano: 60),
+            IconoCategoria(icono: cat.icono, colores: colorGrupo(grupo), tamano: 56),
             const SizedBox(width: 12),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(cat.nombre.toUpperCase(),
                     style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.6)),
-                Text(s.titulo, maxLines: 1, overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+                Text(s.titulo, maxLines: 2, overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, height: 1.2)),
+                const SizedBox(height: 2),
                 Text([s.autorNombre ?? 'Vecino', if (dist != null) formatoDistancia(dist)].join(' · '),
                     maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Paleta.gris, fontSize: 13)),
-                if (s.vistosBuenos > 0)
-                  Text('👍 ${s.vistosBuenos} Visto${s.vistosBuenos == 1 ? '' : 's'} Bueno${s.vistosBuenos == 1 ? '' : 's'}',
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF2E7D32))),
+                const SizedBox(height: 6),
+                _PieServicio(s),
               ]),
             ),
-            if (s.precioRef != null)
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 90),
-                child: Text(s.precioRef!, textAlign: TextAlign.right, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
-              ),
           ]),
         ),
       ),
@@ -337,7 +363,6 @@ class TarjetaMercado extends StatelessWidget {
     final grupo = s.esEmergencia ? 'apoyo' : grupoServicio(s.categoria);
     final colores = colorGrupo(grupo);
     final dist = s.punto == null ? null : distanciaKm(st.referencia, s.punto!);
-    final etiqueta = switch (grupo) { 'productos' => 'Producto', 'clases' => 'Clases', 'apoyo' => 'Apoyo', _ => 'Servicio' };
     return Card(
       margin: EdgeInsets.zero,
       clipBehavior: Clip.antiAlias,
@@ -345,42 +370,41 @@ class TarjetaMercado extends StatelessWidget {
         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ServicioDetalle(servicio: s))),
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Container(
-            height: 100,
+            height: 84,
             color: colores.$2,
             child: Stack(children: [
-              Center(child: Icon(cat.icono, color: colores.$1, size: 36)),
+              Center(child: Icon(cat.icono, color: colores.$1, size: 34)),
               Positioned(
                 top: 8,
                 left: 8,
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                   decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.85), borderRadius: BorderRadius.circular(6)),
-                  child: Text(etiqueta.toUpperCase(),
+                  child: Text(cat.nombre.toUpperCase(),
+                      maxLines: 1, overflow: TextOverflow.ellipsis,
                       style: const TextStyle(color: Color(0xFF54625C), fontSize: 11, fontWeight: FontWeight.w700)),
                 ),
               ),
               if (s.autorRol == 'organizacion')
                 const Positioned(top: 8, right: 8, child: Icon(Icons.verified, color: Color(0xFF1565C0), size: 20)),
-              Positioned(bottom: 2, right: 2, child: BotonEscuchar(s.textoParaVoz, compacto: true)),
             ]),
           ),
-          Padding(
-            padding: const EdgeInsets.all(11),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(s.titulo, maxLines: 2, overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, height: 1.2)),
-              const SizedBox(height: 3),
-              Text([s.autorNombre ?? 'Vecino', if (dist != null) formatoDistancia(dist)].join(' · '),
-                  maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Paleta.gris, fontSize: 13, height: 1.3)),
-              const SizedBox(height: 6),
-              if (s.pendiente)
-                const Text('Por enviar', style: TextStyle(fontWeight: FontWeight.w700, color: Paleta.gris))
-              else
-                Text('👍 ${s.vistosBuenos}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF2E7D32))),
-              if (s.precioRef != null)
-                Text(s.precioRef!, maxLines: 1, overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 14, fontWeight: FontWeight.w700)),
-            ]),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(11, 10, 11, 11),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(s.titulo, maxLines: 2, overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, height: 1.2)),
+                const SizedBox(height: 3),
+                Text(s.autorNombre ?? 'Vecino', maxLines: 1, overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: Paleta.gris, fontSize: 13)),
+                if (dist != null)
+                  Text(formatoDistancia(dist), style: const TextStyle(color: Paleta.gris, fontSize: 13)),
+                const Spacer(),
+                const SizedBox(height: 8),
+                _PieServicio(s),
+              ]),
+            ),
           ),
         ]),
       ),
@@ -388,7 +412,8 @@ class TarjetaMercado extends StatelessWidget {
   }
 }
 
-/// Cuadrícula de 2 columnas que respeta el tamaño de letra (sin alto fijo).
+/// Cuadrícula de 2 columnas con filas de IGUAL altura (se ve ordenada) y
+/// que respeta el tamaño de letra elegido.
 class Cuadricula2 extends StatelessWidget {
   const Cuadricula2({super.key, required this.hijos});
   final List<Widget> hijos;
@@ -396,10 +421,22 @@ class Cuadricula2 extends StatelessWidget {
   @override
   Widget build(BuildContext context) => LayoutBuilder(builder: (context, c) {
         final columnas = c.maxWidth > 700 ? 3 : 2;
-        final ancho = (c.maxWidth - 32 - (columnas - 1) * 11) / columnas;
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Wrap(spacing: 11, runSpacing: 11, children: [for (final h in hijos) SizedBox(width: ancho, child: h)]),
+          child: Column(children: [
+            for (var i = 0; i < hijos.length; i += columnas)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 11),
+                child: IntrinsicHeight(
+                  child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                    for (var j = 0; j < columnas; j++) ...[
+                      if (j > 0) const SizedBox(width: 11),
+                      Expanded(child: i + j < hijos.length ? hijos[i + j] : const SizedBox.shrink()),
+                    ],
+                  ]),
+                ),
+              ),
+          ]),
         );
       });
 }
@@ -422,8 +459,14 @@ class FilaPildoras extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(right: 8),
                 child: ChoiceChip(
-                  label: Text(texto),
+                  label: Text(texto,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: seleccion == valor ? Colors.white : const Color(0xFF4F5D56),
+                      )),
                   selected: seleccion == valor,
+                  selectedColor: Theme.of(context).colorScheme.primary,
                   showCheckmark: false,
                   onSelected: (_) => onCambio(valor),
                 ),

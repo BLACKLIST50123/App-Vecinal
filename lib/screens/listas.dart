@@ -9,6 +9,7 @@ import '../ui/tema.dart';
 import '../ui/widgets.dart';
 import '../util.dart';
 import 'confianza.dart';
+import 'publicar.dart';
 
 // ======================================= Módulo 1 · Servicios de Proximidad
 
@@ -83,16 +84,27 @@ class _ServiciosScreenState extends State<ServiciosScreen> {
                 Expanded(
                   child: Semantics(
                     header: true,
-                    child: Text(_porCercania ? 'Más cerca de ti' : 'Recomendados',
+                    child: Text('${lista.length} ${lista.length == 1 ? 'resultado' : 'resultados'}',
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 19)),
                   ),
                 ),
-                Text('${lista.length} ${lista.length == 1 ? 'resultado' : 'resultados'}',
-                    style: const TextStyle(color: Paleta.gris, fontSize: 13)),
-                IconButton(
-                  tooltip: _porCercania ? 'Ordenar por recomendaciones' : 'Ordenar por cercanía',
-                  onPressed: () => setState(() => _porCercania = !_porCercania),
-                  icon: Icon(_porCercania ? Icons.thumb_up_outlined : Icons.near_me_outlined),
+                PopupMenuButton<bool>(
+                  tooltip: 'Ordenar',
+                  initialValue: _porCercania,
+                  onSelected: (v) => setState(() => _porCercania = v),
+                  itemBuilder: (_) => const [
+                    PopupMenuItem(value: false, child: Text('Más recomendados')),
+                    PopupMenuItem(value: true, child: Text('Más cerca de mí')),
+                  ],
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(Icons.swap_vert, color: Theme.of(context).colorScheme.primary),
+                      const SizedBox(width: 4),
+                      Text(_porCercania ? 'Más cerca' : 'Más recomendados',
+                          style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w700, fontSize: 14)),
+                    ]),
+                  ),
                 ),
               ]),
             ),
@@ -122,25 +134,19 @@ class FavoresScreen extends StatefulWidget {
   State<FavoresScreen> createState() => _FavoresScreenState();
 }
 
+/// Estructura (una idea por bloque):
+///   1. Banner + DOS caminos claros: "Necesito una mano" / "Quiero dar algo"
+///   2. Colectas del barrio (si hay)
+///   3. Solicitudes: filtro simple Todo / Necesitan / Ofrecen
+///   4. Reconocimiento: vecinos que más ayudan (al final)
 class _FavoresScreenState extends State<FavoresScreen> {
   String _tipo = 'todos';
-  String? _categoria;
   bool _porCercania = false;
-
-  @override
-  void didUpdateWidget(covariant FavoresScreen old) {
-    super.didUpdateWidget(old);
-    if (old.emergencia != widget.emergencia) _categoria = null;
-  }
 
   @override
   Widget build(BuildContext context) {
     final st = context.read<AppState>();
     final e = widget.emergencia;
-    final cats = e ? categoriasEmergencia : categoriasFavor;
-    final bienvenida = e
-        ? 'Aquí ves a quién le falta algo y qué cosas hay para compartir. Si puedes, responde: cada ayuda cuenta.'
-        : 'Aquí nos ayudamos entre vecinos, sin dinero de por medio. Pide lo que te falta o da lo que te sobra.';
 
     return RefreshIndicator(
       onRefresh: () async => st.refrescar(),
@@ -150,13 +156,7 @@ class _FavoresScreenState extends State<FavoresScreen> {
         builder: (context, todas) {
           final ref = context.read<AppState>().referencia;
           final colectas = e ? <Publicacion>[] : (todas.where((p) => p.esColecta).toList()..sort((a, b) => b.progreso.compareTo(a.progreso)));
-          final verColectasEnLista = _categoria == 'colecta';
-          final lista = todas
-              .where((p) =>
-                  (verColectasEnLista || !p.esColecta || e) &&
-                  (_tipo == 'todos' || p.tipo == _tipo) &&
-                  (_categoria == null || p.categoria == _categoria))
-              .toList();
+          final lista = todas.where((p) => (e || !p.esColecta) && (_tipo == 'todos' || p.tipo == _tipo)).toList();
           double d(Publicacion p) => p.punto == null ? 999 : distanciaKm(ref, p.punto!);
           lista.sort((a, b) {
             if (e) {
@@ -166,127 +166,116 @@ class _FavoresScreenState extends State<FavoresScreen> {
             return _porCercania ? d(a).compareTo(d(b)) : b.creado.compareTo(a.creado);
           });
 
-          return ListView(padding: const EdgeInsets.only(bottom: 110), children: [
-            // Bienvenida (banner terracota del diseño)
+          return ListView(padding: const EdgeInsets.only(bottom: 40), children: [
+            // 1 ─ Banner y dos caminos
             BannerDegradado(
               icono: e ? Icons.volunteer_activism : Icons.favorite_border,
               titulo: e ? 'Cada ayuda cuenta' : 'Una pequeña ayuda cambia el día',
-              subtitulo: bienvenida,
+              subtitulo: e
+                  ? 'Mira quién necesita ayuda y qué hay para compartir.'
+                  : 'Entre vecinos, sin dinero de por medio.',
               colores: e ? const [Color(0xFFB71C1C), Color(0xFFD84343)] : const [Paleta.terracota1, Paleta.terracota2],
               colorIcono: Colors.white,
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
               child: Row(children: [
-                TextButton.icon(
-                  onPressed: () => mostrarConsejos(context),
-                  icon: const Icon(Icons.shield_outlined),
-                  label: const Text('Ayudar con seguridad'),
+                Expanded(
+                  child: FilledButton.icon(
+                    style: e ? FilledButton.styleFrom(backgroundColor: Paleta.rojo) : null,
+                    onPressed: () => abrirFormulario(context, e ? TipoForm.necesitoAyuda : TipoForm.pidoFavor),
+                    icon: const Icon(Icons.front_hand_outlined),
+                    label: Text(e ? 'Necesito ayuda' : 'Necesito una mano'),
+                  ),
                 ),
-                const Spacer(),
-                BotonEscuchar(bienvenida, compacto: true),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => abrirFormulario(context, e ? TipoForm.ofrezcoRecurso : TipoForm.ofrezcoFavor),
+                    icon: const Icon(Icons.volunteer_activism_outlined),
+                    label: Text(e ? 'Tengo algo' : 'Quiero dar algo'),
+                  ),
+                ),
               ]),
             ),
+            Center(
+              child: TextButton.icon(
+                onPressed: () => mostrarConsejos(context),
+                icon: const Icon(Icons.shield_outlined, size: 20),
+                label: const Text('Cómo ayudar con seguridad'),
+              ),
+            ),
 
-            // Colectas activas
-            if (colectas.isNotEmpty && _categoria == null && _tipo != 'ofrezco') ...[
-              const TituloDiseno('Colectas del barrio', ceja: 'Responsabilidad social'),
+            // 2 ─ Colectas
+            if (colectas.isNotEmpty) ...[
+              TituloDiseno('Colectas del barrio',
+                  ceja: 'Responsabilidad social',
+                  accion: ('Organizar', () => abrirFormulario(context, TipoForm.colecta))),
               SizedBox(
                 height: 206,
                 child: ListView(
                   scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
                   children: [for (final c in colectas) TarjetaColecta(c)],
                 ),
               ),
             ],
 
-            // Reconocimiento público
-            if (!e && _categoria == null && _tipo == 'todos')
+            // 3 ─ Solicitudes
+            TituloDiseno(
+              e ? 'Pedidos y recursos' : 'Solicitudes de vecinos',
+              detalle: '${lista.length}',
+            ),
+            Row(children: [
+              Expanded(
+                child: FilaPildoras(
+                  opciones: [('todos', 'Todo'), ('pido', 'Necesitan'), ('ofrezco', e ? 'Para compartir' : 'Ofrecen')],
+                  seleccion: _tipo,
+                  onCambio: (v) => setState(() => _tipo = v),
+                ),
+              ),
+              IconButton(
+                tooltip: _porCercania ? 'Ver lo más reciente primero' : 'Ver lo más cerca primero',
+                onPressed: () => setState(() => _porCercania = !_porCercania),
+                icon: Icon(_porCercania ? Icons.schedule : Icons.near_me_outlined),
+              ),
+              const SizedBox(width: 4),
+            ]),
+            const SizedBox(height: 4),
+            if (lista.isEmpty)
+              EstadoVacio(
+                icono: e ? Icons.health_and_safety : Icons.diversity_3,
+                texto: e ? 'Por ahora no hay nada aquí.' : 'Todavía no hay solicitudes. ¿Te falta algo? Toca "Necesito una mano".',
+              )
+            else
+              for (final p in lista) TarjetaPublicacion(p),
+
+            // 4 ─ Reconocimiento
+            if (!e)
               Cargador<List<Map<String, dynamic>>>(
                 cargar: (st) => st.repo.vecinosDestacados(),
                 builder: (c, destacados) {
                   if (destacados.isEmpty) return const SizedBox.shrink();
                   return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                     const TituloDiseno('Vecinos que más ayudan', ceja: 'Reconocimiento'),
-                    SizedBox(
-                      height: 112,
-                      child: ListView(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        children: [
-                          for (final d in destacados)
-                            () {
-                              final n = (d['ayudas_confirmadas'] as num?)?.toInt() ?? 0;
-                              final nivel = Nivel.de(n);
-                              return Semantics(
-                                label: '${d['nombre']}, ${nivel.nombre}, $n ayudas confirmadas',
-                                excludeSemantics: true,
-                                child: Card(
-                                  color: const Color(0xFFFFF8E1),
-                                  child: Container(
-                                    width: 150,
-                                    padding: const EdgeInsets.all(10),
-                                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                      Text(nivel.emoji, style: const TextStyle(fontSize: 26)),
-                                      Text((d['nombre'] ?? 'Vecino') as String,
-                                          maxLines: 1, overflow: TextOverflow.ellipsis,
-                                          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
-                                      Text('$n ${n == 1 ? 'ayuda' : 'ayudas'} · ${d['sector'] ?? ''}',
-                                          maxLines: 1, overflow: TextOverflow.ellipsis,
-                                          style: const TextStyle(color: Colors.black87, fontSize: 12)),
-                                    ]),
-                                  ),
-                                ),
-                              );
-                            }(),
-                        ],
-                      ),
-                    ),
+                    ListaAjustes(filas: [
+                      for (final d in destacados)
+                        () {
+                          final n = (d['ayudas_confirmadas'] as num?)?.toInt() ?? 0;
+                          final nivel = Nivel.de(n);
+                          return FilaAjuste(
+                            icono: Icons.emoji_events_outlined,
+                            texto: (d['nombre'] ?? 'Vecino') as String,
+                            valor: '${nivel.emoji} $n ${n == 1 ? 'ayuda' : 'ayudas'}',
+                          );
+                        }(),
+                    ]),
                   ]);
                 },
               ),
-
-            // Filtros
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 12, 4),
-              child: Row(children: [
-                Expanded(
-                  child: Semantics(
-                    header: true,
-                    child: Text(e ? 'Pedidos y recursos' : 'Solicitudes recientes',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 19)),
-                  ),
-                ),
-                Text('${lista.length} cerca', style: const TextStyle(color: Paleta.gris, fontSize: 13)),
-                IconButton(
-                  tooltip: _porCercania ? 'Ordenar por lo más reciente' : 'Ordenar por lo más cerca',
-                  onPressed: () => setState(() => _porCercania = !_porCercania),
-                  icon: Icon(_porCercania ? Icons.schedule : Icons.near_me_outlined),
-                ),
-              ]),
-            ),
-            FilaPildoras(
-              opciones: [('todos', 'Todo'), ('pido', e ? 'Necesitan ayuda' : 'Necesitan'), ('ofrezco', e ? 'Para compartir' : 'Ofrecen')],
-              seleccion: _tipo,
-              onCambio: (v) => setState(() => _tipo = v),
-            ),
-            SelectorCategorias(categorias: cats, seleccion: _categoria, onCambio: (c) => setState(() => _categoria = c)),
-
-            // Publicaciones
-            if (lista.isEmpty)
-              EstadoVacio(
-                icono: e ? Icons.health_and_safety : Icons.diversity_3,
-                texto: e
-                    ? 'Por ahora no hay nada aquí. Si alguien necesita ayuda, publícalo con el botón de abajo.'
-                    : 'Todavía no hay nada aquí. ¿Te falta algo o quieres regalar algo? Toca "Publicar".',
-              )
-            else
-              for (final p in lista) TarjetaPublicacion(p),
           ]);
         },
       ),
     );
   }
 }
-

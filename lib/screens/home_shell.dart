@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
 
 import '../config.dart';
+import '../services/voz.dart';
 import '../state/app_state.dart';
 import '../ui/diseno.dart';
 import '../ui/widgets.dart';
@@ -25,6 +27,7 @@ class HomeShell extends StatefulWidget {
 class _HomeShellState extends State<HomeShell> {
   int _tab = 0;
   bool? _modoAnterior;
+  bool _fabVisible = true;
   String? _grupo; // filtro inicial para Servicios (desde Inicio)
   String? _consulta; // búsqueda inicial para Servicios (desde Inicio)
 
@@ -32,7 +35,20 @@ class _HomeShellState extends State<HomeShell> {
         _tab = i;
         _grupo = grupo;
         _consulta = consulta;
+        _fabVisible = true;
       });
+
+  /// El botón Publicar se esconde al bajar (no tapa contenido) y vuelve al subir.
+  bool _alDesplazar(UserScrollNotification n) {
+    if (n.metrics.axis != Axis.vertical) return false;
+    final visible = switch (n.direction) {
+      ScrollDirection.reverse => false,
+      ScrollDirection.forward => true,
+      _ => _fabVisible,
+    };
+    if (visible != _fabVisible) setState(() => _fabVisible = visible);
+    return false;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -78,6 +94,22 @@ class _HomeShellState extends State<HomeShell> {
 
     final (titulo, subtitulo) = encabezados[_tab];
 
+    // Un solo "Escuchar" por página: resume qué hay y qué se puede hacer.
+    final resumenes = <String>[
+      e
+          ? 'Emergencia. ${st.emergencia.titulo ?? ''}. ${st.emergencia.mensaje ?? ''}. Para pedir ayuda, toca el botón rojo Necesito ayuda.'
+          : 'Inicio. Busca servicios y productos, explora tu barrio o entra a Solidaridad para pedir o dar una mano.',
+      e
+          ? 'Grupos de apoyo para la emergencia. Toca uno para llamar.'
+          : 'Servicios y productos de tu barrio. Usa el buscador o los filtros. Cada tarjeta muestra sus Vistos Buenos y el precio.',
+      e
+          ? 'Tablero de ayuda. Aquí ves quién necesita ayuda y qué cosas hay para compartir.'
+          : 'Solidaridad. Aquí los vecinos se ayudan sin dinero. Puedes pedir una mano, dar algo o aportar a una colecta.',
+      'Mapa. Toca un punto para ver el detalle, o usa Ver como lista.',
+      'Tu perfil: tu reconocimiento en el barrio, tu historial y los ajustes de accesibilidad.',
+    ];
+    final mostrarFab = _tab != 4 && (e || _tab != 2);
+
     return Scaffold(
       body: SafeArea(
         bottom: false,
@@ -88,6 +120,12 @@ class _HomeShellState extends State<HomeShell> {
             titulo: titulo,
             subtitulo: subtitulo,
             acciones: [
+              if (st.voz)
+                BotonCuadrado(
+                  icono: Icons.volume_up_outlined,
+                  tooltip: 'Escuchar esta página',
+                  onTap: () => Voz.hablar(resumenes[_tab]),
+                ),
               BotonCuadrado(
                 icono: Icons.qr_code_scanner,
                 tooltip: 'Llevar mensajes por QR',
@@ -96,16 +134,29 @@ class _HomeShellState extends State<HomeShell> {
               ),
             ],
           ),
-          Expanded(child: paginas[_tab]),
+          Expanded(
+            child: NotificationListener<UserScrollNotification>(
+              onNotification: _alDesplazar,
+              child: paginas[_tab],
+            ),
+          ),
         ]),
       ),
-      floatingActionButton: _tab == 4
+      floatingActionButton: !mostrarFab
           ? null
-          : FloatingActionButton.extended(
-              heroTag: 'publicar',
-              onPressed: () => abrirMenuPublicar(context),
-              icon: const Icon(Icons.add, size: 26),
-              label: Text(e ? 'Pedir o dar ayuda' : (_tab == 2 ? 'Pedir ayuda' : 'Publicar')),
+          : AnimatedSlide(
+              offset: _fabVisible ? Offset.zero : const Offset(0, 2),
+              duration: const Duration(milliseconds: 200),
+              child: AnimatedOpacity(
+                opacity: _fabVisible ? 1 : 0,
+                duration: const Duration(milliseconds: 200),
+                child: FloatingActionButton.extended(
+                  heroTag: 'publicar',
+                  onPressed: () => abrirMenuPublicar(context),
+                  icon: const Icon(Icons.add, size: 26),
+                  label: Text(e ? 'Pedir o dar ayuda' : 'Publicar'),
+                ),
+              ),
             ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tab,

@@ -161,15 +161,12 @@ ThemeData construirTema({required bool emergencia, required bool altoContraste})
     ),
     chipTheme: base.chipTheme.copyWith(
       backgroundColor: Colors.white,
-      selectedColor: primario,
-      checkmarkColor: Colors.white,
+      selectedColor: suave,
+      checkmarkColor: primario,
       side: BorderSide(color: borde),
       shape: const StadiumBorder(),
-      labelStyle: WidgetStateTextStyle.resolveWith((s) => GoogleFonts.dmSans(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: s.contains(WidgetState.selected) ? Colors.white : const Color(0xFF64726B),
-          )),
+      labelStyle: GoogleFonts.dmSans(fontSize: 14, fontWeight: FontWeight.w600, color: Paleta.tinta),
+      secondaryLabelStyle: GoogleFonts.dmSans(fontSize: 14, fontWeight: FontWeight.w700, color: Paleta.tinta),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
     ),
     segmentedButtonTheme: SegmentedButtonThemeData(

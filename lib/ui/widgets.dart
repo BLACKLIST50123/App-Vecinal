@@ -496,8 +496,6 @@ class _TarjetaPublicacionState extends State<TarjetaPublicacion> {
                           )
                   else if (p.estado == 'resuelta')
                     Text(p.estadoTexto, style: const TextStyle(color: Color(0xFF2E7D32), fontWeight: FontWeight.w700)),
-                  const Spacer(),
-                  BotonEscuchar(p.textoParaVoz, compacto: true),
                 ]),
               ]),
             ),
