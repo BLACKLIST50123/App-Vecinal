@@ -8,6 +8,7 @@ import '../services/voz.dart';
 import '../state/app_state.dart';
 import '../ui/diseno.dart';
 import '../ui/widgets.dart';
+import 'aportes.dart';
 import 'inicio.dart';
 import 'listas.dart';
 import 'mapa.dart';
@@ -68,7 +69,7 @@ class _HomeShellState extends State<HomeShell> {
       ),
       // Día a día: Solidaridad (colectas + apoyar/pedir). Emergencia: tablero.
       e ? const FavoresScreen(emergencia: true) : const SolidaridadScreen(),
-      const MapaScreen(),
+      const MisAportesScreen(),
       const PerfilScreen(),
     ];
 
@@ -76,7 +77,7 @@ class _HomeShellState extends State<HomeShell> {
       e ? ('Emergencia', st.emergencia.titulo) : ('Hola, ${st.logueado ? st.nombre.split(' ').first : 'vecino'}', fechaLarga(DateTime.now())),
       e ? ('Grupos de apoyo', 'Emergencia') : ('Servicios y productos', 'Compra local en ${Zona.nombre}'),
       e ? ('Tablero de ayuda', 'Emergencia') : ('Solidaridad', 'Juntos hacemos más'),
-      e ? ('Mapa de ayuda', 'Emergencia') : ('Mapa del barrio', 'Todo cerca de ti'),
+      ('Mis aportes', 'Administra tus servicios y pedidos'),
       ('Mi perfil', st.logueado ? null : 'Estás como visitante'),
     ];
 
@@ -90,7 +91,7 @@ class _HomeShellState extends State<HomeShell> {
       e
           ? const NavigationDestination(icon: Icon(Icons.volunteer_activism_outlined), selectedIcon: Icon(Icons.volunteer_activism), label: 'Ayuda')
           : const NavigationDestination(icon: Icon(Icons.favorite_border), selectedIcon: Icon(Icons.favorite), label: 'Solidaridad'),
-      const NavigationDestination(icon: Icon(Icons.map_outlined), selectedIcon: Icon(Icons.map), label: 'Mapa'),
+      const NavigationDestination(icon: Icon(Icons.inventory_2_outlined), selectedIcon: Icon(Icons.inventory_2), label: 'Mis aportes'),
       const NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Perfil'),
     ];
 
@@ -107,10 +108,10 @@ class _HomeShellState extends State<HomeShell> {
       e
           ? 'Tablero de ayuda. Aquí ves quién necesita ayuda y qué cosas hay para compartir.'
           : 'Solidaridad. Aquí los vecinos se ayudan sin dinero. Puedes pedir una mano, dar algo o aportar a una colecta.',
-      'Mapa. Toca un punto para ver el detalle, o usa Ver como lista.',
+      'Mis aportes. Administra los pedidos que te llegan y publica o edita tus servicios y productos.',
       'Tu perfil: tu reconocimiento en el barrio, tu historial y los ajustes de accesibilidad.',
     ];
-    final mostrarFab = _tab != 4 && (e || _tab != 2);
+    final mostrarFab = _tab != 3 && _tab != 4 && (e || _tab != 2);
 
     return Scaffold(
       body: SafeArea(
@@ -122,6 +123,11 @@ class _HomeShellState extends State<HomeShell> {
             titulo: titulo,
             subtitulo: subtitulo,
             acciones: [
+              BotonCuadrado(
+                icono: Icons.map_outlined,
+                tooltip: 'Mapa del barrio',
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PantallaMapaCompleto())),
+              ),
               if (st.voz)
                 BotonCuadrado(
                   icono: Icons.volume_up_outlined,

@@ -1,10 +1,11 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../config.dart';
 import '../models.dart';
 import '../state/app_state.dart';
+import '../ui/tema.dart';
 import '../ui/widgets.dart';
 import '../util.dart';
 import 'auth_screen.dart';
@@ -158,6 +159,49 @@ class _ServicioDetalleState extends State<ServicioDetalle> {
             BotonEscuchar(s.textoParaVoz),
           ]),
         ),
+        if (!esMio && !s.pendiente && s.autorId != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: Paleta.acentoOscuro,
+                foregroundColor: Colors.white,
+                minimumSize: const Size.fromHeight(50),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              ),
+              onPressed: () => showModalBottomSheet<void>(
+                context: context,
+                isScrollControlled: true,
+                showDragHandle: true,
+                builder: (_) => ModalSolicitarPedido(servicio: s),
+              ),
+              icon: const Icon(Icons.send_outlined),
+              label: const Text('Solicitar servicio / Hacer pedido',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            ),
+          ),
+        if (esMio)
+          Container(
+            margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Paleta.acentoSuave,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Paleta.acentoOscuro.withValues(alpha: 0.3)),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.info_outline, color: Paleta.acentoOscuro),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Esta es tu publicación. Puedes ver pedidos y editarla en "Mis aportes".',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Paleta.acentoOscuro),
+                  ),
+                ),
+              ],
+            ),
+          ),
         if (s.telefono != null && s.telefono!.isNotEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -236,6 +280,206 @@ class _ServicioDetalleState extends State<ServicioDetalle> {
             ),
           ),
       ]),
+    );
+  }
+}
+
+class ModalSolicitarPedido extends StatefulWidget {
+  const ModalSolicitarPedido({super.key, required this.servicio});
+  final Servicio servicio;
+
+  @override
+  State<ModalSolicitarPedido> createState() => _ModalSolicitarPedidoState();
+}
+
+class _ModalSolicitarPedidoState extends State<ModalSolicitarPedido> {
+  final _detalle = TextEditingController();
+  final _fecha = TextEditingController();
+  final _telefono = TextEditingController();
+  String? _sector;
+  bool _enviando = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final st = context.read<AppState>();
+    final tel = st.perfil?['telefono'] as String?;
+    if (tel != null) _telefono.text = tel;
+    _sector = st.sector;
+  }
+
+  @override
+  void dispose() {
+    _detalle.dispose();
+    _fecha.dispose();
+    _telefono.dispose();
+    super.dispose();
+  }
+
+  Future<void> _enviar() async {
+    final st = context.read<AppState>();
+    if (!st.logueado) {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const AuthScreen(mensaje: 'Para hacer un pedido necesitas una cuenta de vecino.'),
+        ),
+      );
+      return;
+    }
+    final detalle = _detalle.text.trim();
+    if (detalle.length < 2) {
+      avisar('Escribe qué necesitas o qué deseas pedir.');
+      return;
+    }
+    if (widget.servicio.autorId == null) {
+      avisar('No se puede enviar pedido a este servicio.');
+      return;
+    }
+    setState(() => _enviando = true);
+    final id = nuevoId();
+    final pedido = PedidoServicio(
+      id: id,
+      servicioId: widget.servicio.id,
+      prestadorId: widget.servicio.autorId!,
+      clienteId: st.uid,
+      clienteNombre: st.nombre,
+      clienteTelefono: _telefono.text.trim().isEmpty ? null : _telefono.text.trim(),
+      clienteSector: _sector,
+      detalle: detalle,
+      fechaDeseada: _fecha.text.trim().isEmpty ? null : _fecha.text.trim(),
+      estado: 'pendiente',
+    );
+    try {
+      await st.repo.crearPedidoServicio(pedido.toInsert());
+      if (mounted) {
+        Navigator.pop(context);
+        avisar('¡Pedido enviado al prestador!');
+        st.refrescar();
+        final telPrestador = widget.servicio.telefono;
+        if (telPrestador != null && telPrestador.isNotEmpty) {
+          final wsp = await showDialog<bool>(
+            context: context,
+            builder: (c) => AlertDialog(
+              icon: const Icon(Icons.chat, color: Color(0xFF25D366), size: 36),
+              title: const Text('¿Avisarle también por WhatsApp?'),
+              content: const Text(
+                  'Le hemos guardado el pedido en la app. ¿Deseas abrir WhatsApp para escribirle de una vez?'),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Solo en la app')),
+                FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFF25D366), foregroundColor: Colors.white),
+                  onPressed: () => Navigator.pop(c, true),
+                  icon: const Icon(Icons.chat),
+                  label: const Text('Abrir WhatsApp'),
+                ),
+              ],
+            ),
+          );
+          if (wsp == true) {
+            final msg =
+                'Hola ${widget.servicio.autorNombre ?? ''}, te solicité "${widget.servicio.titulo}" en App Vecinal: "$detalle". ¿Tienes disponibilidad?';
+            abrirWhatsapp(telPrestador, msg);
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) avisar(traducirError(e));
+    } finally {
+      if (mounted) setState(() => _enviando = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+          left: 20,
+          right: 20,
+          top: 8,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(color: Paleta.acentoSuave, borderRadius: BorderRadius.circular(14)),
+                    child: const Icon(Icons.send_outlined, color: Paleta.acentoOscuro),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Hacer pedido / Solicitud',
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        Text(widget.servicio.titulo,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(color: Paleta.gris, fontSize: 13)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _detalle,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  labelText: '¿Qué necesitas o qué deseas pedir? *',
+                  hintText: 'Ej. Reparar fuga de agua en el lavadero / 1 torta para el sábado',
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _fecha,
+                decoration: const InputDecoration(
+                  labelText: '¿Para cuándo lo necesitas? (opcional)',
+                  hintText: 'Ej. Mañana a las 10 am / Lo antes posible',
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _telefono,
+                keyboardType: TextInputType.phone,
+                decoration: const InputDecoration(
+                  labelText: 'Tu teléfono de contacto',
+                  hintText: 'Para que el prestador te llame o escriba',
+                ),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String?>(
+                initialValue: _sector,
+                decoration: const InputDecoration(labelText: 'Tu sector en el barrio'),
+                items: [
+                  const DropdownMenuItem(value: null, child: Text('No especificar')),
+                  for (final s in Zona.sectores.keys) DropdownMenuItem(value: s, child: Text(s)),
+                ],
+                onChanged: (v) => setState(() => _sector = v),
+              ),
+              const SizedBox(height: 18),
+              FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: Paleta.acentoOscuro,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size.fromHeight(50),
+                ),
+                onPressed: _enviando ? null : _enviar,
+                child: Text(_enviando ? 'Enviando pedido...' : 'Enviar pedido al prestador'),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

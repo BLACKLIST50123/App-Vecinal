@@ -10,6 +10,7 @@ import '../ui/tema.dart';
 import '../ui/widgets.dart';
 import '../util.dart';
 import 'confianza.dart';
+import 'mapa.dart';
 import 'publicar.dart';
 
 // ======================================= Módulo 1 · Servicios de Proximidad
@@ -107,6 +108,14 @@ class _ServiciosScreenState extends State<ServiciosScreen> {
                     ]),
                   ),
                 ),
+                IconButton(
+                  tooltip: 'Ver en el mapa',
+                  icon: Icon(Icons.map_outlined, color: Theme.of(context).colorScheme.primary),
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const PantallaMapaCompleto()),
+                  ),
+                ),
               ]),
             ),
             if (lista.isEmpty)
@@ -117,7 +126,7 @@ class _ServiciosScreenState extends State<ServiciosScreen> {
                     : 'No encontramos eso en tu barrio todavía.\n¿Conoces a alguien bueno? Invítalo a publicarse.',
               )
             else
-              Cuadricula2(hijos: [for (final s in lista) TarjetaMercado(s)]),
+              Column(children: [for (final s in lista) TarjetaMercado(s)]),
           ]);
         },
       ),

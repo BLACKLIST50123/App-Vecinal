@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+
 import 'config.dart';
 
 double? _d(dynamic v) => v == null ? null : (v as num).toDouble();
@@ -24,6 +26,7 @@ class Servicio {
     this.lat,
     this.lng,
     this.esEmergencia = false,
+    this.activo = true,
     this.vistosBuenos = 0,
     this.pendiente = false,
     DateTime? creado,
@@ -35,6 +38,7 @@ class Servicio {
   final String? descripcion, precioRef, telefono, horario, sector;
   final double? lat, lng;
   final bool esEmergencia;
+  final bool activo;
   final int vistosBuenos;
   final bool pendiente;
   final DateTime creado;
@@ -62,6 +66,7 @@ class Servicio {
       lat: _d(m['lat']),
       lng: _d(m['lng']),
       esEmergencia: m['es_emergencia'] == true,
+      activo: m['activo'] != false,
       vistosBuenos: vb,
       pendiente: pendiente,
       creado: _fecha(m['created_at']),
@@ -80,6 +85,7 @@ class Servicio {
         'lat': lat,
         'lng': lng,
         'es_emergencia': esEmergencia,
+        'activo': activo,
       };
 
   String get textoParaVoz => [
@@ -293,4 +299,91 @@ class EstadoEmergencia {
         titulo: m['titulo'] as String?,
         mensaje: m['mensaje'] as String?,
       );
+}
+
+/// Solicitud o pedido de un vecino a un servicio, producto o clase publicado.
+class PedidoServicio {
+  PedidoServicio({
+    required this.id,
+    required this.servicioId,
+    required this.prestadorId,
+    this.clienteId,
+    required this.clienteNombre,
+    this.clienteTelefono,
+    this.clienteSector,
+    required this.detalle,
+    this.fechaDeseada,
+    this.estado = 'pendiente',
+    DateTime? creado,
+    this.servicioTitulo,
+  }) : creado = creado ?? DateTime.now();
+
+  final String id;
+  final String servicioId;
+  final String prestadorId;
+  final String? clienteId;
+  final String clienteNombre;
+  final String? clienteTelefono;
+  final String? clienteSector;
+  final String detalle;
+  final String? fechaDeseada;
+  final String estado; // 'pendiente' | 'aceptado' | 'en_proceso' | 'completado' | 'cancelado'
+  final DateTime creado;
+  final String? servicioTitulo;
+
+  bool get esPendiente => estado == 'pendiente';
+  bool get esAceptado => estado == 'aceptado';
+  bool get esEnProceso => estado == 'en_proceso';
+  bool get esCompletado => estado == 'completado';
+  bool get esCancelado => estado == 'cancelado';
+
+  String get estadoLegible => switch (estado) {
+        'aceptado' => 'Aceptado',
+        'en_proceso' => 'En camino / proceso',
+        'completado' => 'Completado',
+        'cancelado' => 'Cancelado',
+        _ => 'Pendiente',
+      };
+
+  (Color, Color) get coloresEstado => switch (estado) {
+        'aceptado' => (const Color(0xFF1565C0), const Color(0xFFE3F2FD)),
+        'en_proceso' => (const Color(0xFFE65100), const Color(0xFFFFF3E0)),
+        'completado' => (const Color(0xFF2E7D32), const Color(0xFFE8F5E9)),
+        'cancelado' => (const Color(0xFF757575), const Color(0xFFEEEEEE)),
+        _ => (const Color(0xFFC2185B), const Color(0xFFFCE4EC)),
+      };
+
+  factory PedidoServicio.fromMap(Map<String, dynamic> m) {
+    String? titulo;
+    if (m['servicios'] is Map) {
+      titulo = (m['servicios'] as Map)['titulo'] as String?;
+    }
+    return PedidoServicio(
+      id: m['id'] as String,
+      servicioId: m['servicio_id'] as String,
+      prestadorId: m['prestador_id'] as String,
+      clienteId: m['cliente_id'] as String?,
+      clienteNombre: (m['cliente_nombre'] ?? 'Vecino') as String,
+      clienteTelefono: m['cliente_telefono'] as String?,
+      clienteSector: m['cliente_sector'] as String?,
+      detalle: (m['detalle'] ?? '') as String,
+      fechaDeseada: m['fecha_deseada'] as String?,
+      estado: (m['estado'] ?? 'pendiente') as String,
+      creado: _fecha(m['created_at']),
+      servicioTitulo: titulo,
+    );
+  }
+
+  Map<String, dynamic> toInsert() => {
+        'id': id,
+        'servicio_id': servicioId,
+        'prestador_id': prestadorId,
+        if (clienteId != null) 'cliente_id': clienteId,
+        'cliente_nombre': clienteNombre,
+        'cliente_telefono': clienteTelefono,
+        'cliente_sector': clienteSector,
+        'detalle': detalle,
+        if (fechaDeseada != null && fechaDeseada!.trim().isNotEmpty) 'fecha_deseada': fechaDeseada!.trim(),
+        'estado': estado,
+      };
 }

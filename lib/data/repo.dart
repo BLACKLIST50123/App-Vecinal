@@ -214,6 +214,36 @@ class Repo {
     return (pubs.map(Publicacion.fromMap).toList(), servs.map(Servicio.fromMap).toList());
   }
 
+  /// Pedidos recibidos por el usuario para sus servicios/productos/clases.
+  Future<List<PedidoServicio>> pedidosRecibidos() async {
+    final id = uid;
+    if (id == null) return [];
+    final filas = await _consultar(
+      'pedidos_recibidos_$id',
+      () => db
+          .from('pedidos_servicio')
+          .select('*, servicios(titulo)')
+          .eq('prestador_id', id)
+          .order('created_at', ascending: false),
+    );
+    return filas.map(PedidoServicio.fromMap).toList();
+  }
+
+  /// Todos los servicios creados por el usuario (activos y en pausa).
+  Future<List<Servicio>> misServicios() async {
+    final id = uid;
+    if (id == null) return [];
+    final filas = await _consultar(
+      'mis_servs_$id',
+      () => db
+          .from('servicios')
+          .select('*, vistos_buenos(count)')
+          .eq('autor_id', id)
+          .order('created_at', ascending: false),
+    );
+    return filas.map(Servicio.fromMap).toList();
+  }
+
   // ------------------------------------------- confianza y coordinación
 
   Future<void> reportar({
@@ -464,4 +494,16 @@ class Repo {
 
   Future<void> actualizarPerfil(Map<String, dynamic> cambios) =>
       db.from('perfiles').update(cambios).eq('id', uid!);
+
+  Future<void> crearPedidoServicio(Map<String, dynamic> datos) =>
+      db.from('pedidos_servicio').insert(datos);
+
+  Future<void> cambiarEstadoPedido(String id, String estado) =>
+      db.from('pedidos_servicio').update({'estado': estado}).eq('id', id);
+
+  Future<void> actualizarServicio(String id, Map<String, dynamic> cambios) =>
+      db.from('servicios').update(cambios).eq('id', id);
+
+  Future<void> alternarActivoServicio(String id, bool activo) =>
+      db.from('servicios').update({'activo': activo}).eq('id', id);
 }
