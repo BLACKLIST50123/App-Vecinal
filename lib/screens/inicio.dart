@@ -9,10 +9,11 @@ import '../ui/tema.dart';
 import '../ui/widgets.dart';
 import '../util.dart';
 import 'confianza.dart';
+import 'detalles.dart';
+import 'mapa.dart';
 import 'publicar.dart';
 import 'qr_screens.dart';
 import 'roles.dart';
-import 'detalles.dart';
 
 typedef IrA = void Function(int tab, {String? grupo, String? consulta});
 
@@ -34,12 +35,15 @@ class InicioScreen extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
           child: Wrap(spacing: 8, runSpacing: 8, children: [
-            PildoraUbicacion(texto: st.sector ?? Zona.nombre, onTap: () => irA(3)),
+            PildoraUbicacion(
+              texto: st.sector ?? Zona.nombre,
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PantallaMapaCompleto())),
+            ),
             const PildoraRol(),
           ]),
         ),
         if (st.esBrigadista) const PanelBrigadista(),
-        if (st.esPrestadorRol) const TarjetaPrestador(),
+        if (st.esPrestador) TarjetaMisAportes(irA: irA),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
           child: CajaBusqueda(
@@ -173,7 +177,14 @@ class EmergenciaScreen extends StatelessWidget {
               ),
             ),
             Expanded(child: AccesoCategoria(texto: 'Grupos de apoyo', icono: Icons.health_and_safety_outlined, colores: Paleta.azul, onTap: () => irA(1))),
-            Expanded(child: AccesoCategoria(texto: 'Mapa de ayuda', icono: Icons.map_outlined, colores: Paleta.morado, onTap: () => irA(3))),
+            Expanded(
+              child: AccesoCategoria(
+                texto: 'Mapa de ayuda',
+                icono: Icons.map_outlined,
+                colores: Paleta.morado,
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PantallaMapaCompleto())),
+              ),
+            ),
           ]),
         ),
         const SizedBox(height: 10),
@@ -281,13 +292,13 @@ class PanelBrigadista extends StatelessWidget {
   }
 }
 
-/// Prestador de servicios: muestra su oficio y sus Vistos Buenos.
-class TarjetaPrestador extends StatelessWidget {
-  const TarjetaPrestador({super.key});
+/// Tarjeta de acceso rápido a "Mis aportes" si el usuario ofrece servicios.
+class TarjetaMisAportes extends StatelessWidget {
+  const TarjetaMisAportes({super.key, required this.irA});
+  final IrA irA;
 
   @override
   Widget build(BuildContext context) {
-    final st = context.watch<AppState>();
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 14, 16, 0),
       padding: const EdgeInsets.all(14),
@@ -296,31 +307,35 @@ class TarjetaPrestador extends StatelessWidget {
         Container(
           width: 48,
           height: 48,
-          decoration: BoxDecoration(color: Paleta.acento, borderRadius: BorderRadius.circular(15)),
-          child: const Icon(Icons.handyman, color: Colors.white),
+          decoration: BoxDecoration(color: Paleta.acentoOscuro, borderRadius: BorderRadius.circular(15)),
+          child: const Icon(Icons.inventory_2_outlined, color: Colors.white),
         ),
         const SizedBox(width: 12),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(st.especialidad ?? 'Prestador de servicios', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-            if (st.logueado)
-              Cargador<(List<Publicacion>, List<Servicio>)>(
-                cargar: (st) => st.repo.misPublicaciones(),
-                builder: (c, datos) {
-                  final vb = datos.$2.fold<int>(0, (a, s) => a + s.vistosBuenos);
-                  return Text('$vb Vistos Buenos vecinales · ${datos.$2.length} servicios publicados',
-                      style: const TextStyle(color: Paleta.gris, fontSize: 13));
-                },
-              )
-            else
-              const Text('Crea tu cuenta para acumular reseñas del Visto Bueno Vecinal.',
-                  style: TextStyle(color: Paleta.gris, fontSize: 13)),
+            const Text('Mis aportes en el barrio', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+            Cargador<(List<Servicio>, List<PedidoServicio>)>(
+              cargar: (st) async => (await st.repo.misServicios(), await st.repo.pedidosRecibidos()),
+              builder: (c, datos) {
+                final (servs, pedidos) = datos;
+                final pendientes = pedidos.where((p) => p.esPendiente).length;
+                return Text(
+                  pendientes > 0
+                      ? '$pendientes ${pendientes == 1 ? 'pedido pendiente' : 'pedidos pendientes'} · ${servs.length} servicios'
+                      : '${servs.length} ${servs.length == 1 ? 'publicación activa' : 'publicaciones activas'}',
+                  style: TextStyle(
+                    color: pendientes > 0 ? const Color(0xFFC2185B) : Paleta.gris,
+                    fontWeight: pendientes > 0 ? FontWeight.bold : FontWeight.normal,
+                    fontSize: 13,
+                  ),
+                );
+              },
+            ),
           ]),
         ),
-        IconButton(
-          tooltip: 'Publicar mi servicio',
-          onPressed: () => abrirFormulario(context, TipoForm.servicio),
-          icon: const Icon(Icons.add_circle, color: Paleta.acentoOscuro, size: 30),
+        FilledButton.tonal(
+          onPressed: () => irA(3),
+          child: const Text('Administrar'),
         ),
       ]),
     );

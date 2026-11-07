@@ -9,6 +9,7 @@ import '../ui/tema.dart';
 import '../ui/widgets.dart';
 import '../util.dart';
 import 'confianza.dart';
+import 'mapa.dart';
 import 'publicar.dart';
 
 // ======================================= Módulo 1 · Servicios de Proximidad
@@ -104,6 +105,14 @@ class _ServiciosScreenState extends State<ServiciosScreen> {
                       Text(_porCercania ? 'Más cerca' : 'Más recomendados',
                           style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w700, fontSize: 14)),
                     ]),
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Ver en el mapa',
+                  icon: Icon(Icons.map_outlined, color: Theme.of(context).colorScheme.primary),
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const PantallaMapaCompleto()),
                   ),
                 ),
               ]),

@@ -27,6 +27,7 @@ class AppState extends ChangeNotifier {
     voz = prefs.getBool('voz') ?? true;
     tutorialVisto = prefs.getBool('tutorial_visto') ?? false;
     rolSimulado = prefs.getString('rol_simulado') ?? 'vecino';
+    if (rolSimulado != 'vecino' && rolSimulado != 'brigadista') rolSimulado = 'vecino';
     especialidad = prefs.getString('especialidad');
     repo.forzarOffline = prefs.getBool('forzar_offline') ?? false;
     final p = prefs.getString('perfil');
@@ -113,6 +114,15 @@ class AppState extends ChangeNotifier {
             event: PostgresChangeEvent.all,
             schema: 'public',
             table: 'publicaciones',
+            callback: (_) {
+              _debounce?.cancel();
+              _debounce = Timer(const Duration(milliseconds: 800), refrescar);
+            },
+          )
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'pedidos_servicio',
             callback: (_) {
               _debounce?.cancel();
               _debounce = Timer(const Duration(milliseconds: 800), refrescar);
@@ -219,16 +229,12 @@ class AppState extends ChangeNotifier {
   }
 
   bool get esBrigadista => rolSimulado == 'brigadista';
-  bool get esPrestadorRol => rolSimulado == 'prestador';
+  bool get esPrestador => perfil?['es_prestador'] == true;
 
-  void elegirRol(String rol, {String? oficio}) {
-    rolSimulado = rol;
+  void elegirRol(String rol) {
+    rolSimulado = (rol == 'brigadista') ? 'brigadista' : 'vecino';
     rolElegido = true;
-    prefs.setString('rol_simulado', rol);
-    if (oficio != null && oficio.trim().isNotEmpty) {
-      especialidad = oficio.trim();
-      prefs.setString('especialidad', especialidad!);
-    }
+    prefs.setString('rol_simulado', rolSimulado);
     notifyListeners();
   }
 

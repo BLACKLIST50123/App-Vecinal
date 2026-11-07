@@ -9,6 +9,7 @@ import '../ui/diseno.dart';
 import '../ui/tema.dart';
 import '../ui/widgets.dart';
 import '../util.dart';
+import 'aportes.dart';
 import 'auth_screen.dart';
 import 'confianza.dart';
 import 'detalles.dart';
@@ -69,6 +70,28 @@ class PerfilScreen extends StatelessWidget {
                         color: st.verificado ? Theme.of(context).colorScheme.primary : const Color(0xFFEF6C00),
                       )),
                 ]),
+                if (esPrestador) ...[
+                  const SizedBox(height: 5),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: Paleta.acentoSuave,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Paleta.acentoOscuro.withValues(alpha: 0.3)),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.handyman, size: 12, color: Paleta.acentoOscuro),
+                        SizedBox(width: 4),
+                        Text(
+                          'Prestador de servicios local',
+                          style: TextStyle(color: Paleta.acentoOscuro, fontSize: 11, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ]),
             ),
             InsigniaNivel(ayudas, mostrarSiCero: true),
@@ -97,6 +120,17 @@ class PerfilScreen extends StatelessWidget {
         _TarjetaReconocimiento(ayudas: ayudas),
         const TituloDiseno('Mi actividad'),
         ListaAjustes(filas: [
+          FilaAjuste(
+            icono: Icons.inventory_2_outlined,
+            texto: 'Mis aportes (servicios y pedidos)',
+            onTap: () => _ir(
+              context,
+              Scaffold(
+                appBar: AppBar(title: const Text('Mis aportes')),
+                body: const MisAportesScreen(),
+              ),
+            ),
+          ),
           FilaAjuste(icono: Icons.history, texto: 'Mi historial de ayudas', onTap: () => _ir(context, const HistorialScreen())),
           FilaAjuste(icono: Icons.list_alt, texto: 'Mis publicaciones', onTap: () => _ir(context, const MisPublicacionesScreen())),
           FilaAjuste(
@@ -153,7 +187,7 @@ class PerfilScreen extends StatelessWidget {
         FilaAjuste(
           icono: infoRol(st.rolSimulado).icono,
           texto: '¿Quién soy hoy?',
-          valor: st.esPrestadorRol && st.especialidad != null ? st.especialidad! : infoRol(st.rolSimulado).titulo.split(' /').first,
+          valor: infoRol(st.rolSimulado).titulo.split(' /').first,
           color: infoRol(st.rolSimulado).color,
           onTap: () => _ir(context, const SelectorRolScreen(inicial: false)),
         ),
