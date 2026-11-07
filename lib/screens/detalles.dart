@@ -134,7 +134,7 @@ class _ServicioDetalleState extends State<ServicioDetalle> {
           icon: const Icon(Icons.share),
           onPressed: () => compartirWhatsapp(
               'Te recomiendo "${s.titulo}"${s.sector != null ? ' en ${s.sector}' : ''}, '
-              '${s.vistosBuenos} vecinos le dieron su Visto Bueno en App Vecinal ${Zona.nombre}.'),
+              '${s.vistosBuenos} vecinos le dieron su Visto Bueno en Conecta Vecino ${Zona.nombre}.'),
         ),
         if (!esMio && !s.pendiente)
           IconButton(
@@ -164,7 +164,7 @@ class _ServicioDetalleState extends State<ServicioDetalle> {
               const SizedBox(width: 12),
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () => abrirWhatsapp(s.telefono!, 'Hola, te encontré en App Vecinal: "${s.titulo}"'),
+                  onPressed: () => abrirWhatsapp(s.telefono!, 'Hola, te encontré en Conecta Vecino: "${s.titulo}"'),
                   icon: const Icon(Icons.chat),
                   label: const Text('WhatsApp'),
                 ),
@@ -410,7 +410,7 @@ class _PublicacionDetalleState extends State<PublicacionDetalle> {
             FilledButton.icon(
               onPressed: () {
                 Navigator.pop(c);
-                abrirWhatsapp(tel, 'Hola ${p.autorVisible}, te escribo por App Vecinal: "${p.titulo}". ${p.textoResponder == 'Yo aporto' ? 'Quiero aportar.' : (p.esPedido ? 'Puedo ayudarte.' : 'Me interesa.')}');
+                abrirWhatsapp(tel, 'Hola ${p.autorVisible}, te escribo por Conecta Vecino: "${p.titulo}". ${p.textoResponder == 'Yo aporto' ? 'Quiero aportar.' : (p.esPedido ? 'Puedo ayudarte.' : 'Me interesa.')}');
               },
               icon: const Icon(Icons.chat),
               label: const Text('WhatsApp'),
@@ -573,7 +573,7 @@ class _PublicacionDetalleState extends State<PublicacionDetalle> {
               const SizedBox(width: 12),
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () => abrirWhatsapp(tel, 'Hola ${p.autorVisible}, te escribo por App Vecinal: "${p.titulo}".'),
+                  onPressed: () => abrirWhatsapp(tel, 'Hola ${p.autorVisible}, te escribo por Conecta Vecino: "${p.titulo}".'),
                   icon: const Icon(Icons.chat),
                   label: const Text('WhatsApp'),
                 ),

@@ -148,7 +148,7 @@ class _BienvenidaScreenState extends State<BienvenidaScreen> with TickerProvider
                               Expanded(child: Divider(color: Paleta.linea)),
                               Padding(
                                 padding: EdgeInsets.symmetric(horizontal: 12),
-                                child: Text('o', style: TextStyle(color: Paleta.grisClaro)),
+                                child: Text('o', style: TextStyle(color: Paleta.gris)),
                               ),
                               Expanded(child: Divider(color: Paleta.linea)),
                             ],
@@ -166,7 +166,7 @@ class _BienvenidaScreenState extends State<BienvenidaScreen> with TickerProvider
                           Text(
                             'Equipo AlphaCoders · ${Zona.nombre}',
                             textAlign: TextAlign.center,
-                            style: const TextStyle(color: Paleta.grisClaro, fontSize: 13),
+                            style: const TextStyle(color: Paleta.gris, fontSize: 13),
                           ),
                         ],
                       ),

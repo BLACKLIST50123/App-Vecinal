@@ -24,6 +24,33 @@ class PerfilScreen extends StatelessWidget {
   void _ir(BuildContext context, Widget pantalla) =>
       Navigator.push(context, MaterialPageRoute(builder: (_) => pantalla));
 
+  /// Pide confirmación (evita salir por un toque accidental) y avisa si hay
+  /// publicaciones guardadas sin enviar. Al cerrar, vuelve a la bienvenida;
+  /// el tamaño de letra y la accesibilidad se mantienen.
+  Future<void> _confirmarCierre(BuildContext context, AppState st) async {
+    final n = st.pendientes;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        icon: const Icon(Icons.logout, size: 36),
+        title: const Text('¿Cerrar sesión?'),
+        content: Text(n > 0
+            ? 'Tienes ${n == 1 ? '1 publicación' : '$n publicaciones'} sin enviar. '
+                'Si cierras sesión ahora, podrían no enviarse. Mejor espera a tener internet.'
+            : 'Volverás a la pantalla de inicio. Podrás entrar de nuevo con tu celular y tu clave.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancelar')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Paleta.rojo, foregroundColor: Colors.white),
+            onPressed: () => Navigator.pop(c, true),
+            child: const Text('Cerrar sesión'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) await st.cerrarSesion();
+  }
+
   @override
   Widget build(BuildContext context) {
     final st = context.watch<AppState>();
@@ -182,13 +209,13 @@ class PerfilScreen extends StatelessWidget {
             icono: Icons.logout,
             texto: 'Cerrar sesión',
             color: Paleta.rojo,
-            onTap: () => st.cerrarSesion(),
+            onTap: () => _confirmarCierre(context, st),
           ),
       ]),
       const Padding(
         padding: EdgeInsets.all(20),
-        child: Text('App Vecinal · Equipo AlphaCoders · Hackathon UTP 2026',
-            textAlign: TextAlign.center, style: TextStyle(color: Paleta.grisClaro)),
+        child: Text('Conecta Vecino · Equipo AlphaCoders · Hackathon UTP 2026',
+            textAlign: TextAlign.center, style: TextStyle(color: Paleta.gris)),
       ),
     ]);
   }

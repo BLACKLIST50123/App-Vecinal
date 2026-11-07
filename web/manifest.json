@@ -1,6 +1,6 @@
 {
-    "name": "App Vecinal",
-    "short_name": "App Vecinal",
+    "name": "Conecta Vecino",
+    "short_name": "Conecta Vecino",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

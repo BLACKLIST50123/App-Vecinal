@@ -38,7 +38,7 @@ class AppVecinal extends StatelessWidget {
   Widget build(BuildContext context) {
     final st = context.watch<AppState>();
     return MaterialApp(
-      title: 'App Vecinal',
+      title: 'Conecta Vecino',
       debugShowCheckedModeBanner: false,
       scaffoldMessengerKey: mensajero,
       navigatorKey: navegador,
