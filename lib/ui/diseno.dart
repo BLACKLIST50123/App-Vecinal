@@ -71,7 +71,7 @@ class BotonCuadrado extends StatelessWidget {
                 width: 48,
                 height: 48,
                 child: Stack(alignment: Alignment.center, children: [
-                  Icon(icono, color: const Color(0xFF42534C)),
+                  Icon(icono, color: const Color(0xFF475569)),
                   if (contador > 0)
                     Positioned(
                       top: 8,
@@ -79,7 +79,7 @@ class BotonCuadrado extends StatelessWidget {
                       child: Container(
                         width: 10,
                         height: 10,
-                        decoration: BoxDecoration(color: Paleta.coral, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2)),
+                        decoration: BoxDecoration(color: Paleta.acento, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2)),
                       ),
                     ),
                 ]),
@@ -103,7 +103,7 @@ class CajaBusqueda extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
-          boxShadow: const [BoxShadow(color: Color(0x0A234236), blurRadius: 18, offset: Offset(0, 5))],
+          boxShadow: const [BoxShadow(color: Color(0x0A1E293B), blurRadius: 18, offset: Offset(0, 5))],
         ),
         child: TextField(
           controller: controller,
@@ -115,7 +115,7 @@ class CajaBusqueda extends StatelessWidget {
             hintText: pista,
             labelText: etiqueta,
             floatingLabelBehavior: FloatingLabelBehavior.never,
-            prefixIcon: const Icon(Icons.search, color: Color(0xFF809088)),
+            prefixIcon: const Icon(Icons.search, color: Color(0xFF94A3B8)),
             contentPadding: const EdgeInsets.symmetric(vertical: 16),
           ),
         ),
@@ -167,7 +167,7 @@ class TituloDiseno extends StatelessWidget {
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               if (ceja != null)
                 Text(ceja!.toUpperCase(),
-                    style: const TextStyle(color: Color(0xFF8A9891), fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 1)),
+                    style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 1)),
               Semantics(
                 header: true,
                 child: Text(titulo, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 19)),
@@ -213,13 +213,13 @@ class AccesoCategoria extends StatelessWidget {
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             IconoCategoria(icono: icono, colores: colores),
             const SizedBox(height: 8),
-            Text(texto, textAlign: TextAlign.center, style: const TextStyle(color: Color(0xFF425049), fontSize: 13, fontWeight: FontWeight.w600)),
+            Text(texto, textAlign: TextAlign.center, style: const TextStyle(color: Color(0xFF475569), fontSize: 13, fontWeight: FontWeight.w600)),
           ]),
         ),
       );
 }
 
-/// Banner con degradado (verde "Entre vecinos..." o terracota "Solidaridad").
+/// Banner con degradado (marino "Entre vecinos..." o naranja "Solidaridad").
 class BannerDegradado extends StatelessWidget {
   const BannerDegradado({
     super.key,
@@ -246,7 +246,7 @@ class BannerDegradado extends StatelessWidget {
           child: Ink(
             decoration: BoxDecoration(
               gradient: LinearGradient(colors: colores, begin: Alignment.topLeft, end: Alignment.bottomRight),
-              boxShadow: const [BoxShadow(color: Color(0x2E195340), blurRadius: 28, offset: Offset(0, 11))],
+              boxShadow: const [BoxShadow(color: Color(0x2E1E293B), blurRadius: 28, offset: Offset(0, 11))],
             ),
             child: InkWell(
               onTap: onTap,
@@ -382,7 +382,7 @@ class TarjetaMercado extends StatelessWidget {
                   decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.85), borderRadius: BorderRadius.circular(6)),
                   child: Text(cat.nombre.toUpperCase(),
                       maxLines: 1, overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: Color(0xFF54625C), fontSize: 11, fontWeight: FontWeight.w700)),
+                      style: const TextStyle(color: Color(0xFF475569), fontSize: 11, fontWeight: FontWeight.w700)),
                 ),
               ),
               if (s.autorRol == 'organizacion')
@@ -463,7 +463,7 @@ class FilaPildoras extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: seleccion == valor ? Colors.white : const Color(0xFF4F5D56),
+                        color: seleccion == valor ? Colors.white : const Color(0xFF475569),
                       )),
                   selected: seleccion == valor,
                   selectedColor: Theme.of(context).colorScheme.primary,
@@ -527,7 +527,7 @@ class FilaAjuste extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(child: Text(texto, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: color ?? Paleta.tinta))),
             if (valor != null) Text(valor!, style: const TextStyle(color: Paleta.gris, fontSize: 13)),
-            final_ ?? (onTap != null ? const Icon(Icons.chevron_right, color: Color(0xFF9AA59F)) : const SizedBox.shrink()),
+            final_ ?? (onTap != null ? const Icon(Icons.chevron_right, color: Color(0xFF94A3B8)) : const SizedBox.shrink()),
           ]),
         ),
       ),

@@ -9,6 +9,7 @@ import 'features/sos/sos_atajo.dart';
 import 'features/sos/sos_boton.dart';
 import 'features/sos/sos_navegacion.dart';
 import 'screens/home_shell.dart';
+import 'screens/roles.dart';
 import 'screens/tutorial.dart';
 import 'state/app_state.dart';
 import 'ui/tema.dart';
@@ -52,11 +53,15 @@ class AppVecinal extends StatelessWidget {
         final sistema = mq.textScaler.scale(1);
         return MediaQuery(
           data: mq.copyWith(textScaler: TextScaler.linear(sistema > st.escala ? sistema : st.escala)),
-          // Botón SOS sobre todas las pantallas.
+          // Botón SOS sobre todas las pantallas (después del tutorial y de elegir rol).
           child: CapaSos(child: child!),
         );
       },
-      home: st.tutorialVisto ? const HomeShell() : const TutorialScreen(inicial: true),
+      home: !st.tutorialVisto
+          ? const TutorialScreen(inicial: true)
+          : !st.rolElegido
+              ? const SelectorRolScreen()
+              : const HomeShell(),
     );
   }
 }

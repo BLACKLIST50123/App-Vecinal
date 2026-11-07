@@ -164,7 +164,7 @@ class AvisoAutoridades extends StatelessWidget {
             Wrap(spacing: 8, runSpacing: 8, children: [
               for (final (nombre, numero, icono) in numerosEmergencia)
                 FilledButton.icon(
-                  style: FilledButton.styleFrom(backgroundColor: const Color(0xFFB71C1C), foregroundColor: Colors.white),
+                  style: FilledButton.styleFrom(backgroundColor: const Color(0xFFE53935), foregroundColor: Colors.white),
                   onPressed: () => llamar(numero),
                   icon: Icon(icono),
                   label: Text('$nombre $numero'),
@@ -275,7 +275,7 @@ class _PanelCoordinacionScreenState extends State<PanelCoordinacionScreen> {
                     Card(
                       child: ListTile(
                         leading: CircleAvatar(
-                          backgroundColor: e.value.length >= 3 ? const Color(0xFFB71C1C) : const Color(0xFFFFE0B2),
+                          backgroundColor: e.value.length >= 3 ? const Color(0xFFE53935) : const Color(0xFFFFE0B2),
                           child: Text('${e.value.length}',
                               style: TextStyle(color: e.value.length >= 3 ? Colors.white : Colors.black, fontWeight: FontWeight.bold)),
                         ),

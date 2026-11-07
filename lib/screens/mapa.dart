@@ -25,7 +25,7 @@ class _MapaScreenState extends State<MapaScreen> {
   static const _cServicio = Color(0xFF1565C0);
   static const _cPedido = Color(0xFFE65100);
   static const _cOferta = Color(0xFF2E7D32);
-  static const _cCritico = Color(0xFFB71C1C);
+  static const _cCritico = Color(0xFFE53935);
 
   void _verDetalle(Widget tarjeta) => showModalBottomSheet<void>(
         context: context,
