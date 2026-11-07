@@ -25,9 +25,9 @@ Future<void> compartirWhatsapp(String texto) async {
 String textoCompartir(Publicacion p) =>
     '${p.esEmergencia ? '🚨 ' : ''}Vecino${p.sector != null ? ' de ${p.sector}' : ''} '
     '${p.esPedido ? 'necesita' : 'ofrece'}: "${p.titulo}". '
-    '${p.esPedido ? '¿Puedes ayudar? ' : ''}Míralo en App Vecinal ${Zona.nombre}.';
+    '${p.esPedido ? '¿Puedes ayudar? ' : ''}Míralo en Conecta Vecino ${Zona.nombre}.';
 
-const textoInvitacion = 'Únete a App Vecinal ${Zona.nombre}: encuentra servicios y productos recomendados por tus vecinos, '
+const textoInvitacion = 'Únete a Conecta Vecino ${Zona.nombre}: encuentra servicios y productos recomendados por tus vecinos, '
     'pide o presta cosas sin dinero y coordina ayuda en emergencias, incluso sin internet. Pídeme el instalador 📲';
 
 // ================================================================== normas

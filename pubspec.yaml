@@ -49,6 +49,7 @@ dependencies:
     sdk: flutter
   intl: ^0.20.3
   google_fonts: ^9.0.0
+  speech_to_text: ^7.5.0
 
 dev_dependencies:
   flutter_test:
@@ -72,9 +73,10 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
-  # Datos incluidos en la app para el primer uso sin internet.
+  # Datos de primer uso sin internet y logo de Conecta Vecino.
   assets:
     - assets/datos_iniciales.json
+    - assets/images/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

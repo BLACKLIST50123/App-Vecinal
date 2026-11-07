@@ -80,7 +80,7 @@ class _SelectorRolScreenState extends State<SelectorRolScreen> {
             ),
             const SizedBox(height: 18),
           ],
-          const Text('Bienvenido a App Vecinal',
+          const Text('Bienvenido a Conecta Vecino',
               style: TextStyle(color: Paleta.acentoOscuro, fontSize: 14, fontWeight: FontWeight.w700)),
           const SizedBox(height: 4),
           Semantics(

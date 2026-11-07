@@ -30,7 +30,7 @@ class CapaSos extends StatelessWidget {
         listenable: Listenable.merge([sosAbierto, ventanasAbiertas]),
         builder: (context, _) {
           final oculto =
-              sosAbierto.value || ventanasAbiertas.value > 0 || teclado || !st.tutorialVisto || !st.rolElegido;
+              sosAbierto.value || ventanasAbiertas.value > 0 || teclado || !st.entro || !st.tutorialVisto || !st.rolElegido;
           if (oculto) return const SizedBox.shrink();
           return Positioned(
             left: 16,

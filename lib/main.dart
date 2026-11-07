@@ -10,6 +10,7 @@ import 'data/repo.dart';
 import 'features/sos/sos_atajo.dart';
 import 'features/sos/sos_boton.dart';
 import 'features/sos/sos_navegacion.dart';
+import 'screens/bienvenida.dart';
 import 'screens/home_shell.dart';
 import 'screens/roles.dart';
 import 'screens/tutorial.dart';
@@ -44,7 +45,7 @@ class AppVecinal extends StatelessWidget {
   Widget build(BuildContext context) {
     final st = context.watch<AppState>();
     return MaterialApp(
-      title: 'App Vecinal',
+      title: 'Conecta Vecino',
       debugShowCheckedModeBanner: false,
       scaffoldMessengerKey: mensajero,
       navigatorKey: navegador,
@@ -58,15 +59,20 @@ class AppVecinal extends StatelessWidget {
         final sistema = mq.textScaler.scale(1);
         return MediaQuery(
           data: mq.copyWith(textScaler: TextScaler.linear(sistema > st.escala ? sistema : st.escala)),
-          // Botón SOS sobre todas las pantallas (después del tutorial y de elegir rol).
+          // Botón SOS sobre todas las pantallas (después de la bienvenida,
+          // el tutorial y de elegir rol).
           child: CapaSos(child: child!),
         );
       },
-      home: !st.tutorialVisto
-          ? const TutorialScreen(inicial: true)
-          : !st.rolElegido
-              ? const SelectorRolScreen()
-              : const HomeShell(),
+      // Bienvenida (iniciar sesión / crear cuenta / invitado) → tutorial y
+      // rol solo la primera vez → la app.
+      home: !st.entro
+          ? const BienvenidaScreen()
+          : !st.tutorialVisto
+              ? const TutorialScreen(inicial: true)
+              : !st.rolElegido
+                  ? const SelectorRolScreen()
+                  : const HomeShell(),
     );
   }
 }
