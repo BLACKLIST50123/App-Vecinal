@@ -14,7 +14,7 @@ import '../../util.dart';
 import 'sos_navegacion.dart';
 import 'sos_tipos.dart';
 
-enum _Fase { elegir, cuenta, enviando, listo }
+enum _Fase { elegir, submenu, cuenta, enviando, listo }
 
 /// Pantalla completa en Rojo Alerta Crítica. Pensada para crisis:
 /// 1 toque por reporte, 3 s para cancelar, sin sonidos (discreta),
@@ -51,7 +51,12 @@ class _SosScreenState extends State<SosScreen> {
   }
 
   void _elegir(TipoSos t) {
-    HapticFeedback.mediumImpact();
+    if (t.abreSubmenu) {
+      setState(() => _fase = _Fase.submenu);
+      return;
+    }
+    // Discreto: sin vibración en avisos reservados (el agresor puede estar cerca).
+    if (!t.reservado) HapticFeedback.mediumImpact();
     setState(() {
       _tipo = t;
       _fase = _Fase.cuenta;
@@ -83,7 +88,7 @@ class _SosScreenState extends State<SosScreen> {
     if (t == null) return;
     final st = context.read<AppState>();
     setState(() => _fase = _Fase.enviando);
-    HapticFeedback.heavyImpact();
+    if (!t.reservado) HapticFeedback.heavyImpact();
 
     final punto = st.ubicacion ?? await Ubicacion.gps().timeout(const Duration(seconds: 6), onTimeout: () => null) ?? st.referencia;
     final aprox = aproximar(punto);
@@ -93,7 +98,10 @@ class _SosScreenState extends State<SosScreen> {
       'tipo': 'pido',
       'categoria': t.categoria,
       'titulo': t.reporte,
-      'descripcion': 'Reporte SOS de un toque. Contactar con cuidado.',
+      'descripcion': t.reservado
+          ? 'Aviso RESERVADO de un toque. Solo lo ven la junta y las organizaciones. Contactar con discreción.'
+          : 'Reporte SOS de un toque. Contactar con cuidado.',
+      'visibilidad': t.reservado ? 'restringida' : 'publica',
       'contacto_nombre': st.logueado ? st.nombre : null,
       'contacto_telefono': tel,
       'prioridad': t.prioridad,
@@ -109,7 +117,7 @@ class _SosScreenState extends State<SosScreen> {
     try {
       final enviado = await st.publicar('publicaciones', datos);
       if (!mounted) return;
-      HapticFeedback.heavyImpact();
+      if (!t.reservado) HapticFeedback.heavyImpact();
       setState(() {
         _datos = datos;
         _enviadoEnLinea = enviado;
@@ -122,6 +130,22 @@ class _SosScreenState extends State<SosScreen> {
         _error = e is PostgrestException && e.code == 'P0001' ? e.message : traducirError(e);
         _fase = _Fase.listo;
       });
+    }
+  }
+
+  /// Cierra el propio aviso: "Ya estoy bien" o "Fue un error".
+  /// Evita alertas que se quedan abiertas sin fin.
+  Future<void> _estoyBien() async {
+    final st = context.read<AppState>();
+    final id = _datos?['id'] as String?;
+    if (id == null) return;
+    try {
+      await st.repo.cambiarEstado(id, 'resuelta');
+      st.refrescar();
+      avisar('Listo, cerramos tu alerta. Nos alegra que estés bien.');
+      if (mounted) Navigator.maybePop(context);
+    } catch (e) {
+      avisar(traducirError(e));
     }
   }
 
@@ -144,7 +168,17 @@ class _SosScreenState extends State<SosScreen> {
                       _Encabezado(onCerrar: () => Navigator.maybePop(context)),
                       const SizedBox(height: 20),
                       switch (_fase) {
-                        _Fase.elegir => _Cuadricula(onElegir: _elegir),
+                        _Fase.elegir => _Cuadricula(
+                            titulo: 'Toca lo que está pasando:',
+                            tipos: TipoSos.principales,
+                            onElegir: _elegir,
+                          ),
+                        _Fase.submenu => _Cuadricula(
+                            titulo: '¿Qué tipo de inseguridad?',
+                            tipos: TipoSos.deInseguridad,
+                            onElegir: _elegir,
+                            onVolver: _cancelar,
+                          ),
                         _Fase.cuenta => _CuentaRegresiva(tipo: _tipo!, cuenta: _cuenta, onCancelar: _cancelar, onYa: _enviar),
                         _Fase.enviando => const _Enviando(),
                         _Fase.listo => _Resultado(
@@ -155,6 +189,9 @@ class _SosScreenState extends State<SosScreen> {
                             onQr: _datos == null
                                 ? null
                                 : () => Navigator.push(context, MaterialPageRoute(builder: (_) => MostrarQrScreen(datos: _datos!))),
+                            onEstoyBien: _error == null && _enviadoEnLinea == true && context.read<AppState>().logueado
+                                ? _estoyBien
+                                : null,
                           ),
                       },
                       const SizedBox(height: 16),
@@ -207,15 +244,32 @@ class _Encabezado extends StatelessWidget {
 }
 
 class _Cuadricula extends StatelessWidget {
-  const _Cuadricula({required this.onElegir});
+  const _Cuadricula({required this.titulo, required this.tipos, required this.onElegir, this.onVolver});
+  final String titulo;
+  final List<TipoSos> tipos;
   final ValueChanged<TipoSos> onElegir;
+  final VoidCallback? onVolver;
 
   @override
   Widget build(BuildContext context) {
-    final tipos = TipoSos.values;
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      const Text('Toca lo que está pasando:',
-          style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w700)),
+      Row(children: [
+        if (onVolver != null)
+          IconButton(
+            tooltip: 'Volver',
+            onPressed: onVolver,
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+          ),
+        Expanded(
+          child: Text(titulo, style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w700)),
+        ),
+      ]),
+      if (onVolver != null)
+        const Padding(
+          padding: EdgeInsets.only(bottom: 4),
+          child: Text('🔒 Secuestro, extorsión y violencia se envían como aviso reservado.',
+              style: TextStyle(color: Color(0xF2FFFFFF), fontSize: 14)),
+        ),
       const SizedBox(height: 12),
       for (var i = 0; i < tipos.length; i += 2)
         Padding(
@@ -296,6 +350,21 @@ class _CuentaRegresiva extends StatelessWidget {
             const SizedBox(height: 6),
             const Text('Se enviará solo. Puedes cancelar si fue un error.',
                 textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF5F6B66), fontSize: 15)),
+            if (tipo.reservado) ...[
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(color: const Color(0xFFF1F4F2), borderRadius: BorderRadius.circular(12)),
+                child: const Row(children: [
+                  Icon(Icons.lock_outline, color: Color(0xFF1D2925)),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text('Aviso reservado: solo lo verán la junta vecinal y las organizaciones de apoyo.',
+                        style: TextStyle(color: Color(0xFF1D2925), fontSize: 14, fontWeight: FontWeight.w600)),
+                  ),
+                ]),
+              ),
+            ],
             const SizedBox(height: 16),
             Row(children: [
               Expanded(
@@ -335,12 +404,20 @@ class _Enviando extends StatelessWidget {
 }
 
 class _Resultado extends StatelessWidget {
-  const _Resultado({required this.tipo, required this.enLinea, required this.error, required this.onOtro, this.onQr});
+  const _Resultado({
+    required this.tipo,
+    required this.enLinea,
+    required this.error,
+    required this.onOtro,
+    this.onQr,
+    this.onEstoyBien,
+  });
   final TipoSos tipo;
   final bool? enLinea;
   final String? error;
   final VoidCallback onOtro;
   final VoidCallback? onQr;
+  final VoidCallback? onEstoyBien;
 
   @override
   Widget build(BuildContext context) {
@@ -349,7 +426,9 @@ class _Resultado extends StatelessWidget {
         ? (Icons.error_outline, 'No se pudo enviar', error!)
         : enLinea == true
             ? (Icons.check_circle, 'Alerta enviada',
-                'Tus vecinos y las organizaciones de apoyo ya ven tu reporte de "${tipo.titulo}" en el tablero de emergencia, con tu ubicación aproximada.')
+                tipo.reservado
+                    ? 'La junta vecinal y las organizaciones de apoyo ya recibieron tu aviso reservado. Tus vecinos no lo ven.'
+                    : 'Tus vecinos cercanos y las organizaciones de apoyo ya ven tu reporte de "${tipo.titulo}", con tu ubicación aproximada.')
             : (Icons.cloud_off, 'Guardada sin internet',
                 'Se enviará apenas haya señal. Si es urgente, muestra el QR a un vecino con internet para que la envíe por ti.');
     return Semantics(
@@ -364,7 +443,31 @@ class _Resultado extends StatelessWidget {
               style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Color(0xFF1D2925))),
           const SizedBox(height: 8),
           Text(texto, textAlign: TextAlign.center, style: const TextStyle(fontSize: 16, color: Color(0xFF3B4842), height: 1.4)),
+          if (tipo.consejo != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: tipo.colorSuave, borderRadius: BorderRadius.circular(14)),
+              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Icon(Icons.tips_and_updates_outlined, color: tipo.color),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(tipo.consejo!,
+                      style: const TextStyle(color: Color(0xFF1D2925), fontSize: 15, fontWeight: FontWeight.w600, height: 1.35)),
+                ),
+              ]),
+            ),
+          ],
           const SizedBox(height: 16),
+          if (onEstoyBien != null) ...[
+            FilledButton.icon(
+              style: FilledButton.styleFrom(backgroundColor: const Color(0xFF2E7D32)),
+              onPressed: onEstoyBien,
+              icon: const Icon(Icons.verified_user_outlined),
+              label: const Text('Ya estoy bien / Fue un error'),
+            ),
+            const SizedBox(height: 10),
+          ],
           if (ok && enLinea == false && onQr != null) ...[
             FilledButton.icon(
               style: FilledButton.styleFrom(backgroundColor: ColoresSos.rojoOscuro),

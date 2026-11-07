@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../models.dart';
 import 'sos_screen.dart';
 
 /// Navegador global: permite abrir el SOS desde cualquier pantalla
@@ -8,6 +9,13 @@ final navegador = GlobalKey<NavigatorState>();
 
 /// true mientras la pantalla SOS está abierta (oculta el botón flotante).
 final sosAbierto = ValueNotifier<bool>(false);
+
+/// Último SOS recibido en tiempo real cerca del vecino (≤ 2 km): se muestra
+/// como aviso rojo arriba de la pantalla, en cualquier pantalla.
+final alertaEntrante = ValueNotifier<(Publicacion, double)?>(null);
+
+/// Radio en el que un SOS le llega a un vecino.
+const radioAlertaKm = 2.0;
 
 /// Cantidad de menús o diálogos abiertos: el botón SOS se oculta para no
 /// tapar sus opciones.

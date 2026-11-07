@@ -127,8 +127,14 @@ class Repo {
     ];
   }
 
-  /// Alertas SOS sin atender de las últimas 24 h. Se muestran SIEMPRE,
-  /// aunque la junta no haya activado el modo emergencia.
+  /// Cuánto tiempo sigue visible una alerta SOS sin atender: así no quedan
+  /// alertas abiertas para siempre ("continuas").
+  static Duration vigenciaSos(String prioridad) =>
+      prioridad == 'critica' ? const Duration(hours: 24) : const Duration(hours: 6);
+
+  /// Alertas SOS vigentes y sin atender. Se muestran SIEMPRE, aunque la
+  /// junta no haya activado el modo emergencia. Las marcadas "sin confirmar"
+  /// (3 reportes de vecinos o una organización) salen de la lista.
   Future<List<Publicacion>> alertasSos() async {
     final desde = DateTime.now().toUtc().subtract(const Duration(hours: 24)).toIso8601String();
     final filas = await _consultar(
@@ -137,12 +143,16 @@ class Repo {
           .from('publicaciones')
           .select('*, ayudas(count)')
           .eq('origen', 'sos')
-          .neq('estado', 'resuelta')
+          .not('estado', 'in', '(resuelta,no_verificado)')
           .gte('created_at', desde)
           .order('created_at', ascending: false)
-          .limit(20),
+          .limit(30),
     );
-    final enviadas = filas.map(Publicacion.fromMap).toList();
+    final ahora = DateTime.now();
+    final enviadas = filas
+        .map(Publicacion.fromMap)
+        .where((p) => ahora.difference(p.creado) <= vigenciaSos(p.prioridad))
+        .toList();
     final ids = enviadas.map((p) => p.id).toSet();
     return [
       ...pendientes

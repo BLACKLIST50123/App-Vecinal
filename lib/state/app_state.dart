@@ -3,13 +3,16 @@ import 'dart:convert';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../config.dart';
 import '../data/repo.dart';
+import '../features/sos/sos_navegacion.dart';
 import '../models.dart';
 import '../services/ubicacion.dart';
+import '../util.dart';
 
 final mensajero = GlobalKey<ScaffoldMessengerState>();
 
@@ -113,7 +116,8 @@ class AppState extends ChangeNotifier {
             event: PostgresChangeEvent.all,
             schema: 'public',
             table: 'publicaciones',
-            callback: (_) {
+            callback: (cambio) {
+              if (cambio.eventType == PostgresChangeEvent.insert) _avisarSiEsSosCercano(cambio.newRecord);
               _debounce?.cancel();
               _debounce = Timer(const Duration(milliseconds: 800), refrescar);
             },
@@ -122,6 +126,22 @@ class AppState extends ChangeNotifier {
     } catch (_) {
       // Sin tiempo real la app sigue funcionando con la consulta cada 30 s.
     }
+  }
+
+  /// Un SOS nuevo a ≤ 2 km (y que no es mío) se avisa al instante, con
+  /// vibración, para que los vecinos más cercanos puedan ayudar.
+  /// Los avisos reservados solo llegan a quien el servidor deja verlos.
+  void _avisarSiEsSosCercano(Map<String, dynamic> fila) {
+    try {
+      if (fila['origen'] != 'sos' || fila['id'] == null) return;
+      final p = Publicacion.fromMap(fila);
+      if (p.autorId != null && p.autorId == uid) return;
+      if (p.punto == null) return;
+      final km = distanciaKm(referencia, p.punto!);
+      if (km > radioAlertaKm) return;
+      alertaEntrante.value = (p, km);
+      HapticFeedback.vibrate();
+    } catch (_) {}
   }
 
   Future<void> ubicar() async {

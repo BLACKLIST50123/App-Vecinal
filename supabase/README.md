@@ -11,6 +11,7 @@ supabase/
     0004_solidaridad.sql     colectas (meta y avance), respuestas
     0005_reconocimiento.sql  agradecimientos, ayudas confirmadas, niveles
     0006_sos.sql             modo SOS: reportes de un toque, con o sin cuenta
+    0007_sos_seguro.sql      avisos reservados (secuestro, extorsión, violencia) y límite por cuenta
   seed.sql                   datos de demostración (se puede repetir)
 ```
 

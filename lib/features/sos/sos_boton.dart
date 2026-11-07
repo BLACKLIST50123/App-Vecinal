@@ -1,8 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
+import '../../config.dart';
+import '../../models.dart';
+import '../../screens/detalles.dart';
 import '../../state/app_state.dart';
+import '../../util.dart';
 import 'sos_navegacion.dart';
 import 'sos_tipos.dart';
 
@@ -34,7 +40,105 @@ class CapaSos extends StatelessWidget {
           );
         },
       ),
+      // Aviso de SOS cercano recibido en tiempo real.
+      ValueListenableBuilder<(Publicacion, double)?>(
+        valueListenable: alertaEntrante,
+        builder: (context, alerta, _) {
+          if (alerta == null || sosAbierto.value) return const SizedBox.shrink();
+          return Positioned(
+            top: mq.padding.top + 8,
+            left: 12,
+            right: 12,
+            child: _AvisoSosCercano(publicacion: alerta.$1, km: alerta.$2),
+          );
+        },
+      ),
     ]);
+  }
+}
+
+/// Aviso rojo arriba: "🚨 Alerta SOS a 350 m". Se cierra solo en 45 s.
+class _AvisoSosCercano extends StatefulWidget {
+  const _AvisoSosCercano({required this.publicacion, required this.km});
+  final Publicacion publicacion;
+  final double km;
+
+  @override
+  State<_AvisoSosCercano> createState() => _AvisoSosCercanoState();
+}
+
+class _AvisoSosCercanoState extends State<_AvisoSosCercano> {
+  Timer? _cierre;
+
+  @override
+  void initState() {
+    super.initState();
+    _cierre = Timer(const Duration(seconds: 45), _cerrar);
+  }
+
+  @override
+  void didUpdateWidget(covariant _AvisoSosCercano old) {
+    super.didUpdateWidget(old);
+    if (old.publicacion.id != widget.publicacion.id) {
+      _cierre?.cancel();
+      _cierre = Timer(const Duration(seconds: 45), _cerrar);
+    }
+  }
+
+  @override
+  void dispose() {
+    _cierre?.cancel();
+    super.dispose();
+  }
+
+  void _cerrar() => alertaEntrante.value = null;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = widget.publicacion;
+    final cat = buscarCategoria(p.categoria, emergencia: true);
+    return Semantics(
+      liveRegion: true,
+      label: 'Alerta SOS ${formatoDistancia(widget.km)}: ${p.titulo}',
+      child: Material(
+        color: ColoresSos.rojo,
+        elevation: 8,
+        borderRadius: BorderRadius.circular(18),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 12, 6, 8),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Icon(cat.icono, color: Colors.white, size: 28),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('🚨 Alerta SOS ${formatoDistancia(widget.km)}',
+                      style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900)),
+                  Text(p.titulo, maxLines: 2, overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: Colors.white, fontSize: 14)),
+                ]),
+              ),
+              IconButton(
+                tooltip: 'Cerrar aviso',
+                onPressed: _cerrar,
+                icon: const Icon(Icons.close, color: Colors.white),
+              ),
+            ]),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                style: TextButton.styleFrom(foregroundColor: Colors.white, backgroundColor: Colors.white.withValues(alpha: 0.18)),
+                onPressed: () {
+                  _cerrar();
+                  navegador.currentState?.push(MaterialPageRoute(builder: (_) => PublicacionDetalle(publicacion: p)));
+                },
+                child: const Text('Ver y ayudar'),
+              ),
+            ),
+          ]),
+        ),
+      ),
+    );
   }
 }
 

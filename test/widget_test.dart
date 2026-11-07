@@ -1,5 +1,6 @@
 import 'package:app_vecinal/config.dart';
 import 'package:app_vecinal/data/qr_codec.dart';
+import 'package:app_vecinal/data/repo.dart';
 import 'package:app_vecinal/features/sos/sos_tipos.dart';
 import 'package:app_vecinal/main.dart';
 import 'package:app_vecinal/models.dart';
@@ -48,15 +49,30 @@ void main() {
   });
 
   group('Modo SOS', () {
-    test('los 4 reportes de un toque y sus prioridades', () {
-      expect(TipoSos.values.map((t) => t.titulo), ['Auxilio Médico', 'Inseguridad', 'Falta de Agua', 'Sismo']);
-      expect(TipoSos.medico.prioridad, 'critica');
-      expect(TipoSos.agua.prioridad, 'alta');
+    test('6 emergencias nacionales en la pantalla principal, sin "falta de agua"', () {
+      expect(TipoSos.principales.map((t) => t.titulo),
+          ['Emergencia Médica', 'Inseguridad', 'Lluvia o Inundación', 'Incendio o Gas', 'Accidente', 'Sismo']);
+      expect(TipoSos.values.any((t) => t.titulo.toLowerCase().contains('agua')), isFalse);
     });
 
-    test('solo Sismo va resaltado en ámbar de advertencia', () {
-      expect(TipoSos.values.where((t) => t.advertencia), [TipoSos.sismo]);
+    test('Inseguridad abre 4 subtipos', () {
+      expect(TipoSos.inseguridad.abreSubmenu, isTrue);
+      expect(TipoSos.deInseguridad.map((t) => t.titulo), ['Robo', 'Secuestro', 'Extorsión', 'Violencia']);
+    });
+
+    test('secuestro, extorsión y violencia son avisos reservados; robo no', () {
+      expect(TipoSos.values.where((t) => t.reservado), [TipoSos.secuestro, TipoSos.extorsion, TipoSos.violencia]);
+      expect(TipoSos.robo.reservado, isFalse);
+    });
+
+    test('desastres naturales en ámbar; el resto en rojo', () {
+      expect(TipoSos.values.where((t) => t.advertencia), [TipoSos.inundacion, TipoSos.sismo]);
       expect(TipoSos.medico.color, ColoresSos.rojo);
+    });
+
+    test('las alertas vencen: 24 h las muy urgentes, 6 h las demás', () {
+      expect(Repo.vigenciaSos('critica'), const Duration(hours: 24));
+      expect(Repo.vigenciaSos('alta'), const Duration(hours: 6));
     });
   });
 
