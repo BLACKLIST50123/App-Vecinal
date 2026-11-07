@@ -2,6 +2,7 @@ import 'package:app_vecinal/config.dart';
 import 'package:app_vecinal/data/qr_codec.dart';
 import 'package:app_vecinal/main.dart';
 import 'package:app_vecinal/models.dart';
+import 'package:app_vecinal/screens/roles.dart';
 import 'package:app_vecinal/util.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -85,6 +86,73 @@ void main() {
     test('distancia aproximada correcta', () {
       final km = distanciaKm(Zona.sectores['Casco Urbano']!, Zona.sectores['Buenos Aires']!);
       expect(km, inInclusiveRange(7, 10));
+    });
+  });
+
+  group('Roles simplificados', () {
+    test('solo existen 2 roles elegibles: vecino y brigadista', () {
+      expect(roles.length, 2);
+      expect(roles.map((r) => r.id).toList(), ['vecino', 'brigadista']);
+    });
+  });
+
+  group('Pedidos de Servicio y Aportes', () {
+    test('creación y serialización de PedidoServicio', () {
+      final pedido = PedidoServicio(
+        id: 'p-123',
+        servicioId: 's-456',
+        prestadorId: 'user-prestador',
+        clienteId: 'user-cliente',
+        clienteNombre: 'María',
+        clienteTelefono: '987654321',
+        clienteSector: 'Casco Urbano',
+        detalle: 'Reparación de cañería en la cocina',
+        fechaDeseada: 'Mañana a las 10 am',
+      );
+
+      expect(pedido.esPendiente, isTrue);
+      expect(pedido.estadoLegible, 'Pendiente');
+
+      final map = pedido.toInsert();
+      expect(map['id'], 'p-123');
+      expect(map['servicio_id'], 's-456');
+      expect(map['prestador_id'], 'user-prestador');
+      expect(map['cliente_nombre'], 'María');
+      expect(map['detalle'], 'Reparación de cañería en la cocina');
+      expect(map['estado'], 'pendiente');
+
+      final reconstruido = PedidoServicio.fromMap({
+        'id': 'p-123',
+        'servicio_id': 's-456',
+        'prestador_id': 'user-prestador',
+        'cliente_nombre': 'María',
+        'detalle': 'Reparación de cañería en la cocina',
+        'estado': 'aceptado',
+        'servicios': {'titulo': 'Gasfitería a domicilio'},
+      });
+
+      expect(reconstruido.esAceptado, isTrue);
+      expect(reconstruido.estadoLegible, 'Aceptado');
+      expect(reconstruido.servicioTitulo, 'Gasfitería a domicilio');
+    });
+
+    test('Servicio soporta estado activo/pausado', () {
+      final s = Servicio(
+        id: 's-1',
+        categoria: 'gasfiteria',
+        titulo: 'Gasfitero del barrio',
+        activo: true,
+      );
+      expect(s.activo, isTrue);
+      expect(s.toInsert()['activo'], isTrue);
+
+      final sPausado = Servicio.fromMap({
+        'id': 's-2',
+        'categoria': 'gasfiteria',
+        'titulo': 'Gasfitero del barrio',
+        'activo': false,
+      });
+      expect(sPausado.activo, isFalse);
     });
   });
 }
