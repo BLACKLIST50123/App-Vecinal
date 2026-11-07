@@ -64,6 +64,37 @@ Future<void> mostrarNormas(BuildContext context) => showModalBottomSheet<void>(
       ),
     );
 
+// ================================================= consejos para ayudar seguro
+
+const consejosSeguridad = <(IconData, String, String)>[
+  (Icons.door_front_door, 'Encuéntrense en un lugar conocido', 'En la puerta de la casa, la bodega o el local comunal. Mejor de día.'),
+  (Icons.location_off, 'Tu dirección, solo por teléfono', 'No la escribas en la publicación. Dísela solo a quien te va a ayudar.'),
+  (Icons.money_off, 'Aquí no se cobra', 'La Red de Solidaridad es sin dinero. Si alguien te pide pago o un adelanto, repórtalo.'),
+  (Icons.groups, 'Si es un adulto mayor, que esté acompañado', 'Que un familiar o vecino de confianza sepa quién va a ir.'),
+  (Icons.flag, 'Si algo te parece raro, repórtalo', 'Toca la banderita 🚩 de la publicación. Entre todos cuidamos el barrio.'),
+];
+
+Future<void> mostrarConsejos(BuildContext context) => showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (c) => SafeArea(
+        child: ListView(shrinkWrap: true, padding: const EdgeInsets.fromLTRB(16, 0, 16, 24), children: [
+          Semantics(
+            header: true,
+            child: Text('Ayudar con seguridad', style: Theme.of(c).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
+          ),
+          BotonEscuchar(consejosSeguridad.map((x) => '${x.$2}. ${x.$3}').join(' ')),
+          for (final (icono, titulo, texto) in consejosSeguridad)
+            ListTile(
+              leading: Icon(icono, size: 32),
+              title: Text(titulo, style: const TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: Text(texto, style: const TextStyle(fontSize: 16)),
+            ),
+        ]),
+      ),
+    );
+
 // ================================================================ reportar
 
 const motivosReporte = <(String, String, IconData)>[

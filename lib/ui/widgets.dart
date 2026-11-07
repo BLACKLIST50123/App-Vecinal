@@ -370,13 +370,19 @@ class TarjetaPublicacion extends StatelessWidget {
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Wrap(spacing: 6, runSpacing: 4, children: [
-                  _Etiqueta(p.esPedido ? 'PIDE' : 'OFRECE', colorTipo),
+                  _Etiqueta(p.esColecta ? 'COLECTA' : (p.esPedido ? 'NECESITA' : 'OFRECE'),
+                      p.esColecta ? const Color(0xFF6A1B9A) : colorTipo),
                   if (critica) const _Etiqueta('MUY URGENTE', Color(0xFFB71C1C)),
                   if (p.esEmergencia && p.prioridad == 'alta') const _Etiqueta('URGENTE', Color(0xFFC62828)),
-                  if (p.ayudantes > 0)
-                    _Etiqueta('${p.ayudantes} ${p.ayudantes == 1 ? 'VA' : 'VAN'} A AYUDAR', const Color(0xFF1565C0))
-                  else if (p.estado == 'en_curso')
-                    const _Etiqueta('YA ESTÁN AYUDANDO', Color(0xFF1565C0)),
+                  if (!p.esColecta && p.ayudantes > 0)
+                    _Etiqueta(
+                      p.esPedido
+                          ? '${p.ayudantes} ${p.ayudantes == 1 ? 'VA' : 'VAN'} A AYUDAR'
+                          : '${p.ayudantes} ${p.ayudantes == 1 ? 'INTERESADO' : 'INTERESADOS'}',
+                      const Color(0xFF1565C0),
+                    )
+                  else if (p.estado == 'en_curso' && !p.esColecta)
+                    const _Etiqueta('YA LA ESTÁN AYUDANDO', Color(0xFF1565C0)),
                   if (p.verificada) const _Etiqueta('✓ VERIFICADO', Color(0xFF00695C)),
                   if (p.estado == 'no_verificado') const _Etiqueta('NO VERIFICADO', Color(0xFF616161)),
                   if (p.origen == 'qr') const _Etiqueta('LLEGÓ POR QR', Color(0xFF6A1B9A)),
@@ -386,6 +392,8 @@ class TarjetaPublicacion extends StatelessWidget {
                 Text(p.titulo, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
                 if (p.descripcion != null && p.descripcion!.isNotEmpty)
                   Text(p.descripcion!, maxLines: 2, overflow: TextOverflow.ellipsis),
+                if (p.esColecta && p.meta != null)
+                  Padding(padding: const EdgeInsets.only(top: 8), child: BarraColecta(p)),
                 const SizedBox(height: 4),
                 Wrap(crossAxisAlignment: WrapCrossAlignment.center, children: [
                   Text(p.autorVisible, style: const TextStyle(fontWeight: FontWeight.w600)),
@@ -408,6 +416,82 @@ class TarjetaPublicacion extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Avance de una colecta: "18 de 30 donaciones · faltan 12".
+class BarraColecta extends StatelessWidget {
+  const BarraColecta(this.p, {super.key, this.grande = false});
+  final Publicacion p;
+  final bool grande;
+
+  @override
+  Widget build(BuildContext context) {
+    final meta = p.meta ?? 0;
+    final faltan = (meta - p.aportes).clamp(0, meta);
+    const color = Color(0xFF6A1B9A);
+    final texto = faltan == 0
+        ? '¡Meta cumplida! ${p.aportes} de $meta'
+        : '${p.aportes} de $meta donaciones · faltan $faltan';
+    return Semantics(
+      label: texto,
+      excludeSemantics: true,
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: LinearProgressIndicator(
+            value: p.progreso,
+            minHeight: grande ? 16 : 10,
+            color: color,
+            backgroundColor: color.withValues(alpha: 0.15),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(texto, style: TextStyle(fontWeight: FontWeight.bold, color: color, fontSize: grande ? 18 : 14)),
+      ]),
+    );
+  }
+}
+
+/// Tarjeta compacta para el carrusel de "Colectas del barrio".
+class TarjetaColecta extends StatelessWidget {
+  const TarjetaColecta(this.p, {super.key});
+  final Publicacion p;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        width: 270,
+        child: Card(
+          color: const Color(0xFFF3E5F5),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PublicacionDetalle(publicacion: p))),
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(children: [
+                  const Icon(Icons.diversity_1, color: Color(0xFF6A1B9A)),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(p.autorVisible,
+                        maxLines: 1, overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.black87)),
+                  ),
+                  if (p.autorRol == 'organizacion') const Icon(Icons.verified, size: 18, color: Color(0xFF1565C0)),
+                ]),
+                const SizedBox(height: 6),
+                Expanded(
+                  child: Text(p.titulo,
+                      maxLines: 3, overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black)),
+                ),
+                BarraColecta(p),
+                const SizedBox(height: 6),
+                const Text('Toca para aportar →', style: TextStyle(color: Color(0xFF6A1B9A), fontWeight: FontWeight.w600)),
+              ]),
+            ),
+          ),
+        ),
+      );
 }
 
 class _Etiqueta extends StatelessWidget {

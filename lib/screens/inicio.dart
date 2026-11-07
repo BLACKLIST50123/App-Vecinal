@@ -94,8 +94,8 @@ class InicioScreen extends StatelessWidget {
         const SizedBox(height: 16),
         _Rejilla([
           _AccionGrande(icono: Icons.storefront, texto: 'Servicios y productos', onTap: () => irA(1)),
-          _AccionGrande(icono: Icons.front_hand, texto: 'Pedir un favor', onTap: () => abrirFormulario(context, TipoForm.pidoFavor)),
-          _AccionGrande(icono: Icons.volunteer_activism, texto: 'Ofrecer ayuda', onTap: () => abrirFormulario(context, TipoForm.ofrezcoFavor)),
+          _AccionGrande(icono: Icons.front_hand, texto: 'Necesito una mano', onTap: () => abrirFormulario(context, TipoForm.pidoFavor)),
+          _AccionGrande(icono: Icons.volunteer_activism, texto: 'Quiero ayudar', onTap: () => irA(2)),
           _AccionGrande(icono: Icons.map, texto: 'Ver en el mapa', onTap: () => irA(3)),
           _AccionGrande(
             icono: Icons.qr_code_scanner,
@@ -117,12 +117,27 @@ class InicioScreen extends StatelessWidget {
             return Column(children: [for (final s in top.take(3)) TarjetaServicio(s)]);
           },
         ),
-        TituloSeccion('Lo último en la Cadena de Favores', accion: ('Ver todo', () => irA(2))),
+        TituloSeccion('Vecinos que necesitan una mano', accion: ('Ver todo', () => irA(2))),
         Cargador<List<Publicacion>>(
           cargar: (st) => st.repo.publicaciones(emergencia: false),
           builder: (c, lista) {
-            if (lista.isEmpty) return const EstadoVacio(icono: Icons.diversity_3, texto: 'Aún no hay favores publicados.');
-            return Column(children: [for (final p in lista.take(3)) TarjetaPublicacion(p)]);
+            final colectas = lista.where((p) => p.esColecta).toList();
+            final pedidos = lista.where((p) => p.esPedido && !p.esColecta).toList();
+            if (lista.isEmpty) return const EstadoVacio(icono: Icons.diversity_3, texto: 'Todavía nadie ha pedido ayuda. ¡Buena señal!');
+            return Column(children: [
+              for (final p in pedidos.take(2)) TarjetaPublicacion(p),
+              if (colectas.isNotEmpty) ...[
+                TituloSeccion('Colectas del barrio', accion: ('Ver todas', () => irA(2))),
+                SizedBox(
+                  height: 196,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    children: [for (final p in colectas) TarjetaColecta(p)],
+                  ),
+                ),
+              ],
+            ]);
           },
         ),
       ]),

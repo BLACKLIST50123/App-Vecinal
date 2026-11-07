@@ -66,22 +66,24 @@ const categoriasApoyo = <Categoria>[
 
 /// Módulo 2 · día a día: cadena de favores (sin dinero).
 const categoriasFavor = <Categoria>[
-  Categoria('herramientas', 'Préstamo de herramientas', Icons.build),
-  Categoria('ayuda', 'Ayuda temporal', Icons.front_hand),
-  Categoria('donacion', 'Donación', Icons.card_giftcard),
-  Categoria('habilidad', 'Intercambio de habilidades', Icons.swap_horiz),
-  Categoria('movilidad', 'Movilidad solidaria', Icons.directions_car),
+  Categoria('ayuda', 'Una mano', Icons.front_hand),
+  Categoria('herramientas', 'Herramientas y cosas', Icons.build),
+  Categoria('donacion', 'Regalos y donaciones', Icons.card_giftcard),
+  Categoria('cuidado', 'Compañía y cuidado', Icons.elderly),
+  Categoria('habilidad', 'Enseño o aprendo', Icons.school),
+  Categoria('movilidad', 'Te llevo', Icons.directions_car),
+  Categoria('colecta', 'Colectas del barrio', Icons.diversity_1),
   Categoria('otros', 'Otros', Icons.more_horiz),
 ];
 
 /// Módulo 2 · emergencia: tablero humanitario y recursos críticos.
 const categoriasEmergencia = <Categoria>[
-  Categoria('vulnerable', 'Vecino vulnerable', Icons.elderly),
-  Categoria('rescate', 'Rescate', Icons.emergency),
-  Categoria('salud', 'Salud o medicinas', Icons.medication),
-  Categoria('agua_alimento', 'Agua y alimentos', Icons.water_drop),
-  Categoria('albergue', 'Albergue', Icons.night_shelter),
-  Categoria('recurso', 'Recurso crítico', Icons.inventory_2),
+  Categoria('vulnerable', 'Persona que necesita cuidado', Icons.elderly),
+  Categoria('rescate', 'Salir de un lugar peligroso', Icons.emergency),
+  Categoria('salud', 'Salud y medicinas', Icons.medication),
+  Categoria('agua_alimento', 'Agua y comida', Icons.water_drop),
+  Categoria('albergue', 'Un lugar para dormir', Icons.night_shelter),
+  Categoria('recurso', 'Cosas para compartir', Icons.inventory_2),
   Categoria('otros', 'Otros', Icons.more_horiz),
 ];
 

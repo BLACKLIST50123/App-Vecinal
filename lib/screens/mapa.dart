@@ -72,14 +72,14 @@ class _MapaScreenState extends State<MapaScreen> {
           const SizedBox(width: 8),
           FilterChip(
             avatar: const CircleAvatar(backgroundColor: _cPedido, radius: 8),
-            label: Text(emergencia ? 'Necesitan ayuda' : 'Piden'),
+            label: const Text('Necesitan ayuda'),
             selected: _pedidos,
             onSelected: (v) => setState(() => _pedidos = v),
           ),
           const SizedBox(width: 8),
           FilterChip(
             avatar: const CircleAvatar(backgroundColor: _cOferta, radius: 8),
-            label: Text(emergencia ? 'Recursos' : 'Ofrecen'),
+            label: Text(emergencia ? 'Para compartir' : 'Ofrecen'),
             selected: _ofertas,
             onSelected: (v) => setState(() => _ofertas = v),
           ),
@@ -125,7 +125,7 @@ class _MapaScreenState extends State<MapaScreen> {
                   p.punto!,
                   p.esPedido ? (p.prioridad == 'critica' ? _cCritico : _cPedido) : _cOferta,
                   buscarCategoria(p.categoria, emergencia: p.esEmergencia).icono,
-                  '${p.esPedido ? 'Pide' : 'Ofrece'}: ${p.titulo}',
+                  '${p.esPedido ? 'Necesita' : 'Ofrece'}: ${p.titulo}',
                   () => _verDetalle(TarjetaPublicacion(p)),
                 ),
               if (st.ubicacion != null)

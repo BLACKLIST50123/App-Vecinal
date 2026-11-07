@@ -99,7 +99,16 @@ values
  ('Familia Ugaz','ofrezco','donacion','Regalo ropa de niño (talla 6 a 8)','Dos bolsas en buen estado.','Sra. Ugaz','999 000 305','Bellamar',-9.1170,-78.5432, now() - interval '2 days'),
  ('Rafael T.','pido','ayuda','Ayuda para cargar muebles el sábado','Me mudo dentro del mismo sector, invito el almuerzo.','Rafael','999 000 306','La Florida',-9.0826,-78.5752, now() - interval '2 days'),
  ('Sofía L.','ofrezco','habilidad','Cambio clases de guitarra por clases de inglés','Nivel básico, 1 hora por semana.','Sofía','999 000 307','Buenos Aires',-9.1268,-78.5248, now() - interval '3 days'),
- ('Wilmer P.','pido','herramientas','¿Alguien me presta una carretilla?','Para sacar desmonte, solo por una tarde.','Wilmer','999 000 308','Nicolás Garatea',-9.1330,-78.5160, now() - interval '4 days');
+ ('Wilmer P.','pido','herramientas','¿Alguien me presta una carretilla?','Para sacar desmonte, solo por una tarde.','Wilmer','999 000 308','Nicolás Garatea',-9.1330,-78.5160, now() - interval '4 days'),
+ ('Hija de la Sra. Rosa','pido','cuidado','Acompañar a mi mamá a su cita del jueves','Tiene 78 años y va al centro de salud a las 9 am. Yo trabajo ese día.','Lucía','999 000 309','Miraflores Alto',-9.0648,-78.5806, now() - interval '6 hours'),
+ ('Don Carlos','ofrezco','cuidado','Puedo hacer compras a adultos mayores del sector','Voy al mercado los martes y viernes. Avísame qué necesitas.','Carlos','999 000 310','Villa María',-9.0986,-78.5698, now() - interval '1 day');
+
+-- ---------------- Colectas del barrio (responsabilidad social) --------
+insert into public.publicaciones
+  (autor_nombre, autor_rol, tipo, categoria, titulo, descripcion, contacto_nombre, contacto_telefono, meta, avance, sector, lat, lng, created_at)
+values
+ ('Parroquia San Pedro','organizacion','pido','colecta','Útiles escolares para 30 niños de Villa María','Cuadernos, lápices y colores. Puedes dejarlos en la parroquia de 9 am a 6 pm.','Hna. Carmen','999 000 311',30,18,'Villa María',-9.0991,-78.5690, now() - interval '2 days'),
+ ('Junta Vecinal Bellamar','organizacion','pido','colecta','Frazadas para adultos mayores antes del invierno','Nuevas o en buen estado. Las recogemos en tu casa.','Sr. Ruiz','999 000 312',40,11,'Bellamar',-9.1178,-78.5418, now() - interval '3 days');
 
 -- ---------------- Módulo 2 · Tablero humanitario (emergencia) ---------
 insert into public.publicaciones

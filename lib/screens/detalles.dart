@@ -261,7 +261,11 @@ class _PublicacionDetalleState extends State<PublicacionDetalle> {
     setState(() => _ocupado = true);
     try {
       await st.repo.cambiarEstado(p.id, estado, atender: atender);
-      avisar(estado == 'resuelta' ? '¡Marcado como resuelto! Gracias por ayudar.' : 'Listo: tu organización lo atiende');
+      avisar(estado == 'resuelta'
+          ? (p.esColecta
+              ? '¡Qué bien! La colecta quedó cerrada. Gracias a todos los que aportaron.'
+              : (p.esPedido ? '¡Qué bueno que ya te ayudaron! Gracias por confiar en tus vecinos.' : '¡Gracias por compartir! Ya quedó como entregado.'))
+          : 'Listo: tu organización lo atiende');
       st.refrescar();
       if (mounted) Navigator.pop(context);
     } catch (e) {
@@ -288,7 +292,7 @@ class _PublicacionDetalleState extends State<PublicacionDetalle> {
   Future<void> _yoAyudo(AppState st, bool yaAyudo) async {
     if (!st.logueado) {
       await Navigator.push(context, MaterialPageRoute(
-        builder: (_) => const AuthScreen(mensaje: 'Para comprometerte a ayudar necesitas una cuenta de vecino.'),
+        builder: (_) => const AuthScreen(mensaje: 'Para responder necesitas una cuenta de vecino. Es gratis y toma 1 minuto.'),
       ));
       return;
     }
@@ -296,17 +300,91 @@ class _PublicacionDetalleState extends State<PublicacionDetalle> {
     try {
       if (yaAyudo) {
         await st.repo.retirarAyuda(p.id);
-        avisar('Quitaste tu compromiso de ayuda');
+        avisar('Listo, ya no apareces en la lista. No pasa nada, gracias por avisar.');
+        setState(() => _recarga++);
+        st.refrescar();
       } else {
         await st.repo.ofrecerAyuda(p.id);
-        avisar('¡Gracias! ${p.autorVisible} verá que vas a ayudar. Coordina por llamada o WhatsApp.');
+        setState(() => _recarga++);
+        st.refrescar();
+        if (mounted) await _siguientePaso();
       }
-      setState(() => _recarga++);
-      st.refrescar();
     } catch (e) {
       avisar(traducirError(e));
     } finally {
       if (mounted) setState(() => _ocupado = false);
+    }
+  }
+
+  /// Después de responder, decirle al vecino qué hacer ahora.
+  Future<void> _siguientePaso() {
+    final tel = p.contactoTelefono;
+    final titulo = p.esColecta
+        ? '¡Gracias por aportar!'
+        : (p.esPedido ? '¡Gracias por ayudar!' : '¡Le avisamos que te interesa!');
+    final texto = p.esColecta
+        ? 'Ahora ponte de acuerdo con ${p.autorVisible} para entregar tu donación. ${p.descripcion ?? ''}'
+        : (p.esPedido
+            ? '${p.autorVisible} verá que vas a ayudar. Ahora llámale o escríbele para ponerse de acuerdo.'
+            : 'Ahora escríbele a ${p.autorVisible} para ponerse de acuerdo en cómo recogerlo.');
+    return showDialog<void>(
+      context: context,
+      builder: (c) => AlertDialog(
+        icon: const Icon(Icons.favorite, color: Color(0xFFC2185B), size: 44),
+        title: Text(titulo),
+        content: Text(texto, style: const TextStyle(fontSize: 16)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c), child: const Text('Después')),
+          if (tel != null && tel.isNotEmpty) ...[
+            OutlinedButton.icon(
+              onPressed: () {
+                Navigator.pop(c);
+                llamar(tel);
+              },
+              icon: const Icon(Icons.call),
+              label: const Text('Llamar'),
+            ),
+            FilledButton.icon(
+              onPressed: () {
+                Navigator.pop(c);
+                abrirWhatsapp(tel, 'Hola ${p.autorVisible}, te escribo por App Vecinal: "${p.titulo}". ${p.textoResponder == 'Yo aporto' ? 'Quiero aportar.' : (p.esPedido ? 'Puedo ayudarte.' : 'Me interesa.')}');
+              },
+              icon: const Icon(Icons.chat),
+              label: const Text('WhatsApp'),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Future<void> _actualizarAvance(AppState st) async {
+    var valor = p.avance;
+    final nuevo = await showDialog<int>(
+      context: context,
+      builder: (c) => StatefulBuilder(
+        builder: (c, setD) => AlertDialog(
+          title: const Text('¿Cuántas donaciones ya recibiste en persona?'),
+          content: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            IconButton.filledTonal(onPressed: valor > 0 ? () => setD(() => valor--) : null, icon: const Icon(Icons.remove)),
+            Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: Text('$valor', style: Theme.of(c).textTheme.headlineMedium)),
+            IconButton.filledTonal(onPressed: () => setD(() => valor++), icon: const Icon(Icons.add)),
+          ]),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(c), child: const Text('Cancelar')),
+            FilledButton(onPressed: () => Navigator.pop(c, valor), child: const Text('Guardar')),
+          ],
+        ),
+      ),
+    );
+    if (nuevo == null) return;
+    try {
+      await st.repo.actualizarAvance(p.id, nuevo);
+      avisar('Avance actualizado. ¡Sigan así!');
+      st.refrescar();
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      avisar(traducirError(e));
     }
   }
 
@@ -320,7 +398,7 @@ class _PublicacionDetalleState extends State<PublicacionDetalle> {
     final tel = p.contactoTelefono;
 
     return Scaffold(
-      appBar: AppBar(title: Text(p.esPedido ? 'Pedido' : 'Ofrecimiento'), actions: [
+      appBar: AppBar(title: Text(p.esColecta ? 'Colecta' : (p.esPedido ? 'Necesita ayuda' : 'Ofrece')), actions: [
         if (!p.pendiente)
           IconButton(
             tooltip: 'Compartir por WhatsApp',
@@ -345,15 +423,82 @@ class _PublicacionDetalleState extends State<PublicacionDetalle> {
               Text(p.autorVisible, style: Theme.of(context).textTheme.titleMedium),
               InsigniaRol(p.autorRol),
             ]),
+            if (p.esColecta && p.meta != null)
+              Padding(padding: const EdgeInsets.only(top: 12), child: BarraColecta(p, grande: true)),
             BotonEscuchar(p.textoParaVoz),
           ]),
         ),
-        if (tel != null && tel.isNotEmpty)
+
+        // ------------------- acción principal + quiénes respondieron
+        if (!p.pendiente && p.estado != 'resuelta')
+          Cargador<List<Ayuda>>(
+            claves: [p.id, _recarga],
+            cargar: (st) => st.repo.ayudas(p.id),
+            builder: (c, lista) {
+              final yaRespondi = lista.any((a) => a.vecinoId == st.uid);
+              final tituloLista = esMio
+                  ? 'Vecinos que respondieron'
+                  : (p.esColecta ? 'Vecinos que aportaron' : (p.esPedido ? 'Vecinos que van a ayudar' : 'Vecinos interesados'));
+              final vacio = esMio
+                  ? 'Todavía nadie respondió. Compártelo por WhatsApp para que más vecinos lo vean.'
+                  : (p.esColecta
+                      ? 'Sé el primero en aportar.'
+                      : (p.esPedido ? 'Todavía nadie respondió. ¿Puedes darle una mano?' : 'Todavía nadie lo pidió.'));
+              return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                if (!esMio)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                    child: SizedBox(
+                      height: 60,
+                      child: yaRespondi
+                          ? OutlinedButton.icon(
+                              onPressed: _ocupado ? null : () => _yoAyudo(st, true),
+                              icon: const Icon(Icons.undo),
+                              label: Text(p.esColecta
+                                  ? 'Ya no voy a aportar'
+                                  : (p.esPedido ? 'Ya no puedo ayudar' : 'Ya no me interesa')),
+                            )
+                          : FilledButton.icon(
+                              style: FilledButton.styleFrom(
+                                backgroundColor: p.esColecta ? const Color(0xFF6A1B9A) : const Color(0xFF2E7D32),
+                                foregroundColor: Colors.white,
+                              ),
+                              onPressed: _ocupado ? null : () => _yoAyudo(st, false),
+                              icon: Icon(p.esColecta ? Icons.diversity_1 : (p.esPedido ? Icons.volunteer_activism : Icons.pan_tool)),
+                              label: Text(p.textoResponder, style: const TextStyle(fontSize: 20)),
+                            ),
+                    ),
+                  ),
+                if (yaRespondi)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    child: Text('✓ Ya respondiste. Ahora ponte de acuerdo por llamada o WhatsApp.',
+                        style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF2E7D32))),
+                  ),
+                TituloSeccion('$tituloLista (${lista.length})'),
+                if (lista.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(vacio, style: const TextStyle(fontSize: 16)),
+                  )
+                else
+                  for (final a in lista)
+                    ListTile(
+                      leading: const CircleAvatar(child: Icon(Icons.favorite, size: 20)),
+                      title: Text(a.vecinoId == st.uid ? 'Tú' : (a.vecinoNombre ?? 'Vecino')),
+                      subtitle: Text('Respondió ${haceCuanto(a.creado)}'),
+                    ),
+              ]);
+            },
+          ),
+
+        if (tel != null && tel.isNotEmpty) ...[
+          const SizedBox(height: 8),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(children: [
               Expanded(
-                child: FilledButton.icon(
+                child: OutlinedButton.icon(
                   onPressed: () => llamar(tel),
                   icon: const Icon(Icons.call),
                   label: const Text('Llamar'),
@@ -362,13 +507,27 @@ class _PublicacionDetalleState extends State<PublicacionDetalle> {
               const SizedBox(width: 12),
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () => abrirWhatsapp(tel, 'Hola, vi en App Vecinal: "${p.titulo}". ¿Cómo puedo ayudarte?'),
+                  onPressed: () => abrirWhatsapp(tel, 'Hola ${p.autorVisible}, te escribo por App Vecinal: "${p.titulo}".'),
                   icon: const Icon(Icons.chat),
                   label: const Text('WhatsApp'),
                 ),
               ),
             ]),
           ),
+        ],
+        if (!esMio)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: TextButton.icon(
+                onPressed: () => mostrarConsejos(context),
+                icon: const Icon(Icons.shield_outlined),
+                label: const Text('Consejos para ayudar con seguridad'),
+              ),
+            ),
+          ),
+        const Divider(),
         _Dato(Icons.description, 'Detalle', p.descripcion),
         _Dato(Icons.groups, 'Personas', p.personas?.toString()),
         _Dato(Icons.place, 'Ubicación aproximada (±200 m)',
@@ -376,57 +535,11 @@ class _PublicacionDetalleState extends State<PublicacionDetalle> {
             'Por seguridad, la dirección exacta se coordina por teléfono.'),
         _Dato(Icons.schedule, 'Publicado', haceCuanto(p.creado)),
         _Dato(p.verificada ? Icons.verified : Icons.flag, 'Estado',
-            '${p.estadoTexto}${p.verificada ? ' · Verificado por organización o junta vecinal' : (p.esEmergencia ? ' · Reporte ciudadano sin verificar' : '')}'),
+            '${p.estadoTexto}${p.verificada ? ' · Confirmado por una organización o la junta vecinal' : (p.esEmergencia ? ' · Lo publicó un vecino, aún no está confirmado' : '')}'),
         if (p.origen == 'qr')
           const _Dato(Icons.qr_code_2, 'Cómo llegó', 'Un vecino trajo este pedido por código QR porque no tenía internet.'),
         if (p.pendiente)
           const _Dato(Icons.schedule_send, 'Aún no enviado', 'Se publicará apenas haya internet.'),
-
-        // ----------------------------------------- coordinación vecinal
-        if (!p.pendiente && p.esPedido && p.estado != 'resuelta') ...[
-          const Divider(),
-          const TituloSeccion('Vecinos que van a ayudar'),
-          Cargador<List<Ayuda>>(
-            claves: [p.id, _recarga],
-            cargar: (st) => st.repo.ayudas(p.id),
-            builder: (c, lista) {
-              final yaAyudo = lista.any((a) => a.vecinoId == st.uid);
-              return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                if (lista.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16),
-                    child: Text('Nadie se ha comprometido todavía. ¿Puedes ayudar?', style: TextStyle(fontSize: 16)),
-                  )
-                else
-                  for (final a in lista)
-                    ListTile(
-                      leading: const CircleAvatar(child: Icon(Icons.volunteer_activism, size: 20)),
-                      title: Text(a.vecinoId == st.uid ? 'Tú' : (a.vecinoNombre ?? 'Vecino')),
-                      subtitle: Text('Se comprometió ${haceCuanto(a.creado)}'),
-                    ),
-                if (!esMio)
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: SizedBox(
-                      height: 56,
-                      child: yaAyudo
-                          ? OutlinedButton.icon(
-                              onPressed: _ocupado ? null : () => _yoAyudo(st, true),
-                              icon: const Icon(Icons.undo),
-                              label: const Text('Ya no puedo ayudar'),
-                            )
-                          : FilledButton.icon(
-                              style: FilledButton.styleFrom(backgroundColor: const Color(0xFF2E7D32), foregroundColor: Colors.white),
-                              onPressed: _ocupado ? null : () => _yoAyudo(st, false),
-                              icon: const Icon(Icons.volunteer_activism),
-                              label: const Text('Yo ayudo', style: TextStyle(fontSize: 18)),
-                            ),
-                    ),
-                  ),
-              ]);
-            },
-          ),
-        ],
 
         if (!p.pendiente && (esOrg || esMio)) ...[
           const Divider(),
@@ -457,12 +570,23 @@ class _PublicacionDetalleState extends State<PublicacionDetalle> {
                     label: const Text('Marcar como no verificado'),
                   ),
                 ),
+              if (esMio && p.esColecta && p.estado != 'resuelta') ...[
+                const SizedBox(height: 12),
+                FilledButton.tonalIcon(
+                  onPressed: _ocupado ? null : () => _actualizarAvance(st),
+                  icon: const Icon(Icons.edit_note),
+                  label: const Text('Anotar donaciones recibidas'),
+                ),
+              ],
               if (p.estado != 'resuelta') ...[
                 const SizedBox(height: 12),
-                OutlinedButton.icon(
+                FilledButton.icon(
+                  style: FilledButton.styleFrom(backgroundColor: const Color(0xFF2E7D32), foregroundColor: Colors.white),
                   onPressed: _ocupado ? null : () => _cambiar(st, 'resuelta'),
                   icon: const Icon(Icons.check_circle),
-                  label: const Text('Marcar como resuelto'),
+                  label: Text(!esMio
+                      ? 'Marcar como atendido'
+                      : (p.esColecta ? 'Cerrar colecta' : (p.esPedido ? '¡Ya me ayudaron!' : 'Ya lo entregué'))),
                 ),
               ],
             ]),

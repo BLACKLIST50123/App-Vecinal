@@ -118,19 +118,33 @@ class Publicacion {
     this.pendiente = false,
     this.ayudantes = 0,
     this.verificada = false,
+    this.meta,
+    this.avance = 0,
     DateTime? creado,
   }) : creado = creado ?? DateTime.now();
 
-  final int ayudantes; // vecinos que dijeron "Yo ayudo"
+  final int ayudantes; // vecinos que respondieron (ayudo / aporto / me interesa)
   final bool verificada; // verificada por organización o junta vecinal
+  final int? meta; // colectas: cuántas donaciones se buscan
+  final int avance; // colectas: donaciones ya entregadas en persona
 
-  /// Estados del reto: pendiente, en atención, atendido, no verificado.
+  bool get esColecta => categoria == 'colecta';
+
+  /// Colectas: entregadas en persona + vecinos que se comprometieron.
+  int get aportes => avance + ayudantes;
+  double get progreso => (meta == null || meta == 0) ? 0 : (aportes / meta!).clamp(0, 1).toDouble();
+
+  /// Estados del reto (pendiente, en atención, atendido, no verificado)
+  /// dichos en palabras simples.
   String get estadoTexto => switch (estado) {
-        'en_curso' => 'En atención',
-        'resuelta' => 'Atendido',
-        'no_verificado' => 'No verificado',
-        _ => 'Pendiente',
+        'en_curso' => 'Ya la están ayudando',
+        'resuelta' => esPedido ? 'Ya fue atendido' : 'Ya se entregó',
+        'no_verificado' => 'Sin confirmar',
+        _ => esColecta ? 'Colecta en marcha' : (esPedido ? 'Esperando ayuda' : 'Disponible'),
       };
+
+  /// Qué dice el botón para responder a esta publicación.
+  String get textoResponder => esColecta ? 'Yo aporto' : (esPedido ? 'Yo te ayudo' : 'Me interesa');
   final String id;
   final String tipo; // 'pido' | 'ofrezco'
   final String categoria, titulo;
@@ -176,18 +190,22 @@ class Publicacion {
         pendiente: pendiente,
         ayudantes: _conteo(m['ayudas']),
         verificada: m['verificada'] == true,
+        meta: (m['meta'] as num?)?.toInt(),
+        avance: (m['avance'] as num?)?.toInt() ?? 0,
         creado: _fecha(m['created_at'] ?? m['creado_offline_en']),
       );
 
   String get textoParaVoz => [
         if (esEmergencia && prioridad == 'critica') 'Muy urgente',
-        '${esPedido ? 'Pide' : 'Ofrece'}: $titulo',
+        esColecta
+            ? 'Colecta: $titulo. Llevan $aportes${meta != null ? ' de $meta' : ''}'
+            : '${esPedido ? 'Necesita' : 'Ofrece'}: $titulo',
         ?descripcion,
         if (personas != null) 'Para $personas ${personas == 1 ? 'persona' : 'personas'}',
         'Publicado por $autorVisible',
         if (sector != null) 'En $sector',
-        if (ayudantes > 0) '$ayudantes ${ayudantes == 1 ? 'vecino va' : 'vecinos van'} a ayudar'
-        else if (estado == 'en_curso') 'Ya están ayudando',
+        if (!esColecta && ayudantes > 0) '$ayudantes ${ayudantes == 1 ? 'vecino respondió' : 'vecinos respondieron'}'
+        else if (estado == 'en_curso') 'Ya la están ayudando',
       ].join('. ');
 }
 

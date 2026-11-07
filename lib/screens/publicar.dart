@@ -15,12 +15,13 @@ import 'qr_screens.dart';
 ///   1) botón "Publicar"  2) elegir qué publicar  3) "Publicar ahora".
 /// La categoría, la ubicación y el contacto ya vienen completados.
 enum TipoForm {
-  pidoFavor('Pido un favor', 'Herramientas, ayuda, movilidad... sin dinero', Icons.front_hand),
-  ofrezcoFavor('Ofrezco un favor', 'Presto, regalo o enseño algo', Icons.volunteer_activism),
+  pidoFavor('Necesito una mano', 'Algo prestado, una ayuda o algo que te falte. Sin dinero', Icons.front_hand),
+  ofrezcoFavor('Quiero ayudar o regalar', 'Presta, regala o enseña algo a un vecino', Icons.volunteer_activism),
+  colecta('Organizar una colecta', 'Junta donaciones para una buena causa del barrio', Icons.diversity_1),
   servicio('Ofrezco un servicio o producto', 'Gasfitería, clases, pan, bodega, artesanía...', Icons.storefront),
   necesitoAyuda('Necesito ayuda', 'Para mí o mi familia. Sin cuenta y sin internet', Icons.sos),
-  reportarVulnerable('Reportar vecino vulnerable', 'Adulto mayor, persona enferma o con discapacidad', Icons.elderly),
-  ofrezcoRecurso('Ofrezco un recurso', 'Agua, comida, albergue, medicinas...', Icons.inventory_2),
+  reportarVulnerable('Avisar de un vecino que necesita ayuda', 'Adulto mayor, persona enferma o con discapacidad', Icons.elderly),
+  ofrezcoRecurso('Tengo algo para compartir', 'Agua, comida, un lugar para dormir, medicinas...', Icons.inventory_2),
   grupoApoyo('Publicar grupo de apoyo', 'Solo organizaciones verificadas', Icons.health_and_safety);
 
   const TipoForm(this.titulo, this.subtitulo, this.icono);
@@ -33,7 +34,8 @@ enum TipoForm {
   String get tipoPub => (this == ofrezcoFavor || this == ofrezcoRecurso) ? 'ofrezco' : 'pido';
 
   List<Categoria> get categorias => switch (this) {
-        pidoFavor || ofrezcoFavor => categoriasFavor,
+        pidoFavor || ofrezcoFavor => categoriasFavor.where((c) => c.id != 'colecta').toList(),
+        colecta => categoriasFavor.where((c) => c.id == 'colecta').toList(),
         servicio => categoriasServicio,
         grupoApoyo => categoriasApoyo,
         necesitoAyuda => categoriasEmergencia.where((c) => c.id != 'recurso' && c.id != 'vulnerable').toList(),
@@ -43,7 +45,8 @@ enum TipoForm {
 
   String get pista => switch (this) {
         pidoFavor => 'Ej: Necesito una escalera por 2 horas',
-        ofrezcoFavor => 'Ej: Presto mi taladro',
+        ofrezcoFavor => 'Ej: Regalo ropa de niño en buen estado',
+        colecta => 'Ej: Útiles escolares para 30 niños del sector',
         servicio => 'Ej: Gasfitero a domicilio · Pan de yema recién horneado',
         grupoApoyo => 'Ej: Brigada de primeros auxilios',
         necesitoAyuda => 'Ej: Mi casa se inundó, necesitamos agua',
@@ -53,8 +56,9 @@ enum TipoForm {
 
   String get etiquetaTitulo => switch (this) {
         servicio || grupoApoyo => '¿Qué ofreces?',
-        ofrezcoFavor || ofrezcoRecurso => '¿Qué ofreces?',
-        reportarVulnerable => '¿Quién necesita ayuda y qué necesita?',
+        ofrezcoFavor || ofrezcoRecurso => '¿Qué puedes dar o hacer?',
+        colecta => '¿Para qué es la colecta?',
+        reportarVulnerable => '¿Quién necesita ayuda y qué le hace falta?',
         _ => '¿Qué necesitas?',
       };
 }
@@ -70,7 +74,7 @@ Future<void> abrirMenuPublicar(BuildContext context) {
           TipoForm.pidoFavor,
           TipoForm.ofrezcoFavor,
         ]
-      : [TipoForm.pidoFavor, TipoForm.ofrezcoFavor, TipoForm.servicio];
+      : [TipoForm.pidoFavor, TipoForm.ofrezcoFavor, TipoForm.colecta, TipoForm.servicio];
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
@@ -144,6 +148,7 @@ class _FormularioPublicarState extends State<FormularioPublicar> {
   Punto? _gps;
   bool _buscandoGps = true;
   int _personas = 1;
+  int _meta = 20;
   String _prioridad = 'alta';
   bool _enviando = false;
   String? _error;
@@ -261,6 +266,7 @@ class _FormularioPublicarState extends State<FormularioPublicar> {
         'personas': t.esEmergencia && t.tipoPub == 'pido' ? _personas : null,
         'prioridad': t.esEmergencia && t.tipoPub == 'pido' ? _prioridad : 'normal',
         'es_emergencia': t.esEmergencia,
+        if (t == TipoForm.colecta) 'meta': _meta,
         'lat': aprox.lat,
         'lng': aprox.lng,
         'sector': _sector,
@@ -369,6 +375,32 @@ class _FormularioPublicarState extends State<FormularioPublicar> {
               helperText: 'Tip: puedes dictar con el micrófono de tu teclado',
             ),
           ),
+          if (t == TipoForm.colecta) ...[
+            const SizedBox(height: 8),
+            Row(children: [
+              const Expanded(
+                child: Text('¿Cuántas donaciones quieren juntar?', style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+              IconButton.filledTonal(
+                tooltip: 'Cinco menos',
+                onPressed: _meta > 5 ? () => setState(() => _meta -= 5) : null,
+                icon: const Icon(Icons.remove),
+              ),
+              Semantics(
+                liveRegion: true,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Text('$_meta', style: Theme.of(context).textTheme.headlineSmall),
+                ),
+              ),
+              IconButton.filledTonal(
+                tooltip: 'Cinco más',
+                onPressed: () => setState(() => _meta += 5),
+                icon: const Icon(Icons.add),
+              ),
+            ]),
+            const Text('Los vecinos verán cuánto falta para llegar a la meta.'),
+          ],
           if (emergenciaPedido) ...[
             if (_prioridad == 'critica') const AvisoAutoridades(),
             const SizedBox(height: 8),

@@ -56,12 +56,12 @@ class _HomeShellState extends State<HomeShell> {
         : const [
             NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Inicio'),
             NavigationDestination(icon: Icon(Icons.handyman_outlined), selectedIcon: Icon(Icons.handyman), label: 'Servicios'),
-            NavigationDestination(icon: Icon(Icons.diversity_3_outlined), selectedIcon: Icon(Icons.diversity_3), label: 'Favores'),
+            NavigationDestination(icon: Icon(Icons.diversity_3_outlined), selectedIcon: Icon(Icons.diversity_3), label: 'Solidaridad'),
             NavigationDestination(icon: Icon(Icons.map_outlined), selectedIcon: Icon(Icons.map), label: 'Mapa'),
           ];
     final titulos = e
         ? const ['Emergencia', 'Grupos de apoyo', 'Tablero de ayuda', 'Mapa de ayuda']
-        : const ['App Vecinal', 'Servicios y productos', 'Cadena de Favores', 'Mapa del barrio'];
+        : const ['App Vecinal', 'Servicios y productos', 'Favores y solidaridad', 'Mapa del barrio'];
 
     return Scaffold(
       appBar: AppBar(

@@ -229,6 +229,10 @@ class Repo {
   static int _contar(dynamic x) =>
       x is List && x.isNotEmpty && x.first is Map ? (((x.first as Map)['count'] as num?)?.toInt() ?? 0) : 0;
 
+  /// Colectas: quien organiza anota las donaciones recibidas en persona.
+  Future<void> actualizarAvance(String id, int avance) =>
+      db.from('publicaciones').update({'avance': avance}).eq('id', id);
+
   Future<void> ofrecerAyuda(String publicacionId) =>
       db.from('ayudas').insert({'publicacion_id': publicacionId});
 
