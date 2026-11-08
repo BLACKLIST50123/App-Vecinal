@@ -13,8 +13,8 @@ import '../features/sos/sos_navegacion.dart';
 import '../models.dart';
 import '../services/notificaciones.dart';
 import '../services/push.dart';
-import '../services/vigia.dart';
 import '../services/ubicacion.dart';
+import '../services/voz.dart';
 import '../ui/tema.dart';
 import '../util.dart';
 
@@ -112,7 +112,22 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   bool get esModerador => rol == 'moderador';
   bool get esOrganizacion => rol == 'organizacion';
   bool get verificado => perfil?['verificado_gps'] == true;
-  bool get modoEmergencia => emergencia.activa;
+  bool get modoEmergencia {
+    if (!emergencia.activa) return false;
+    // Si la emergencia tiene coordenadas y radio (ej. por sismo o evento geolocalizado):
+    if (emergencia.lat != null && emergencia.lng != null && emergencia.radioKm != null) {
+      final puntoEmergencia = Punto(emergencia.lat!, emergencia.lng!);
+      // Si es un sismo, el Modo Emergencia rojo solo se activa para la zona de impacto fuerte
+      // (la zona más cercana al epicentro). Quienes estén más lejos solo reciben el aviso informativo.
+      final radioImpacto = (emergencia.origen == 'sismo')
+          ? emergencia.radioKm! * 0.45
+          : emergencia.radioKm!;
+      return distanciaKm(referencia, puntoEmergencia) <= radioImpacto;
+    }
+    // Si no tiene radio definido (activación general de la junta vecinal), aplica para todos:
+    return true;
+  }
+  Sismo? ultimoSismoCercano;
   int get pendientes => repo.pendientes.length;
   String get nombre => perfil?['nombre'] as String? ?? 'vecino';
   String? get sector => perfil?['sector'] as String?;
@@ -132,6 +147,8 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     _subAuth = repo.db.auth.onAuthStateChange.listen((_) => cargarPerfil());
     _escucharTiempoReal();
     unawaited(revisarPermisoAvisos());
+    unawaited(_ubicarEnSilencio());
+    Push.alRenovarToken = () => unawaited(registrarPush());
     unawaited(registrarPush()); // token del celular para avisos con la app cerrada
     unawaited(cargarPerfil());
     unawaited(actualizarEmergencia());
@@ -150,16 +167,16 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
             schema: 'public',
             table: 'emergencia',
             callback: (_) async {
-              final antes = emergencia.activa;
+              final antes = modoEmergencia;
               await actualizarEmergencia();
-              if (!antes && emergencia.activa) {
-                avisar('Se activó el modo EMERGENCIA en tu barrio');
-                notificar(TipoAviso.emergencia, 'EMERGENCIA en tu barrio',
-                    emergencia.titulo ?? 'La junta vecinal activó el modo emergencia.', mensajeInterno: false);
+              if (!antes && modoEmergencia) {
+                final titulo = emergencia.titulo ?? 'Se activó el modo emergencia en tu zona.';
+                avisar('Se activó el modo EMERGENCIA en tu zona');
+                notificar(TipoAviso.emergencia, 'EMERGENCIA en tu zona', titulo, mensajeInterno: false);
               }
-              if (antes && !emergencia.activa) {
+              if (antes && !modoEmergencia) {
                 avisar('Terminó el modo emergencia');
-                notificar(TipoAviso.emergencia, 'Terminó la emergencia', 'Tu barrio volvió a la normalidad.',
+                notificar(TipoAviso.emergencia, 'Terminó la emergencia', 'Tu zona volvió a la normalidad.',
                     mensajeInterno: false);
               }
             },
@@ -208,7 +225,43 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
             callback: (_) {
               // Conteo de vecinos a salvo (junta, organizaciones, brigadistas).
               _debounce?.cancel();
-              _debounce = Timer(const Duration(milliseconds: 800), refrescar);
+              _debounce = Timer(const Duration(milliseconds: 500), refrescar);
+            },
+          )
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'foro_temas',
+            callback: (_) {
+              _debounce?.cancel();
+              _debounce = Timer(const Duration(milliseconds: 500), refrescar);
+            },
+          )
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'foro_respuestas',
+            callback: (_) {
+              _debounce?.cancel();
+              _debounce = Timer(const Duration(milliseconds: 500), refrescar);
+            },
+          )
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'foro_apoyos',
+            callback: (_) {
+              _debounce?.cancel();
+              _debounce = Timer(const Duration(milliseconds: 500), refrescar);
+            },
+          )
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'foro_respuestas_likes',
+            callback: (_) {
+              _debounce?.cancel();
+              _debounce = Timer(const Duration(milliseconds: 500), refrescar);
             },
           )
           .onPostgresChanges(
@@ -230,10 +283,49 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
               _debounce = Timer(const Duration(milliseconds: 800), refrescar);
             },
           )
+          .onPostgresChanges(
+            event: PostgresChangeEvent.insert,
+            schema: 'public',
+            table: 'sismos',
+            callback: (cambio) => _procesarNuevoSismo(cambio.newRecord),
+          )
           .subscribe();
     } catch (_) {
       // Sin tiempo real la app sigue funcionando con la consulta cada 30 s.
     }
+  }
+
+  /// Sismo recibido en tiempo real: verifica si el usuario está dentro del radio de afectación.
+  void _procesarNuevoSismo(Map<String, dynamic> fila) {
+    try {
+      final s = Sismo.fromMap(fila);
+      final puntoSismo = Punto(s.lat, s.lng);
+      final km = distanciaKm(referencia, puntoSismo);
+
+      // Si el usuario está fuera del radio de percepción/alerta, no se le interrumpe
+      if (km > s.radioAlertaKm) return;
+
+      ultimoSismoCercano = s;
+      notifyListeners();
+
+      HapticFeedback.vibrate();
+      final dKm = km.toStringAsFixed(0);
+      final radioCritico = s.radioAlertaKm * 0.45;
+      final esZonaCritica = km <= radioCritico && s.magnitud >= 4.5;
+
+      final titulo = esZonaCritica ? '🚨 ALERTA SÍSMICA: M ${s.magnitud}' : '⚠️ Sismo detectado: M ${s.magnitud}';
+      final cuerpo = 'A $dKm km de ti (${s.ubicacion}). Prof: ${s.profundidadKm} km. Mantén la calma.';
+
+      avisar(titulo);
+      notificar(TipoAviso.emergencia, titulo, cuerpo, mensajeInterno: true);
+
+      // Voz de aviso automático: urgente si estás cerca, informativa si estás lejos
+      if (esZonaCritica) {
+        Voz.hablar('Alerta sísmica. Sismo fuerte de magnitud ${s.magnitud} a $dKm kilómetros de tu posición. Mantén la calma y ve a zona segura.');
+      } else {
+        Voz.hablar('Sismo de magnitud ${s.magnitud} registrado a $dKm kilómetros de tu posición.');
+      }
+    } catch (_) {}
   }
 
   /// Un SOS nuevo a ≤ 2 km (y que no es mío) se avisa al instante, con
@@ -263,10 +355,21 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
 
   Future<void> ubicar() async {
     final p = await Ubicacion.gps();
-    if (p != null) {
-      ubicacion = p;
-      notifyListeners();
-    }
+    if (p != null) _nuevaUbicacion(p);
+  }
+
+  /// Al abrir la app: actualiza la ubicación solo si ya hay permiso (sin
+  /// diálogos), para que los SOS cercanos lleguen a quien de verdad está cerca.
+  Future<void> _ubicarEnSilencio() async {
+    final p = await Ubicacion.gpsSiHayPermiso();
+    if (p != null) _nuevaUbicacion(p);
+  }
+
+  void _nuevaUbicacion(Punto p) {
+    ubicacion = p;
+    notifyListeners();
+    // El servidor usa esta ubicación (aproximada) para los SOS a ≤ 2 km.
+    unawaited(registrarPush());
   }
 
   void _cambioRed(bool hay) {
@@ -314,12 +417,9 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
           e.titulo != emergencia.titulo ||
           e.mensaje != emergencia.mensaje ||
           e.clave != emergencia.clave) {
-        final cambioModo = e.activa != emergencia.activa;
         emergencia = e;
         version++;
         notifyListeners();
-        // En emergencia se enciende el modo alerta (y se apaga al terminar).
-        if (cambioModo) unawaited(actualizarVigia());
       }
       await _cargarMiEstado();
     } catch (_) {}
@@ -540,75 +640,27 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   /// push lleguen aunque la app esté cerrada. La ubicación va aproximada.
   Future<void> registrarPush() async {
     if (!avisosActivados) return;
-    unawaited(actualizarVigia());
     final p = aproximar(referencia);
     await Push.registrar(db: repo.db, avisos: avisos, sector: sector, lat: p.lat, lng: p.lng);
   }
 
-  // ------------------------------------------------- avisos con app cerrada
-
-  /// Modo alerta permanente elegido por el vecino (si no, solo en emergencias).
-  bool get modoAlerta => prefs.getBool('modo_alerta') ?? false;
-
-  /// El servicio de modo alerta está corriendo ahora.
-  bool modoAlertaActivo = false;
-
-  void setModoAlerta(bool v) {
-    prefs.setBool('modo_alerta', v);
-    notifyListeners();
-    unawaited(actualizarVigia());
-  }
-
-  /// Revisión periódica siempre (cada ~15 min, aun con la app cerrada) y
-  /// modo alerta (cada 30 s) durante una emergencia o si el vecino lo pidió.
-  Future<void> actualizarVigia() async {
-    if (!Vigia.soportado) return;
-    if (!avisosActivados) {
-      await Vigia.cancelar();
-      await Vigia.apagarModoAlerta();
-    } else {
-      await Vigia.guardarContexto(lat: referencia.lat, lng: referencia.lng, uid: uid);
-      await Vigia.programar();
-      final encender = modoAlerta || (emergencia.activa && avisos[TipoAviso.emergencia] == true);
-      if (encender) {
-        await Vigia.encenderModoAlerta(porEmergencia: emergencia.activa && !modoAlerta);
-      } else {
-        await Vigia.apagarModoAlerta();
-      }
-    }
-    final activo = await Vigia.modoAlertaEncendido;
-    if (activo != modoAlertaActivo) {
-      modoAlertaActivo = activo;
-      notifyListeners();
-    }
-  }
-
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused) {
-      // Lo que ya vio con la app abierta no se vuelve a avisar.
-      unawaited(Vigia.marcarVisto(emergenciaActiva: emergencia.activa));
-    } else if (state == AppLifecycleState.resumed) {
-      unawaited(revisarPermisoAvisos());
-    }
+    if (state == AppLifecycleState.resumed) unawaited(revisarPermisoAvisos());
   }
 
-  /// Muestra un aviso si el vecino lo tiene encendido. Con la app abierta
-  /// basta el mensaje interno; en segundo plano va a la barra del celular.
+  /// Muestra un aviso si el vecino lo tiene encendido.
+  /// * App abierta: mensaje en pantalla.
+  /// * App cerrada o en segundo plano: lo envía el servidor por Firebase
+  ///   (Edge Function `enviar-avisos`). Si Firebase no está configurado
+  ///   (p. ej. sin claves), se muestra un aviso local mientras la app viva.
   void notificar(TipoAviso t, String titulo, String cuerpo, {bool mensajeInterno = true}) {
     if (avisos[t] != true) return;
     final enPantalla = WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
     if (enPantalla) {
       if (mensajeInterno) avisar('$titulo: $cuerpo');
     } else if (avisosActivados && !Push.activo) {
-      // Con push activo, el servidor ya manda el aviso: no se duplica.
-      // Pedidos a mis servicios necesitan la sesión: se avisan directo.
-      // Lo demás pasa por el vigía, que no repite lo ya avisado.
-      if (t == TipoAviso.misServicios) {
-        Notificaciones.mostrar(t, titulo, cuerpo);
-      } else {
-        unawaited(Vigia.revisar());
-      }
+      Notificaciones.mostrar(t, titulo, cuerpo);
     }
   }
 

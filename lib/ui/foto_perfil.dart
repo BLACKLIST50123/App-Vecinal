@@ -9,18 +9,34 @@ import 'tema.dart';
 /// Foto del vecino en un círculo. Si no tiene foto (o no hay internet para
 /// cargarla) muestra sus iniciales.
 class AvatarVecino extends StatelessWidget {
-  const AvatarVecino({super.key, required this.nombre, this.fotoUrl, this.tamano = 56});
+  const AvatarVecino({
+    super.key,
+    required this.nombre,
+    this.fotoUrl,
+    this.tamano = 56,
+    this.colorFondo,
+    this.colorTexto,
+  });
   final String nombre;
   final String? fotoUrl;
   final double tamano;
+  final Color? colorFondo;
+  final Color? colorTexto;
 
   @override
   Widget build(BuildContext context) {
-    final color = Theme.of(context).colorScheme.primary;
+    final color = colorFondo ?? Theme.of(context).colorScheme.primary;
+    final txtColor = colorTexto ?? Colors.white;
     final letras = Center(
-      child: Text(iniciales(nombre),
-          textScaler: TextScaler.noScaling,
-          style: TextStyle(color: Colors.white, fontSize: tamano * 0.36, fontWeight: FontWeight.w700)),
+      child: Text(
+        iniciales(nombre),
+        textScaler: TextScaler.noScaling,
+        style: TextStyle(
+          color: txtColor,
+          fontSize: tamano * 0.36,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
     );
     return Semantics(
       image: true,

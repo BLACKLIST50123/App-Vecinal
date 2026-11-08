@@ -370,7 +370,7 @@ class _MapaYCercanosState extends State<MapaYCercanos> {
           margin: EdgeInsets.only(top: widget.emergencia ? 0 : 14),
           padding: EdgeInsets.only(top: widget.emergencia ? 4 : 16, bottom: 18),
           // Fondo cálido suave: separa la sección sin cortes bruscos.
-          color: Paleta.acentoSuave,
+          color: Paleta.seccion,
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           // ── Introducción al mapa
           Padding(
@@ -452,6 +452,7 @@ class _MapaYCercanosState extends State<MapaYCercanos> {
                   TileLayer(
                     urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                     userAgentPackageName: 'com.alphacoders.appvecinal',
+                    tileBuilder: Paleta.oscuro ? darkModeTileBuilder : null, // mapa oscuro en modo oscuro
                   ),
                   MarkerLayer(markers: [
                     for (final p in visibles)
@@ -481,10 +482,10 @@ class _MapaYCercanosState extends State<MapaYCercanos> {
                   ]),
                 ],
               ),
-              const Positioned(
+              Positioned(
                 left: 8,
                 bottom: 6,
-                child: Text('© OpenStreetMap', style: TextStyle(fontSize: 10, color: Colors.black54)),
+                child: Text('© OpenStreetMap', style: TextStyle(fontSize: 10, color: Paleta.gris)),
               ),
               if (!st.online)
                 Positioned(
@@ -494,12 +495,12 @@ class _MapaYCercanosState extends State<MapaYCercanos> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(color: Paleta.ambarSuave, borderRadius: BorderRadius.circular(10)),
-                    child: const Row(children: [
-                      Icon(Icons.cloud_off_rounded, size: 16, color: Colors.black87),
+                    child: Row(children: [
+                      Icon(Icons.cloud_off_rounded, size: 16, color: Paleta.tinta),
                       SizedBox(width: 6),
                       Expanded(
                         child: Text('Mapa sin conexión: los puntos son de la última vez',
-                            style: TextStyle(fontSize: 12, color: Colors.black87)),
+                            style: TextStyle(fontSize: 12, color: Paleta.tinta)),
                       ),
                     ]),
                   ),

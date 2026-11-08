@@ -417,11 +417,11 @@ class TarjetaMercado extends StatelessWidget {
                     label: apoyo ? 'Ayuda voluntaria' : '${s.vistosBuenos} Vistos Buenos',
                     excludeSemantics: true,
                     child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      Icon(apoyo ? Icons.favorite_border : Icons.thumb_up_alt_outlined, size: 16, color: naranja),
+                      Icon(apoyo ? Icons.favorite_border : Icons.thumb_up_alt_outlined, size: 16, color: apoyo ? naranja : Paleta.verde),
                       const SizedBox(width: 4),
                       Text(
                         apoyo ? 'Ayuda voluntaria' : '${s.vistosBuenos} Vistos Buenos',
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: naranja),
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: apoyo ? naranja : Paleta.verde),
                       ),
                     ]),
                   ),
@@ -566,8 +566,14 @@ class FilaAjuste extends StatelessWidget {
               child: Icon(icono, size: 21, color: color ?? c.primary),
             ),
             const SizedBox(width: 12),
-            Expanded(child: Text(texto, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: color ?? Paleta.tinta))),
-            if (valor != null) Text(valor!, style: TextStyle(color: Paleta.gris, fontSize: 13)),
+            // El texto principal manda; el valor cede espacio (con "…") en letra grande.
+            Expanded(flex: 3, child: Text(texto, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: color ?? Paleta.tinta))),
+            if (valor != null) const SizedBox(width: 8),
+            if (valor != null)
+              Flexible(
+                flex: 2,
+                child: Text(valor!, maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.end, style: TextStyle(color: Paleta.gris, fontSize: 13)),
+              ),
             final_ ?? (onTap != null ? Icon(Icons.chevron_right, color: Paleta.grisClaro) : const SizedBox.shrink()),
           ]),
         ),

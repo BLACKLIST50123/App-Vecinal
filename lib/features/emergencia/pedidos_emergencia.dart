@@ -168,7 +168,11 @@ class MapaPedidoScreen extends StatelessWidget {
             interactionOptions: const InteractionOptions(flags: InteractiveFlag.all & ~InteractiveFlag.rotate),
           ),
           children: [
-            TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', userAgentPackageName: 'com.alphacoders.appvecinal'),
+            TileLayer(
+              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              userAgentPackageName: 'com.alphacoders.appvecinal',
+              tileBuilder: Paleta.oscuro ? darkModeTileBuilder : null, // mapa oscuro en modo oscuro
+            ),
             // Zona aproximada (±200 m): no se muestra la casa exacta.
             CircleLayer(circles: [
               CircleMarker(

@@ -1,3 +1,7 @@
+import 'package:flutter/services.dart';
+
+import '../util.dart';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -147,7 +151,7 @@ class _ModalNuevoTemaState extends State<ModalNuevoTema> {
                     }),
                   ),
                   ChoiceChip(
-                    label: const Text('Comunidad / Diálogo'),
+                    label: const Text('Comunidad'),
                     selected: _tipo == TipoPublicacionForo.dialogo,
                     selectedColor: Paleta.verdeSuave,
                     labelStyle: TextStyle(
@@ -159,21 +163,6 @@ class _ModalNuevoTemaState extends State<ModalNuevoTema> {
                     ),
                     onSelected: (_) =>
                         setState(() => _tipo = TipoPublicacionForo.dialogo),
-                  ),
-                  ChoiceChip(
-                    label: const Text('Recomendación'),
-                    selected: _tipo == TipoPublicacionForo.recomendacion,
-                    selectedColor: Paleta.ambarSuave,
-                    labelStyle: TextStyle(
-                      color: _tipo == TipoPublicacionForo.recomendacion
-                          ? Paleta.ambar
-                          : Paleta.tinta,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 12.5,
-                    ),
-                    onSelected: (_) => setState(
-                      () => _tipo = TipoPublicacionForo.recomendacion,
-                    ),
                   ),
                   ChoiceChip(
                     label: const Text('Aviso vecinal'),
@@ -199,30 +188,132 @@ class _ModalNuevoTemaState extends State<ModalNuevoTema> {
                   style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 6),
-                DropdownButtonFormField<String>(
-                  initialValue: _categoriaServicio,
-                  decoration: InputDecoration(
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 12,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  items: categoriasServicio.map((c) {
-                    return DropdownMenuItem(
-                      value: c.id,
-                      child: Row(
-                        children: [
-                          Icon(c.icono, size: 18, color: Paleta.acento),
-                          const SizedBox(width: 8),
-                          Text(c.nombre),
-                        ],
+                Builder(
+                  builder: (context) {
+                    final catActual = buscarCategoria(_categoriaServicio ?? 'gasfiteria');
+                    final ancho = MediaQuery.of(context).size.width - 40;
+                    return Theme(
+                      data: Theme.of(context).copyWith(
+                        splashColor: Colors.transparent,
+                        highlightColor: Colors.transparent,
+                      ),
+                      child: PopupMenuButton<String>(
+                        tooltip: 'Seleccionar oficio',
+                        position: PopupMenuPosition.under,
+                        offset: const Offset(0, 4),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          side: BorderSide(color: Paleta.linea),
+                        ),
+                        elevation: 8,
+                        color: Colors.white,
+                        constraints: BoxConstraints(
+                          maxHeight: 270,
+                          minWidth: ancho,
+                          maxWidth: ancho,
+                        ),
+                        onSelected: (val) {
+                          setState(() => _categoriaServicio = val);
+                        },
+                        itemBuilder: (context) {
+                          return categoriasServicio.map((c) {
+                            final seleccionado = c.id == _categoriaServicio;
+                            return PopupMenuItem<String>(
+                              value: c.id,
+                              height: 44,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(5),
+                                      decoration: BoxDecoration(
+                                        color: seleccionado
+                                            ? Paleta.acentoSuave
+                                            : const Color(0xFFF1F5F9),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Icon(
+                                        c.icono,
+                                        size: 15,
+                                        color: seleccionado
+                                            ? Paleta.acentoOscuro
+                                            : const Color(0xFF64748B),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        c.nombre,
+                                        style: TextStyle(
+                                          fontSize: 13.5,
+                                          fontWeight: seleccionado
+                                              ? FontWeight.w700
+                                              : FontWeight.w500,
+                                          color: seleccionado
+                                              ? Paleta.acentoOscuro
+                                              : const Color(0xFF1E293B),
+                                        ),
+                                      ),
+                                    ),
+                                    if (seleccionado)
+                                      Icon(
+                                        Icons.check_rounded,
+                                        size: 18,
+                                        color: Paleta.acentoOscuro,
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }).toList();
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: Paleta.linea),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(5),
+                                decoration: BoxDecoration(
+                                  color: Paleta.acentoSuave,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Icon(
+                                  catActual.icono,
+                                  size: 16,
+                                  color: Paleta.acentoOscuro,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  catActual.nombre,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                    color: Paleta.tinta,
+                                  ),
+                                ),
+                              ),
+                              Icon(
+                                Icons.keyboard_arrow_down_rounded,
+                                color: Paleta.gris,
+                                size: 22,
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     );
-                  }).toList(),
-                  onChanged: (v) => setState(() => _categoriaServicio = v),
+                  },
                 ),
               ],
 
@@ -232,25 +323,158 @@ class _ModalNuevoTemaState extends State<ModalNuevoTema> {
                 style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 6),
-              DropdownButtonFormField<String>(
-                initialValue: _sector,
-                decoration: InputDecoration(
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 12,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                items: Zona.sectores.keys.map((s) {
-                  return DropdownMenuItem(value: s, child: Text(s));
-                }).toList(),
-                onChanged: (v) {
-                  if (v != null) setState(() => _sector = v);
+              Builder(
+                builder: (context) {
+                  final ancho = MediaQuery.of(context).size.width - 40;
+                  return Theme(
+                    data: Theme.of(context).copyWith(
+                      splashColor: Colors.transparent,
+                      highlightColor: Colors.transparent,
+                    ),
+                    child: PopupMenuButton<String>(
+                      tooltip: 'Seleccionar sector',
+                      position: PopupMenuPosition.under,
+                      offset: const Offset(0, 4),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: BorderSide(color: Paleta.linea),
+                      ),
+                      elevation: 8,
+                      color: Colors.white,
+                      constraints: BoxConstraints(
+                        maxHeight: 280,
+                        minWidth: ancho,
+                        maxWidth: ancho,
+                      ),
+                      onSelected: (val) {
+                        setState(() => _sector = val);
+                      },
+                      itemBuilder: (context) {
+                        final items = <PopupMenuEntry<String>>[];
+                        for (final entry in Zona.sectoresPorCiudad.entries) {
+                          items.add(
+                            PopupMenuItem<String>(
+                              enabled: false,
+                              height: 32,
+                              child: Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF1F5F9),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                    color: const Color(0xFFE2E8F0),
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.location_city_rounded,
+                                      size: 13,
+                                      color: Paleta.primario,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      entry.key.toUpperCase(),
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w800,
+                                        color: Paleta.primario,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                          for (final s in entry.value) {
+                            final seleccionado = s == _sector;
+                            items.add(
+                              PopupMenuItem<String>(
+                                value: s,
+                                height: 40,
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.location_on_outlined,
+                                      size: 16,
+                                      color: seleccionado
+                                          ? const Color(0xFF16A34A)
+                                          : const Color(0xFF94A3B8),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        s,
+                                        style: TextStyle(
+                                          fontSize: 13.5,
+                                          fontWeight: seleccionado
+                                              ? FontWeight.w700
+                                              : FontWeight.w500,
+                                          color: seleccionado
+                                              ? const Color(0xFF166534)
+                                              : const Color(0xFF1E293B),
+                                        ),
+                                      ),
+                                    ),
+                                    if (seleccionado)
+                                      const Icon(
+                                        Icons.check_rounded,
+                                        size: 18,
+                                        color: Color(0xFF16A34A),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }
+                        }
+                        return items;
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: Paleta.linea),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.location_on_rounded,
+                              size: 18,
+                              color: Paleta.primario,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _sector,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                  color: Paleta.tinta,
+                                ),
+                              ),
+                            ),
+                            Icon(
+                              Icons.keyboard_arrow_down_rounded,
+                              color: Paleta.gris,
+                              size: 22,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
                 },
               ),
-
               const SizedBox(height: 14),
               const Text(
                 'Título de tu consulta:',

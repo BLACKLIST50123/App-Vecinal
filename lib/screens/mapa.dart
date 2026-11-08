@@ -177,6 +177,7 @@ class _MapaScreenState extends State<MapaScreen> {
                   TileLayer(
                     urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                     userAgentPackageName: 'com.alphacoders.appvecinal',
+                    tileBuilder: Paleta.oscuro ? darkModeTileBuilder : null, // mapa oscuro en modo oscuro
                   ),
                   MarkerLayer(markers: marcadores),
                 ],
@@ -186,8 +187,8 @@ class _MapaScreenState extends State<MapaScreen> {
                 bottom: 8,
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  color: Colors.white70,
-                  child: const Text('© OpenStreetMap', style: TextStyle(fontSize: 11, color: Colors.black)),
+                  color: Paleta.superficie.withValues(alpha: 0.85),
+                  child: Text('© OpenStreetMap', style: TextStyle(fontSize: 11, color: Paleta.tinta)),
                 ),
               ),
               if (!st.online)
@@ -198,9 +199,9 @@ class _MapaScreenState extends State<MapaScreen> {
                   child: Card(
                     color: Paleta.oroClaro,
                     child: ListTile(
-                      leading: Icon(Icons.cloud_off, color: Colors.black87),
+                      leading: Icon(Icons.cloud_off, color: Paleta.tinta),
                       title: Text('Sin internet el mapa puede no cargar. Usa "Ver como lista".',
-                          style: TextStyle(color: Colors.black87)),
+                          style: TextStyle(color: Paleta.tinta)),
                     ),
                   ),
                 ),

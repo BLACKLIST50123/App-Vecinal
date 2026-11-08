@@ -468,8 +468,8 @@ class _FormularioPublicarState extends State<FormularioPublicar> {
             Card(
               color: Paleta.oroClaro,
               child: ListTile(
-                leading: Icon(Icons.cloud_off, color: Colors.black87),
-                title: Text('Sin internet: se guardará y podrás compartirlo por QR.', style: TextStyle(color: Colors.black87)),
+                leading: Icon(Icons.cloud_off, color: Paleta.tinta),
+                title: Text('Sin internet: se guardará y podrás compartirlo por QR.', style: TextStyle(color: Paleta.tinta)),
               ),
             ),
           if (!st.logueado)

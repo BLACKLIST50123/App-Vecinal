@@ -627,9 +627,9 @@ class _TarjetaReconocimiento extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(n.nombre, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black)),
+                Text(n.nombre, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Paleta.tinta)),
                 Text('$ayudas ${ayudas == 1 ? 'ayuda confirmada' : 'ayudas confirmadas'}',
-                    style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w600)),
+                    style: TextStyle(color: Paleta.tinta, fontWeight: FontWeight.w600)),
               ]),
             ),
             BotonEscuchar(texto, compacto: true),
@@ -649,12 +649,12 @@ class _TarjetaReconocimiento extends StatelessWidget {
             sig == null
                 ? '¡Llegaste al nivel más alto! Gracias por cuidar tu barrio.'
                 : 'Te ${faltan == 1 ? 'falta 1 ayuda confirmada' : 'faltan $faltan ayudas confirmadas'} para ser ${sig.nombre}',
-            style: const TextStyle(color: Colors.black87),
+            style: TextStyle(color: Paleta.tinta),
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'Una ayuda se confirma cuando la persona a la que ayudaste te agradece en la app.',
-            style: TextStyle(color: Colors.black54, fontSize: 13),
+            style: TextStyle(color: Paleta.gris, fontSize: 13),
           ),
         ]),
       ),

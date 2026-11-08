@@ -25,6 +25,8 @@ class Paleta {
   static Color get acento => _c(0xFFE8956B, 0xFFE8956B);
   static Color get acentoOscuro => _c(0xFFA9532B, 0xFFE8956B); // 5:1 sobre crema (AA)
   static Color get acentoSuave => _c(0xFFFCEEE6, 0xFF3A261C);
+  // Fondo de secciones grandes (durazno en claro; pizarra en oscuro, no marrón).
+  static Color get seccion => _c(0xFFFCEEE6, 0xFF162032);
   // Texto y líneas.
   static Color get tinta => _c(0xFF1E293B, 0xFFE2E8F0);
   static Color get gris => _c(0xFF5B6577, 0xFF94A3B8); // 5.5:1 sobre crema (AA para texto pequeño)
@@ -242,10 +244,17 @@ ThemeData construirTema({required bool emergencia, required bool altoContraste})
     dividerTheme: DividerThemeData(color: borde, thickness: 1),
     bottomSheetTheme: BottomSheetThemeData(backgroundColor: fondo, surfaceTintColor: Colors.transparent),
     dialogTheme: DialogThemeData(backgroundColor: Paleta.superficie, surfaceTintColor: Colors.transparent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24))),
+    // Fondo marino siempre: el texto va blanco para leerse en claro y oscuro.
     snackBarTheme: SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
       backgroundColor: Paleta.banda,
+      contentTextStyle: GoogleFonts.dmSans(fontSize: 15, fontWeight: FontWeight.w500, color: Colors.white),
+      actionTextColor: const Color(0xFF93C5FD),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+    ),
+    // Bolita blanca al estar encendido, sobre la pista del color principal.
+    switchTheme: SwitchThemeData(
+      thumbColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? Colors.white : null),
     ),
   );
 }

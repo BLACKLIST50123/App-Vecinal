@@ -157,11 +157,11 @@ class AvisoAutoridades extends StatelessWidget {
               SizedBox(width: 8),
               Expanded(
                 child: Text('Esta app coordina ayuda entre vecinos. No reemplaza a las autoridades.',
-                    style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
+                    style: TextStyle(fontWeight: FontWeight.bold, color: Paleta.tinta)),
               ),
             ]),
             const SizedBox(height: 4),
-            const Text('Si hay riesgo de vida, llama primero:', style: TextStyle(color: Colors.black87)),
+            Text('Si hay riesgo de vida, llama primero:', style: TextStyle(color: Paleta.tinta)),
             const SizedBox(height: 8),
             BotonesNumeros(numeros: DatosIniciales.actual.numeros),
           ]),
@@ -204,7 +204,7 @@ class BotonesNumeros extends StatelessWidget {
       if (locales.isNotEmpty) ...[
         const SizedBox(height: 10),
         Text('Números de tu zona',
-            style: TextStyle(fontWeight: FontWeight.w700, color: claro ? Colors.white : Colors.black87)),
+            style: TextStyle(fontWeight: FontWeight.w700, color: claro ? Colors.white : Paleta.tinta)),
         const SizedBox(height: 6),
         Wrap(spacing: 8, runSpacing: 8, children: [for (final n in locales) boton(n)]),
       ],
@@ -314,7 +314,7 @@ class _PanelCoordinacionScreenState extends State<PanelCoordinacionScreen> {
                         leading: CircleAvatar(
                           backgroundColor: e.value.length >= 3 ? Paleta.rojo : Paleta.ambarSuave,
                           child: Text('${e.value.length}',
-                              style: TextStyle(color: e.value.length >= 3 ? Colors.white : Colors.black, fontWeight: FontWeight.bold)),
+                              style: TextStyle(color: e.value.length >= 3 ? Colors.white : Paleta.tinta, fontWeight: FontWeight.bold)),
                         ),
                         title: Text((e.value.first['titulo'] ?? 'Publicación') as String, style: const TextStyle(fontWeight: FontWeight.bold)),
                         subtitle: Text(e.value

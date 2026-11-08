@@ -131,13 +131,13 @@ class PendientesScreen extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('¿Cómo funciona?', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.black)),
+              Text('¿Cómo funciona?', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Paleta.tinta)),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 '1. Si no tienes internet, tu publicación se guarda en el teléfono.\n'
                 '2. Muéstrala como código QR a un vecino.\n'
                 '3. Él la escanea y su app la envía cuando tenga señal.',
-                style: TextStyle(fontSize: 16, color: Colors.black87),
+                style: TextStyle(fontSize: 16, color: Paleta.tinta),
               ),
               const BotonEscuchar(
                 'Cómo funciona. Uno: si no tienes internet, tu publicación se guarda en el teléfono. '

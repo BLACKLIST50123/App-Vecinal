@@ -19,7 +19,11 @@ import 'tema.dart';
 
 Future<void> llamar(String telefono) async {
   try {
-    await launchUrl(Uri(scheme: 'tel', path: soloDigitos(telefono)));
+    var d = soloDigitos(telefono);
+    if (d.length == 11 && d.startsWith('51')) {
+      d = d.substring(2);
+    }
+    await launchUrl(Uri(scheme: 'tel', path: d));
   } catch (_) {
     avisar('No se pudo abrir el teléfono. Marca: $telefono');
   }
@@ -88,10 +92,10 @@ class BannerConexion extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             child: Row(children: [
-              Icon(offline ? Icons.cloud_off : Icons.cloud_upload, color: Colors.black87),
+              Icon(offline ? Icons.cloud_off : Icons.cloud_upload, color: Paleta.tinta),
               const SizedBox(width: 12),
-              Expanded(child: Text(texto, style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w600))),
-              const Icon(Icons.chevron_right, color: Colors.black87),
+              Expanded(child: Text(texto, style: TextStyle(color: Paleta.tinta, fontWeight: FontWeight.w600))),
+              Icon(Icons.chevron_right, color: Paleta.tinta),
             ]),
           ),
         ),
@@ -109,7 +113,15 @@ class BannerEmergencia extends StatelessWidget {
     final st = context.watch<AppState>();
     if (!st.modoEmergencia) return const SizedBox.shrink();
     final e = st.emergencia;
-    final titulo = e.titulo ?? 'Modo emergencia activo';
+    final esSismo = e.origen == 'sismo';
+    final titulo = e.titulo ?? (esSismo ? 'Alerta Sísmica' : 'Modo emergencia activo');
+
+    String? dist;
+    if (esSismo && e.lat != null && e.lng != null) {
+      final km = distanciaKm(st.referencia, Punto(e.lat!, e.lng!));
+      dist = 'a ${km.toStringAsFixed(0)} km de ti';
+    }
+
     return Semantics(
       liveRegion: true,
       child: Container(
@@ -117,12 +129,14 @@ class BannerEmergencia extends StatelessWidget {
         color: Paleta.rojo,
         padding: EdgeInsets.symmetric(horizontal: 16, vertical: grande ? 16 : 8),
         child: Row(children: [
-          const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 32),
+          Icon(esSismo ? Icons.vibration : Icons.warning_amber_rounded, color: Colors.white, size: 32),
           const SizedBox(width: 12),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('EMERGENCIA: $titulo',
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+              Text(
+                esSismo ? '🚨 $titulo ${dist != null ? "($dist)" : ""}' : 'EMERGENCIA: $titulo',
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+              ),
               if (grande && e.mensaje != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 4),
@@ -247,7 +261,7 @@ class _CargadorState<T> extends State<Cargador<T>> {
     return FutureBuilder<T>(
       future: _futuro,
       builder: (c, s) {
-        if (s.connectionState != ConnectionState.done) {
+        if (s.connectionState != ConnectionState.done && !s.hasData) {
           return const Center(
             child: Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator(semanticsLabel: 'Cargando')),
           );
@@ -626,7 +640,7 @@ class TarjetaColecta extends StatelessWidget {
                   Expanded(
                     child: Text(p.autorVisible,
                         maxLines: 1, overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.black87)),
+                        style: TextStyle(fontWeight: FontWeight.w600, color: Paleta.tinta)),
                   ),
                   if (p.autorRol == 'organizacion') Icon(Icons.verified, size: 18, color: Paleta.azulInfo),
                 ]),
@@ -634,7 +648,7 @@ class TarjetaColecta extends StatelessWidget {
                 Expanded(
                   child: Text(p.titulo,
                       maxLines: 3, overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black)),
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Paleta.tinta)),
                 ),
                 BarraColecta(p),
                 const SizedBox(height: 6),

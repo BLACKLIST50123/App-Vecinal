@@ -245,7 +245,7 @@ class TarjetaMisAportes extends StatelessWidget {
       margin: const EdgeInsets.fromLTRB(16, 14, 16, 0),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Paleta.acentoSuave,
+        color: Paleta.seccion,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
