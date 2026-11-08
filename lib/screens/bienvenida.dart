@@ -98,7 +98,7 @@ class _BienvenidaScreenState extends State<BienvenidaScreen> with TickerProvider
                                   ),
                                 ],
                               ),
-                              style: const TextStyle(fontSize: 34, color: Paleta.tinta, letterSpacing: -0.5, height: 1.1),
+                              style: TextStyle(fontSize: 34, color: Paleta.tinta, letterSpacing: -0.5, height: 1.1),
                             ),
                           ),
                         ),
@@ -108,7 +108,7 @@ class _BienvenidaScreenState extends State<BienvenidaScreen> with TickerProvider
                           child: Text(
                             'Tu barrio te respalda, con o sin internet.',
                             textAlign: TextAlign.center,
-                            style: const TextStyle(fontSize: 17, color: Paleta.gris, height: 1.35),
+                            style: TextStyle(fontSize: 17, color: Paleta.gris, height: 1.35),
                           ),
                         ),
                       ],
@@ -135,15 +135,15 @@ class _BienvenidaScreenState extends State<BienvenidaScreen> with TickerProvider
                             child: OutlinedButton.icon(
                               onPressed: () => _abrirCuenta(1),
                               style: OutlinedButton.styleFrom(
-                                backgroundColor: Colors.white,
-                                side: const BorderSide(color: Paleta.primario, width: 1.5),
+                                backgroundColor: Paleta.superficie,
+                                side: BorderSide(color: Paleta.primario, width: 1.5),
                               ),
                               icon: const Icon(Icons.person_add_alt_1),
                               label: const Text('Crear cuenta gratis', style: TextStyle(fontSize: 18)),
                             ),
                           ),
                           const SizedBox(height: 18),
-                          const Row(
+                          Row(
                             children: [
                               Expanded(child: Divider(color: Paleta.linea)),
                               Padding(
@@ -166,7 +166,7 @@ class _BienvenidaScreenState extends State<BienvenidaScreen> with TickerProvider
                           Text(
                             'Equipo AlphaCoders · ${Zona.nombre}',
                             textAlign: TextAlign.center,
-                            style: const TextStyle(color: Paleta.gris, fontSize: 13),
+                            style: TextStyle(color: Paleta.gris, fontSize: 13),
                           ),
                         ],
                       ),
@@ -243,7 +243,7 @@ class _LogoAnimado extends StatelessWidget {
                       height: 184,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        gradient: const RadialGradient(colors: [Colors.white, Paleta.primarioSuave]),
+                        gradient: RadialGradient(colors: [Paleta.superficie, Paleta.primarioSuave]),
                         boxShadow: [BoxShadow(color: Paleta.primario.withValues(alpha: 0.08), blurRadius: 30, offset: const Offset(0, 12))],
                       ),
                     ),
@@ -298,7 +298,7 @@ class _AvisoEmergencia extends StatelessWidget {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Row(
+        Row(
           children: [
             Icon(Icons.warning_amber_rounded, color: Paleta.rojo),
             SizedBox(width: 8),
@@ -335,7 +335,7 @@ Future<void> mostrarModoInvitado(BuildContext context) => showModalBottomSheet<v
   context: context,
   isScrollControlled: true,
   showDragHandle: true,
-  backgroundColor: Colors.white,
+  backgroundColor: Paleta.superficie,
   builder: (c) => SafeArea(
     child: SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
@@ -347,9 +347,9 @@ Future<void> mostrarModoInvitado(BuildContext context) => showModalBottomSheet<v
             child: const Text('Entrar como invitado', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, letterSpacing: -0.3)),
           ),
           const SizedBox(height: 4),
-          const Text('Puedes mirar todo el barrio sin registrarte.', style: TextStyle(color: Paleta.gris, fontSize: 15)),
+          Text('Puedes mirar todo el barrio sin registrarte.', style: TextStyle(color: Paleta.gris, fontSize: 15)),
           const SizedBox(height: 16),
-          const _ListaPermisos(
+          _ListaPermisos(
             titulo: 'Sin cuenta puedes',
             color: Paleta.verde,
             icono: Icons.check_circle,
@@ -361,7 +361,7 @@ Future<void> mostrarModoInvitado(BuildContext context) => showModalBottomSheet<v
             ],
           ),
           const SizedBox(height: 12),
-          const _ListaPermisos(
+          _ListaPermisos(
             titulo: 'Necesitas cuenta para',
             color: Paleta.acentoOscuro,
             icono: Icons.lock_outline,

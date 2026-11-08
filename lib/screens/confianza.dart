@@ -154,7 +154,7 @@ class AvisoAutoridades extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Row(children: [
+            Row(children: [
               Icon(Icons.info, color: Paleta.ambar),
               SizedBox(width: 8),
               Expanded(

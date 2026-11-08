@@ -485,7 +485,7 @@ class _FormularioPublicarState extends State<FormularioPublicar> {
         // Abajo, espacio extra para que el botón SOS flotante no tape "Publicar ahora".
         child: ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, 120), children: [
           if (!st.online)
-            const Card(
+            Card(
               color: Paleta.oroClaro,
               child: ListTile(
                 leading: Icon(Icons.cloud_off, color: Colors.black87),
@@ -537,7 +537,7 @@ class _FormularioPublicarState extends State<FormularioPublicar> {
             ),
           ),
           if (_frases.isNotEmpty) ...[
-            const Text('O toca una frase:', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: Paleta.gris)),
+            Text('O toca una frase:', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: Paleta.gris)),
             const SizedBox(height: 10),
             Wrap(spacing: 8, runSpacing: 8, children: [
               for (final f in _frases)
@@ -549,7 +549,7 @@ class _FormularioPublicarState extends State<FormularioPublicar> {
             Row(children: [
               const Expanded(child: Text('¿De qué tipo es?', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
               if (_categoriaAuto)
-                const Row(children: [
+                Row(children: [
                   Icon(Icons.auto_awesome, size: 16, color: Paleta.acentoOscuro),
                   SizedBox(width: 4),
                   Text('Elegido según tu texto',
@@ -760,7 +760,7 @@ class _BotonDictar extends StatelessWidget {
                         style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: escuchando ? Paleta.rojo : null)),
                     const SizedBox(height: 2),
                     Text(escuchando ? 'Habla ahora. Toca para terminar.' : 'Toca el micrófono y habla, sin escribir',
-                        style: const TextStyle(color: Paleta.gris, fontSize: 14, height: 1.3)),
+                        style: TextStyle(color: Paleta.gris, fontSize: 14, height: 1.3)),
                   ]),
                 ),
               ]),
@@ -854,7 +854,7 @@ class _ChipFrase extends StatelessWidget {
       label: 'Usar la frase: ${frase.texto}',
       excludeSemantics: true,
       child: Material(
-        color: seleccionada ? primario : Colors.white,
+        color: seleccionada ? primario : Paleta.superficie,
         shape: StadiumBorder(side: BorderSide(color: seleccionada ? primario : Paleta.linea)),
         child: InkWell(
           customBorder: const StadiumBorder(),

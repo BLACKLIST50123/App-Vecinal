@@ -3,56 +3,66 @@ import 'package:google_fonts/google_fonts.dart';
 
 /// Paleta del proyecto: azul marino #1E293B, crema #FAF8F5, blanco,
 /// naranja #E8956B y rojo alerta crítica #E53935.
+///
+/// Cada color tiene versión clara y oscura; [oscuro] elige cuál. Son getters
+/// (no const) para que toda la app cambie de tema sin tocar cada pantalla.
 class Paleta {
-  // Principal (azul marino) y sus variantes.
-  static const primario = Color(0xFF1E293B);
-  static const primarioOscuro = Color(0xFF0F172A);
-  static const primarioClaro = Color(0xFF334155);
-  static const primarioSuave = Color(0xFFE8ECF2);
-  // Fondo.
-  static const crema = Color(0xFFFAF8F5);
+  static bool oscuro = false;
+  static Color _c(int claro, int noche) => Color(oscuro ? noche : claro);
+
+  // Principal (azul marino) y sus variantes. En oscuro, un azul que se lee
+  // sobre fondo oscuro y sigue llevando texto blanco encima.
+  static Color get primario => _c(0xFF1E293B, 0xFF3B82F6);
+  static Color get primarioOscuro => _c(0xFF0F172A, 0xFFF1F5F9);
+  static Color get primarioClaro => _c(0xFF334155, 0xFFCBD5E1);
+  static Color get primarioSuave => _c(0xFFE8ECF2, 0xFF273449);
+  // Fondo de pantalla y de tarjetas.
+  static Color get crema => _c(0xFFFAF8F5, 0xFF0F172A);
+  static Color get superficie => _c(0xFFFFFFFF, 0xFF1E293B);
+  // Banda oscura con texto blanco (avisos destacados): marino en ambos temas.
+  static Color get banda => _c(0xFF1E293B, 0xFF334155);
   // Acento naranja.
-  static const acento = Color(0xFFE8956B);
-  static const acentoOscuro = Color(0xFFA9532B); // 5:1 sobre crema (AA)
-  static const acentoSuave = Color(0xFFFCEEE6);
+  static Color get acento => _c(0xFFE8956B, 0xFFE8956B);
+  static Color get acentoOscuro => _c(0xFFA9532B, 0xFFE8956B); // 5:1 sobre crema (AA)
+  static Color get acentoSuave => _c(0xFFFCEEE6, 0xFF3A261C);
   // Texto y líneas.
-  static const tinta = Color(0xFF1E293B);
-  static const gris = Color(0xFF5B6577); // 5.5:1 sobre crema (AA para texto pequeño)
-  static const grisClaro = Color(0xFF94A3B8);
-  static const linea = Color(0xFFE5E7EB);
+  static Color get tinta => _c(0xFF1E293B, 0xFFE2E8F0);
+  static Color get gris => _c(0xFF5B6577, 0xFF94A3B8); // 5.5:1 sobre crema (AA para texto pequeño)
+  static Color get grisClaro => _c(0xFF94A3B8, 0xFF64748B);
+  static Color get linea => _c(0xFFE5E7EB, 0xFF334155);
   // Rojo alerta crítica.
-  static const rojo = Color(0xFFE53935);
-  static const rojoOscuro = Color(0xFFE53935);
-  static const rojoSuave = Color(0xFFFDECEA);
+  static Color get rojo => _c(0xFFE53935, 0xFFE53935);
+  static Color get rojoOscuro => _c(0xFFE53935, 0xFFEF5350);
+  static Color get rojoSuave => _c(0xFFFDECEA, 0xFF3B1F22);
 
   // Superficies y bordes neutros.
-  static const grisFondo = Color(0xFFF1F5F9);
-  static const lineaFuerte = Color(0xFFCBD5E1);
+  static Color get grisFondo => _c(0xFFF1F5F9, 0xFF273449);
+  static Color get lineaFuerte => _c(0xFFCBD5E1, 0xFF475569);
 
   // Colores de estado (los mismos en toda la app). Los de texto cumplen
   // contraste AA sobre blanco o sobre su fondo suave.
-  static const verde = Color(0xFF2E7D32); // atendido, verificado, éxito
-  static const verdeSuave = Color(0xFFE8F5E9);
-  static const verdeClaro = Color(0xFF86EFAC);
-  static const azulInfo = Color(0xFF1565C0); // en atención, información, "estás aquí"
-  static const azulSuave = Color(0xFFE3F2FD);
-  static const violeta = Color(0xFF6A1B9A); // junta vecinal, colectas
-  static const violetaSuave = Color(0xFFF3E5F5);
-  static const rosa = Color(0xFFC2185B); // agradecimientos
-  static const rosaSuave = Color(0xFFFCE4EC);
-  static const ambar = Color(0xFFB45309); // advertencia, pendiente
-  static const ambarSuave = Color(0xFFFEF3C7);
-  static const oro = Color(0xFFFFB300); // reconocimiento
-  static const oroClaro = Color(0xFFFFE082);
-  static const oroFondo = Color(0xFFFFF8E1);
-  static const rojoTexto = Color(0xFFC62828); // texto rojo sobre fondo claro
-  static const whatsapp = Color(0xFF25D366); // color de marca de WhatsApp
+  static Color get verde => _c(0xFF2E7D32, 0xFF43A047); // atendido, verificado, éxito
+  static Color get verdeSuave => _c(0xFFE8F5E9, 0xFF16301F);
+  static Color get verdeClaro => _c(0xFF86EFAC, 0xFF86EFAC);
+  static Color get azulInfo => _c(0xFF1565C0, 0xFF42A5F5); // en atención, información, "estás aquí"
+  static Color get azulSuave => _c(0xFFE3F2FD, 0xFF172B45);
+  static Color get violeta => _c(0xFF6A1B9A, 0xFFBA68C8); // junta vecinal, colectas
+  static Color get violetaSuave => _c(0xFFF3E5F5, 0xFF2D1F3A);
+  static Color get rosa => _c(0xFFC2185B, 0xFFEC407A); // agradecimientos
+  static Color get rosaSuave => _c(0xFFFCE4EC, 0xFF3A1A28);
+  static Color get ambar => _c(0xFFB45309, 0xFFF59E0B); // advertencia, pendiente
+  static Color get ambarSuave => _c(0xFFFEF3C7, 0xFF3A2A12);
+  static Color get oro => _c(0xFFFFB300, 0xFFFFB300); // reconocimiento
+  static Color get oroClaro => _c(0xFFFFE082, 0xFF8A6D1F);
+  static Color get oroFondo => _c(0xFFFFF8E1, 0xFF3A3214);
+  static Color get rojoTexto => _c(0xFFC62828, 0xFFEF9A9A); // texto rojo sobre fondo claro
+  static Color get whatsapp => _c(0xFF25D366, 0xFF25D366); // color de marca de WhatsApp
 
   // Pares (texto, fondo) de las categorías.
-  static const naranja = (Color(0xFFA9532B), Color(0xFFFCEEE6));
-  static const azul = (Color(0xFF334155), Color(0xFFE8ECF2));
-  static const verdeCat = (Color(0xFF397158), Color(0xFFE2F0E8));
-  static const morado = (Color(0xFF725984), Color(0xFFEEE8F2));
+  static (Color, Color) get naranja => (_c(0xFFA9532B, 0xFFF0A882), _c(0xFFFCEEE6, 0xFF3A261C));
+  static (Color, Color) get azul => (_c(0xFF334155, 0xFFCBD5E1), _c(0xFFE8ECF2, 0xFF273449));
+  static (Color, Color) get verdeCat => (_c(0xFF397158, 0xFF7FC8A0), _c(0xFFE2F0E8, 0xFF16301F));
+  static (Color, Color) get morado => (_c(0xFF725984, 0xFFC9A8DE), _c(0xFFEEE8F2, 0xFF2D1F3A));
 }
 
 /// Grupo de un servicio para colores y filtros: servicios, productos o clases.
@@ -90,13 +100,14 @@ TextTheme _dmSans(TextTheme t) => TextTheme(
 
 /// Tema accesible basado en el diseño: DM Sans, fondo crema, tarjetas
 /// blancas con borde fino, botones de al menos 52 px y color distinto en
-/// emergencia. En alto contraste se refuerzan bordes y colores.
+/// emergencia. En alto contraste se refuerzan bordes y colores. Claro u
+/// oscuro según [Paleta.oscuro] (el alto contraste siempre es claro).
 ThemeData construirTema({required bool emergencia, required bool altoContraste}) {
   // En emergencia se mantiene el azul marino: el rojo queda solo para lo
   // crítico (aviso de la junta, SOS, "Necesito ayuda", muy urgente). Si todo
   // fuera rojo, el rojo dejaría de alertar.
-  const primario = Paleta.primario;
-  const suave = Paleta.primarioSuave;
+  final primario = Paleta.primario;
+  final suave = Paleta.primarioSuave;
   final fondo = altoContraste ? Colors.white : Paleta.crema;
   final borde = altoContraste ? Colors.black : Paleta.linea;
 
@@ -109,6 +120,7 @@ ThemeData construirTema({required bool emergencia, required bool altoContraste})
           error: const Color(0xFF8B0000),
         )
       : ColorScheme.fromSeed(
+          brightness: Paleta.oscuro ? Brightness.dark : Brightness.light,
           seedColor: primario,
           primary: primario,
           onPrimary: Colors.white,
@@ -145,7 +157,7 @@ ThemeData construirTema({required bool emergencia, required bool altoContraste})
       titleTextStyle: GoogleFonts.dmSans(fontSize: 20, fontWeight: FontWeight.w700, color: Paleta.tinta),
     ),
     cardTheme: CardThemeData(
-      color: Colors.white,
+      color: Paleta.superficie,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
@@ -165,7 +177,7 @@ ThemeData construirTema({required bool emergencia, required bool altoContraste})
       style: OutlinedButton.styleFrom(
         minimumSize: const Size(64, 52),
         shape: redondeo15,
-        backgroundColor: Colors.white,
+        backgroundColor: Paleta.superficie,
         side: BorderSide(color: borde, width: altoContraste ? 2 : 1),
         textStyle: GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.w700),
       ),
@@ -185,15 +197,15 @@ ThemeData construirTema({required bool emergencia, required bool altoContraste})
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: Colors.white,
+      fillColor: Paleta.superficie,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: borde)),
       enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: borde)),
       focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: primario, width: 2)),
-      hintStyle: const TextStyle(color: Paleta.gris),
+      hintStyle: TextStyle(color: Paleta.gris),
     ),
     chipTheme: base.chipTheme.copyWith(
-      backgroundColor: Colors.white,
+      backgroundColor: Paleta.superficie,
       selectedColor: suave,
       checkmarkColor: primario,
       side: BorderSide(color: borde),
@@ -204,7 +216,7 @@ ThemeData construirTema({required bool emergencia, required bool altoContraste})
     ),
     segmentedButtonTheme: SegmentedButtonThemeData(
       style: SegmentedButton.styleFrom(
-        backgroundColor: Colors.white,
+        backgroundColor: Paleta.superficie,
         selectedBackgroundColor: primario,
         selectedForegroundColor: Colors.white,
         foregroundColor: Paleta.gris,
@@ -213,7 +225,7 @@ ThemeData construirTema({required bool emergencia, required bool altoContraste})
       ),
     ),
     navigationBarTheme: NavigationBarThemeData(
-      backgroundColor: Colors.white,
+      backgroundColor: Paleta.superficie,
       surfaceTintColor: Colors.transparent,
       indicatorColor: suave,
       indicatorShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
@@ -229,10 +241,10 @@ ThemeData construirTema({required bool emergencia, required bool altoContraste})
     listTileTheme: ListTileThemeData(iconColor: primario, titleTextStyle: GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.w600, color: Paleta.tinta)),
     dividerTheme: DividerThemeData(color: borde, thickness: 1),
     bottomSheetTheme: BottomSheetThemeData(backgroundColor: fondo, surfaceTintColor: Colors.transparent),
-    dialogTheme: DialogThemeData(backgroundColor: Colors.white, surfaceTintColor: Colors.transparent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24))),
+    dialogTheme: DialogThemeData(backgroundColor: Paleta.superficie, surfaceTintColor: Colors.transparent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24))),
     snackBarTheme: SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
-      backgroundColor: Paleta.tinta,
+      backgroundColor: Paleta.banda,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
     ),
   );

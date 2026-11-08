@@ -25,10 +25,10 @@ class _MapaScreenState extends State<MapaScreen> {
   final MapController _mapController = MapController();
   bool _servicios = true, _pedidos = true, _ofertas = true, _comoLista = false;
 
-  static const _cServicio = Paleta.azulInfo;
-  static const _cPedido = Paleta.ambar;
-  static const _cOferta = Paleta.verde;
-  static const _cCritico = Paleta.rojo;
+  static Color get _cServicio => Paleta.azulInfo;
+  static Color get _cPedido => Paleta.ambar;
+  static Color get _cOferta => Paleta.verde;
+  static Color get _cCritico => Paleta.rojo;
 
   void _verDetalle(Widget tarjeta) => showModalBottomSheet<void>(
         context: context,
@@ -70,21 +70,21 @@ class _MapaScreenState extends State<MapaScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           children: [
             FilterChip(
-              avatar: const CircleAvatar(backgroundColor: _cServicio, radius: 8),
+              avatar: CircleAvatar(backgroundColor: _cServicio, radius: 8),
               label: Text(emergencia ? 'Grupos de apoyo' : 'Servicios'),
               selected: _servicios,
               onSelected: (v) => setState(() => _servicios = v),
             ),
             const SizedBox(width: 8),
             FilterChip(
-              avatar: const CircleAvatar(backgroundColor: _cPedido, radius: 8),
+              avatar: CircleAvatar(backgroundColor: _cPedido, radius: 8),
               label: const Text('Necesitan ayuda'),
               selected: _pedidos,
               onSelected: (v) => setState(() => _pedidos = v),
             ),
             const SizedBox(width: 8),
             FilterChip(
-              avatar: const CircleAvatar(backgroundColor: _cOferta, radius: 8),
+              avatar: CircleAvatar(backgroundColor: _cOferta, radius: 8),
               label: Text(emergencia ? 'Para compartir' : 'Ofrecen'),
               selected: _ofertas,
               onSelected: (v) => setState(() => _ofertas = v),
@@ -98,7 +98,7 @@ class _MapaScreenState extends State<MapaScreen> {
             if (!widget.esPantallaCompleta) ...[
               const SizedBox(width: 8),
               ActionChip(
-                avatar: const Icon(Icons.fullscreen, color: Paleta.azulInfo),
+                avatar: Icon(Icons.fullscreen, color: Paleta.azulInfo),
                 label: const Text('Pantalla completa'),
                 onPressed: () => Navigator.push(
                   context,
@@ -191,7 +191,7 @@ class _MapaScreenState extends State<MapaScreen> {
                 ),
               ),
               if (!st.online)
-                const Positioned(
+                Positioned(
                   top: 8,
                   left: 8,
                   right: 8,

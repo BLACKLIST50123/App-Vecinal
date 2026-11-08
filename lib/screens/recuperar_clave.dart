@@ -16,7 +16,7 @@ Future<void> mostrarCodigoRecuperacion(BuildContext context, String codigo, {Str
       context: context,
       barrierDismissible: false,
       builder: (c) => AlertDialog(
-        icon: const Icon(Icons.key_rounded, size: 40, color: Paleta.acentoOscuro),
+        icon: Icon(Icons.key_rounded, size: 40, color: Paleta.acentoOscuro),
         title: Text(titulo ?? 'Tu código para recuperar tu clave', textAlign: TextAlign.center),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
           const Text('Si un día olvidas tu clave, con este código pones una nueva en segundos.', textAlign: TextAlign.center),
@@ -35,7 +35,7 @@ Future<void> mostrarCodigoRecuperacion(BuildContext context, String codigo, {Str
             ),
           ),
           const SizedBox(height: 12),
-          const Text('Anótalo en un papel o tómale una captura. Sirve una sola vez.',
+          Text('Anótalo en un papel o tómale una captura. Sirve una sola vez.',
               textAlign: TextAlign.center, style: TextStyle(color: Paleta.gris)),
           const SizedBox(height: 12),
           Row(children: [
@@ -153,7 +153,7 @@ class _RecuperarClaveScreenState extends State<RecuperarClaveScreen> {
             const Text('Pon una clave nueva con tu código',
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, letterSpacing: -0.4)),
             const SizedBox(height: 6),
-            const Text('Es el código de 8 letras y números que te dimos al crear tu cuenta.',
+            Text('Es el código de 8 letras y números que te dimos al crear tu cuenta.',
                 style: TextStyle(color: Paleta.gris, fontSize: 15)),
             const SizedBox(height: 16),
             SegmentedButton<bool>(
@@ -233,7 +233,7 @@ class _RecuperarClaveScreenState extends State<RecuperarClaveScreen> {
                 padding: const EdgeInsets.only(top: 12),
                 child: Semantics(
                   liveRegion: true,
-                  child: Text(_error!, style: const TextStyle(color: Paleta.rojoTexto, fontWeight: FontWeight.bold, fontSize: 16)),
+                  child: Text(_error!, style: TextStyle(color: Paleta.rojoTexto, fontWeight: FontWeight.bold, fontSize: 16)),
                 ),
               ),
             const SizedBox(height: 20),
@@ -259,7 +259,7 @@ class _RecuperarClaveScreenState extends State<RecuperarClaveScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(color: Paleta.azulSuave, borderRadius: BorderRadius.circular(16)),
-              child: const Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Icon(Icons.support_agent, color: Paleta.azulInfo),
                 SizedBox(width: 12),
                 Expanded(

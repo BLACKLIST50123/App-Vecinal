@@ -127,15 +127,15 @@ class _PulsoBarrioState extends State<PulsoBarrio> {
       margin: const EdgeInsets.fromLTRB(16, 4, 16, 0),
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Paleta.primario, Paleta.primarioClaro],
+          colors: const [Color(0xFF1E293B), Color(0xFF334155)], // banda marino en ambos temas
         ),
         borderRadius: BorderRadius.circular(18),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        const Row(children: [
+        Row(children: [
           Icon(Icons.sensors_rounded, size: 16, color: Paleta.verdeClaro),
           SizedBox(width: 6),
           Text('AHORA EN TU BARRIO',
@@ -185,7 +185,7 @@ class _PulsoBarrioState extends State<PulsoBarrio> {
                   padding: const EdgeInsets.only(top: 6, left: 30),
                   child: Text(
                     d.actualizado == null ? 'Sin señal' : 'Sin señal · actualizado ${haceCuanto(d.actualizado!)}',
-                    style: const TextStyle(fontSize: 12, color: Paleta.lineaFuerte),
+                    style: TextStyle(fontSize: 12, color: Paleta.lineaFuerte),
                   ),
                 ),
             ]);
@@ -200,7 +200,7 @@ class _PulsoBarrioState extends State<PulsoBarrio> {
 class BotonInvitarWhatsapp extends StatelessWidget {
   const BotonInvitarWhatsapp({super.key});
 
-  static const _verde = Paleta.whatsapp;
+  static Color get _verde => Paleta.whatsapp;
 
   @override
   Widget build(BuildContext context) {

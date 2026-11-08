@@ -110,7 +110,7 @@ class _PanelSosState extends State<PanelSos> {
                     : _anteriores
                         ? 'Enviados antes de que se activara esta emergencia, del más reciente al más antiguo.'
                         : 'Enviados desde que se activó la emergencia, del más reciente al más antiguo. Toca uno para actuar.',
-                style: const TextStyle(fontSize: 14, color: Paleta.gris),
+                style: TextStyle(fontSize: 14, color: Paleta.gris),
               ),
             ),
             if (lista.isEmpty)
@@ -131,7 +131,7 @@ class _Vacio extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: Text(texto, style: const TextStyle(color: Paleta.gris)));
+      Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: Text(texto, style: TextStyle(color: Paleta.gris)));
 }
 
 (String, Color) _estadoSos(Publicacion p) => switch (p.estado) {
@@ -155,7 +155,7 @@ class _TarjetaSos extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Paleta.superficie,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: abierto && p.estado == 'abierta' ? Paleta.rojo.withValues(alpha: 0.5) : Paleta.linea),
       ),
@@ -179,7 +179,7 @@ class _TarjetaSos extends StatelessWidget {
                     child: Text('${_tipoAviso(p)} · ${cat.nombre}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Paleta.tinta)),
+                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Paleta.tinta)),
                   ),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -188,7 +188,7 @@ class _TarjetaSos extends StatelessWidget {
                   ),
                 ]),
                 const SizedBox(height: 2),
-                Text(_fechaExacta(p.creado), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Paleta.tinta)),
+                Text(_fechaExacta(p.creado), style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Paleta.tinta)),
                 Text(
                   [
                     if (p.sector != null) p.sector!,
@@ -197,14 +197,14 @@ class _TarjetaSos extends StatelessWidget {
                   ].join(' · '),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 13, color: Paleta.gris),
+                  style: TextStyle(fontSize: 13, color: Paleta.gris),
                 ),
                 if (p.atendidoPor != null && p.estado == 'en_curso')
                   const Text('Asignado a un brigadista',
                       style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF1D4ED8))),
               ]),
             ),
-            const Icon(Icons.chevron_right_rounded, color: Paleta.grisClaro),
+            Icon(Icons.chevron_right_rounded, color: Paleta.grisClaro),
           ]),
         ),
       ),
@@ -337,7 +337,7 @@ class _AccionesSos extends StatelessWidget {
           const SizedBox(height: 16),
 
           // 1 ─ Derivar a autoridades (lo más importante en una emergencia real)
-          const Text('Derivar a las autoridades', style: TextStyle(fontWeight: FontWeight.w800, color: Paleta.tinta)),
+          Text('Derivar a las autoridades', style: TextStyle(fontWeight: FontWeight.w800, color: Paleta.tinta)),
           const SizedBox(height: 6),
           Wrap(spacing: 8, runSpacing: 8, children: [
             for (final n in DatosIniciales.actual.numeros)
@@ -354,7 +354,7 @@ class _AccionesSos extends StatelessWidget {
             icon: const Icon(Icons.share_rounded),
             label: const Text('Enviar los datos por WhatsApp'),
           ),
-          const Text('Para Serenazgo, la comisaría o el grupo de brigadistas: incluye tipo, sector, hora y ubicación.',
+          Text('Para Serenazgo, la comisaría o el grupo de brigadistas: incluye tipo, sector, hora y ubicación.',
               style: TextStyle(fontSize: 12, color: Paleta.gris)),
           const SizedBox(height: 14),
 
@@ -399,7 +399,7 @@ class _AccionesSos extends StatelessWidget {
           // 3 ─ Estado
           if (puedeGestionar) ...[
             const Divider(height: 24),
-            const Text('Cambiar estado', style: TextStyle(fontWeight: FontWeight.w800, color: Paleta.tinta)),
+            Text('Cambiar estado', style: TextStyle(fontWeight: FontWeight.w800, color: Paleta.tinta)),
             const SizedBox(height: 6),
             Wrap(spacing: 8, runSpacing: 8, children: [
               if (p.estado != 'en_curso')

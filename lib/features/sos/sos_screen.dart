@@ -12,7 +12,6 @@ import '../../screens/qr_screens.dart';
 import '../../services/ubicacion.dart';
 import '../../state/app_state.dart';
 import '../../util.dart';
-import 'sos_navegacion.dart';
 import 'sos_tipos.dart';
 import '../../ui/tema.dart';
 
@@ -40,15 +39,8 @@ class _SosScreenState extends State<SosScreen> {
   Map<String, dynamic>? _datos;
 
   @override
-  void initState() {
-    super.initState();
-    sosAbierto.value = true;
-  }
-
-  @override
   void dispose() {
     _timer?.cancel();
-    sosAbierto.value = false;
     super.dispose();
   }
 
@@ -307,7 +299,7 @@ class _TarjetaSos extends StatelessWidget {
         label: '${tipo.titulo}. ${tipo.subtitulo}. Toca para reportar.',
         excludeSemantics: true,
         child: Material(
-          color: Colors.white,
+          color: Paleta.superficie,
           borderRadius: BorderRadius.circular(22),
           elevation: 2,
           shadowColor: Colors.black26,
@@ -328,7 +320,7 @@ class _TarjetaSos extends StatelessWidget {
                   child: Icon(tipo.icono, color: tipo.color, size: 30),
                 ),
                 const SizedBox(height: 12),
-                Text(tipo.titulo, style: const TextStyle(color: Paleta.tinta, fontSize: 18, fontWeight: FontWeight.w800)),
+                Text(tipo.titulo, style: TextStyle(color: Paleta.tinta, fontSize: 18, fontWeight: FontWeight.w800)),
                 const SizedBox(height: 2),
                 Text(tipo.subtitulo, style: TextStyle(color: tipo.advertencia ? ColoresSos.ambar : Paleta.gris, fontSize: 14, fontWeight: FontWeight.w600)),
               ]),
@@ -349,23 +341,23 @@ class _CuentaRegresiva extends StatelessWidget {
         liveRegion: true,
         child: Container(
           padding: const EdgeInsets.all(22),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
+          decoration: BoxDecoration(color: Paleta.superficie, borderRadius: BorderRadius.circular(24)),
           child: Column(children: [
             Icon(tipo.icono, color: tipo.color, size: 44),
             const SizedBox(height: 8),
             Text('Enviando "${tipo.titulo}"', textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Paleta.tinta)),
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Paleta.tinta)),
             const SizedBox(height: 10),
             Text('$cuenta', style: TextStyle(fontSize: 72, fontWeight: FontWeight.w900, color: tipo.color, height: 1)),
             const SizedBox(height: 6),
-            const Text('Se enviará solo. Puedes cancelar si fue un error.',
+            Text('Se enviará solo. Puedes cancelar si fue un error.',
                 textAlign: TextAlign.center, style: TextStyle(color: Paleta.gris, fontSize: 15)),
             if (tipo.reservado) ...[
               const SizedBox(height: 10),
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(color: Paleta.grisFondo, borderRadius: BorderRadius.circular(12)),
-                child: const Row(children: [
+                child: Row(children: [
                   Icon(Icons.lock_outline, color: Paleta.tinta),
                   SizedBox(width: 8),
                   Expanded(
@@ -404,8 +396,8 @@ class _Enviando extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.all(28),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
-        child: const Column(children: [
+        decoration: BoxDecoration(color: Paleta.superficie, borderRadius: BorderRadius.circular(24)),
+        child: Column(children: [
           CircularProgressIndicator(color: ColoresSos.rojo, semanticsLabel: 'Enviando reporte'),
           SizedBox(height: 14),
           Text('Enviando tu reporte…', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Paleta.tinta)),
@@ -445,14 +437,14 @@ class _Resultado extends StatelessWidget {
       liveRegion: true,
       child: Container(
         padding: const EdgeInsets.all(22),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
+        decoration: BoxDecoration(color: Paleta.superficie, borderRadius: BorderRadius.circular(24)),
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Icon(icono, size: 52, color: ok ? Paleta.verde : ColoresSos.rojo),
           const SizedBox(height: 8),
           Text(titulo, textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Paleta.tinta)),
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Paleta.tinta)),
           const SizedBox(height: 8),
-          Text(texto, textAlign: TextAlign.center, style: const TextStyle(fontSize: 16, color: Paleta.gris, height: 1.4)),
+          Text(texto, textAlign: TextAlign.center, style: TextStyle(fontSize: 16, color: Paleta.gris, height: 1.4)),
           if (tipo.consejo != null) ...[
             const SizedBox(height: 12),
             Container(
@@ -463,7 +455,7 @@ class _Resultado extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(tipo.consejo!,
-                      style: const TextStyle(color: Paleta.tinta, fontSize: 15, fontWeight: FontWeight.w600, height: 1.35)),
+                      style: TextStyle(color: Paleta.tinta, fontSize: 15, fontWeight: FontWeight.w600, height: 1.35)),
                 ),
               ]),
             ),
@@ -480,7 +472,7 @@ class _Resultado extends StatelessWidget {
           ],
           // Si NO se pudo enviar: nunca decir "guardada"; llamar es lo primero.
           if (!ok) ...[
-            const Text('Llama ahora:',
+            Text('Llama ahora:',
                 textAlign: TextAlign.center, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Paleta.tinta)),
             const SizedBox(height: 8),
             BotonesNumeros(numeros: DatosIniciales.actual.numeros),

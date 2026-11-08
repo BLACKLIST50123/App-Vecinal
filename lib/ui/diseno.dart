@@ -32,7 +32,7 @@ class EncabezadoPantalla extends StatelessWidget {
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               if (subtitulo != null)
-                Text(subtitulo!, style: const TextStyle(color: Paleta.gris, fontSize: 13, fontWeight: FontWeight.w500)),
+                Text(subtitulo!, style: TextStyle(color: Paleta.gris, fontSize: 13, fontWeight: FontWeight.w500)),
               Semantics(
                 header: true,
                 child: Text(titulo,
@@ -65,8 +65,8 @@ class BotonCuadrado extends StatelessWidget {
           label: contador > 0 ? '$tooltip, $contador pendientes' : tooltip,
           excludeSemantics: true,
           child: Material(
-            color: color ?? Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15), side: const BorderSide(color: Paleta.linea)),
+            color: color ?? Paleta.superficie,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15), side: BorderSide(color: Paleta.linea)),
             child: InkWell(
               borderRadius: BorderRadius.circular(15),
               onTap: onTap,
@@ -75,7 +75,7 @@ class BotonCuadrado extends StatelessWidget {
                 height: 48,
                 child: Stack(alignment: Alignment.center, children: [
                   if (texto != null)
-                    Text(texto!, textScaler: TextScaler.noScaling, style: const TextStyle(color: Paleta.gris, fontSize: 19, fontWeight: FontWeight.w800, height: 1))
+                    Text(texto!, textScaler: TextScaler.noScaling, style: TextStyle(color: Paleta.gris, fontSize: 19, fontWeight: FontWeight.w800, height: 1))
                   else
                     Icon(icono, color: Paleta.gris),
                   if (contador > 0)
@@ -121,7 +121,7 @@ class CajaBusqueda extends StatelessWidget {
             hintText: pista,
             labelText: etiqueta,
             floatingLabelBehavior: FloatingLabelBehavior.never,
-            prefixIcon: const Icon(Icons.search, color: Paleta.grisClaro),
+            prefixIcon: Icon(Icons.search, color: Paleta.grisClaro),
             contentPadding: const EdgeInsets.symmetric(vertical: 16),
           ),
         ),
@@ -173,14 +173,14 @@ class TituloDiseno extends StatelessWidget {
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               if (ceja != null)
                 Text(ceja!.toUpperCase(),
-                    style: const TextStyle(color: Paleta.grisClaro, fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 1)),
+                    style: TextStyle(color: Paleta.grisClaro, fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 1)),
               Semantics(
                 header: true,
                 child: Text(titulo, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 19)),
               ),
             ]),
           ),
-          if (detalle != null) Text(detalle!, style: const TextStyle(color: Paleta.gris, fontSize: 13)),
+          if (detalle != null) Text(detalle!, style: TextStyle(color: Paleta.gris, fontSize: 13)),
           if (accion != null) TextButton(onPressed: accion!.$2, child: Text(accion!.$1)),
         ]),
       );
@@ -219,7 +219,7 @@ class AccesoCategoria extends StatelessWidget {
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             IconoCategoria(icono: icono, colores: colores),
             const SizedBox(height: 8),
-            Text(texto, textAlign: TextAlign.center, style: const TextStyle(color: Paleta.gris, fontSize: 13, fontWeight: FontWeight.w600)),
+            Text(texto, textAlign: TextAlign.center, style: TextStyle(color: Paleta.gris, fontSize: 13, fontWeight: FontWeight.w600)),
           ]),
         ),
       );
@@ -234,14 +234,14 @@ class BannerDegradado extends StatelessWidget {
     this.subtitulo,
     required this.colores,
     this.onTap,
-    this.colorIcono = Paleta.ambarSuave,
+    this.colorIcono,
   });
   final IconData icono;
   final String titulo;
   final String? subtitulo;
   final List<Color> colores;
   final VoidCallback? onTap;
-  final Color colorIcono;
+  final Color? colorIcono;
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -263,7 +263,7 @@ class BannerDegradado extends StatelessWidget {
                     width: 52,
                     height: 52,
                     decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(17)),
-                    child: Icon(icono, color: colorIcono, size: 30),
+                    child: Icon(icono, color: colorIcono ?? Paleta.ambarSuave, size: 30),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -293,15 +293,15 @@ class _PieServicio extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Row(children: [
         if (s.pendiente)
-          const Text('Por enviar', style: TextStyle(fontWeight: FontWeight.w700, color: Paleta.gris, fontSize: 13))
+          Text('Por enviar', style: TextStyle(fontWeight: FontWeight.w700, color: Paleta.gris, fontSize: 13))
         else
           Semantics(
             label: '${s.vistosBuenos} Vistos Buenos',
             excludeSemantics: true,
             child: Row(mainAxisSize: MainAxisSize.min, children: [
-              const Icon(Icons.thumb_up_alt_rounded, size: 16, color: Paleta.verde),
+              Icon(Icons.thumb_up_alt_rounded, size: 16, color: Paleta.verde),
               const SizedBox(width: 4),
-              Text('${s.vistosBuenos}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Paleta.verde)),
+              Text('${s.vistosBuenos}', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Paleta.verde)),
             ]),
           ),
         const SizedBox(width: 8),
@@ -345,7 +345,7 @@ class TarjetaCerca extends StatelessWidget {
                     style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, height: 1.2)),
                 const SizedBox(height: 2),
                 Text([s.autorNombre ?? 'Vecino', if (dist != null) formatoDistancia(dist)].join(' · '),
-                    maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Paleta.gris, fontSize: 13)),
+                    maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: Paleta.gris, fontSize: 13)),
                 const SizedBox(height: 6),
                 _PieServicio(s),
               ]),
@@ -370,7 +370,7 @@ class TarjetaMercado extends StatelessWidget {
     final colores = colorGrupo(grupo);
     final dist = s.punto == null ? null : distanciaKm(st.referencia, s.punto!);
     final apoyo = grupo == 'apoyo';
-    const naranja = Paleta.acentoOscuro;
+    final naranja = Paleta.acentoOscuro;
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -400,7 +400,7 @@ class TarjetaMercado extends StatelessWidget {
                         style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, height: 1.2)),
                   ),
                   if (s.autorRol == 'organizacion')
-                    const Padding(
+                    Padding(
                       padding: EdgeInsets.only(left: 4),
                       child: Icon(Icons.verified, color: Paleta.azulInfo, size: 16),
                     ),
@@ -408,10 +408,10 @@ class TarjetaMercado extends StatelessWidget {
                 const SizedBox(height: 3),
                 Text([s.autorNombre ?? 'Vecino', if (dist != null) formatoDistancia(dist)].join(' · '),
                     maxLines: 1, overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Paleta.gris, fontSize: 13)),
+                    style: TextStyle(color: Paleta.gris, fontSize: 13)),
                 const SizedBox(height: 4),
                 if (s.pendiente)
-                  const Text('Por enviar', style: TextStyle(fontWeight: FontWeight.w700, color: Paleta.gris, fontSize: 13))
+                  Text('Por enviar', style: TextStyle(fontWeight: FontWeight.w700, color: Paleta.gris, fontSize: 13))
                 else
                   Semantics(
                     label: apoyo ? 'Ayuda voluntaria' : '${s.vistosBuenos} Vistos Buenos',
@@ -421,14 +421,14 @@ class TarjetaMercado extends StatelessWidget {
                       const SizedBox(width: 4),
                       Text(
                         apoyo ? 'Ayuda voluntaria' : '${s.vistosBuenos} Vistos Buenos',
-                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: naranja),
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: naranja),
                       ),
                     ]),
                   ),
                 if (s.precioRef != null) ...[
                   const SizedBox(height: 3),
                   Text(s.precioRef!, maxLines: 1, overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Paleta.tinta)),
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Paleta.tinta)),
                 ],
               ]),
             ),
@@ -441,7 +441,7 @@ class TarjetaMercado extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: Paleta.linea),
               ),
-              child: const Icon(Icons.chevron_right, color: Paleta.tinta),
+              child: Icon(Icons.chevron_right, color: Paleta.tinta),
             ),
           ]),
         ),
@@ -520,20 +520,23 @@ class ListaAjustes extends StatelessWidget {
   final List<Widget> filas;
 
   @override
-  Widget build(BuildContext context) => Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(19),
-          border: Border.all(color: Paleta.linea),
+  // Material (no Container con color) para que los ListTile pinten su toque.
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Material(
+          color: Paleta.superficie,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(19),
+            side: BorderSide(color: Paleta.linea),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(children: [
+            for (var i = 0; i < filas.length; i++) ...[
+              filas[i],
+              if (i < filas.length - 1) const Divider(height: 1),
+            ],
+          ]),
         ),
-        clipBehavior: Clip.antiAlias,
-        child: Column(children: [
-          for (var i = 0; i < filas.length; i++) ...[
-            filas[i],
-            if (i < filas.length - 1) const Divider(height: 1),
-          ],
-        ]),
       );
 }
 
@@ -564,8 +567,8 @@ class FilaAjuste extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             Expanded(child: Text(texto, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: color ?? Paleta.tinta))),
-            if (valor != null) Text(valor!, style: const TextStyle(color: Paleta.gris, fontSize: 13)),
-            final_ ?? (onTap != null ? const Icon(Icons.chevron_right, color: Paleta.grisClaro) : const SizedBox.shrink()),
+            if (valor != null) Text(valor!, style: TextStyle(color: Paleta.gris, fontSize: 13)),
+            final_ ?? (onTap != null ? Icon(Icons.chevron_right, color: Paleta.grisClaro) : const SizedBox.shrink()),
           ]),
         ),
       ),
@@ -585,7 +588,7 @@ class ImpactoNumero extends StatelessWidget {
           excludeSemantics: true,
           child: Column(children: [
             Text(valor, style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 22, fontWeight: FontWeight.w800)),
-            Text(texto, textAlign: TextAlign.center, style: const TextStyle(color: Paleta.gris, fontSize: 13)),
+            Text(texto, textAlign: TextAlign.center, style: TextStyle(color: Paleta.gris, fontSize: 13)),
           ]),
         ),
       );
