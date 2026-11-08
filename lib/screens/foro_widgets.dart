@@ -11,15 +11,15 @@ import '../ui/widgets.dart';
 /// Paleta armónica para avatares vecinales con vida y color.
 (Color, Color) colorAvatar(String nombre) {
   const paletas = [
-    (Color(0xFFFEE2E2), Color(0xFFDC2626)), // Coral / Rojo
-    (Color(0xFFFFF7ED), Color(0xFFEA580C)), // Naranja cálido
-    (Color(0xFFFEFCE8), Color(0xFFCA8A04)), // Ámbar
-    (Color(0xFFECFDF5), Color(0xFF059669)), // Esmeralda
-    (Color(0xFFF0FDF4), Color(0xFF16A34A)), // Verde
-    (Color(0xFFF0FDFA), Color(0xFF0D9488)), // Turquesa
-    (Color(0xFFF0F9FF), Color(0xFF0284C7)), // Celeste
-    (Color(0xFFEEF2FF), Color(0xFF4F46E5)), // Índigo
-    (Color(0xFFFAF5FF), Color(0xFF9333EA)), // Púrpura
+    (Paleta.rojoSuave, Paleta.rojo), // Coral / Rojo
+    (Paleta.ambarSuave, Paleta.ambar), // Naranja cálido
+    (Paleta.ambarSuave, Paleta.ambar), // Ámbar
+    (Paleta.verdeSuave, Paleta.verde), // Esmeralda
+    (Paleta.verdeSuave, Paleta.verde), // Verde
+    (Paleta.verdeSuave, Paleta.verde), // Turquesa
+    (Paleta.azulSuave, Paleta.azulInfo), // Celeste
+    (Paleta.azulSuave, Paleta.azulInfo), // Índigo
+    (Paleta.violetaSuave, Paleta.violeta), // Púrpura
   ];
   final hash = nombre.codeUnits.fold<int>(0, (prev, elem) => prev + elem);
   return paletas[hash % paletas.length];
@@ -34,17 +34,17 @@ Widget? badgeRolAutor(String? rol) {
     'brigadista' => (
         'Brigadista',
         Icons.health_and_safety_outlined,
-        const Color(0xFFC62828),
+        Paleta.rojoTexto,
       ),
     'lider' || 'lider_comunitario' => (
         'Líder Comunitario',
         Icons.shield_outlined,
-        const Color(0xFF1565C0),
+        Paleta.azulInfo,
       ),
     _ => (
         rol[0].toUpperCase() + rol.substring(1),
         Icons.verified_user_outlined,
-        const Color(0xFF0369A1),
+        Paleta.azulInfo,
       ),
   };
   return Container(
@@ -365,7 +365,7 @@ class TarjetaForo extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             fontSize: 14,
-                            color: Color(0xFF334155),
+                            color: Paleta.primarioClaro,
                             height: 1.45,
                           ),
                         ),
@@ -430,7 +430,7 @@ class TarjetaForo extends StatelessWidget {
                                           : Icons.thumb_up_alt_outlined,
                                       size: 16,
                                       color: tema.apoyadoPorUsuario
-                                          ? const Color(0xFF2E7D32)
+                                          ? Paleta.verde
                                           : Paleta.gris,
                                     ),
                                     const SizedBox(width: 5),
@@ -440,7 +440,7 @@ class TarjetaForo extends StatelessWidget {
                                         fontSize: 13,
                                         fontWeight: FontWeight.w700,
                                         color: tema.apoyadoPorUsuario
-                                            ? const Color(0xFF2E7D32)
+                                            ? Paleta.verde
                                             : Paleta.gris,
                                       ),
                                     ),

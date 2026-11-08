@@ -149,10 +149,10 @@ class _ModalNuevoTemaState extends State<ModalNuevoTema> {
                   ChoiceChip(
                     label: const Text('Comunidad / Diálogo'),
                     selected: _tipo == TipoPublicacionForo.dialogo,
-                    selectedColor: const Color(0xFFD1FAE5),
+                    selectedColor: Paleta.verdeSuave,
                     labelStyle: TextStyle(
                       color: _tipo == TipoPublicacionForo.dialogo
-                          ? const Color(0xFF065F46)
+                          ? Paleta.verde
                           : Paleta.tinta,
                       fontWeight: FontWeight.w600,
                       fontSize: 12.5,
@@ -163,10 +163,10 @@ class _ModalNuevoTemaState extends State<ModalNuevoTema> {
                   ChoiceChip(
                     label: const Text('Recomendación'),
                     selected: _tipo == TipoPublicacionForo.recomendacion,
-                    selectedColor: const Color(0xFFFEF3C7),
+                    selectedColor: Paleta.ambarSuave,
                     labelStyle: TextStyle(
                       color: _tipo == TipoPublicacionForo.recomendacion
-                          ? const Color(0xFF92400E)
+                          ? Paleta.ambar
                           : Paleta.tinta,
                       fontWeight: FontWeight.w600,
                       fontSize: 12.5,
@@ -178,10 +178,10 @@ class _ModalNuevoTemaState extends State<ModalNuevoTema> {
                   ChoiceChip(
                     label: const Text('Aviso vecinal'),
                     selected: _tipo == TipoPublicacionForo.aviso,
-                    selectedColor: const Color(0xFFF3E8FF),
+                    selectedColor: Paleta.violetaSuave,
                     labelStyle: TextStyle(
                       color: _tipo == TipoPublicacionForo.aviso
-                          ? const Color(0xFF6B21A8)
+                          ? Paleta.violeta
                           : Paleta.tinta,
                       fontWeight: FontWeight.w600,
                       fontSize: 12.5,
@@ -393,7 +393,7 @@ class _ModalRecomendarPrestadorState extends State<ModalRecomendarPrestador> {
           const SnackBar(
             content: Text('¡Recomendación compartida con éxito!'),
             behavior: SnackBarBehavior.floating,
-            backgroundColor: Color(0xFF16A34A),
+            backgroundColor: Paleta.verde,
           ),
         );
       }
@@ -447,12 +447,12 @@ class _ModalRecomendarPrestadorState extends State<ModalRecomendarPrestador> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFEF3C7),
+                      color: Paleta.ambarSuave,
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: const Icon(
                       Icons.recommend_rounded,
-                      color: Color(0xFFD97706),
+                      color: Paleta.ambar,
                       size: 22,
                     ),
                   ),
@@ -554,7 +554,7 @@ class _ModalRecomendarPrestadorState extends State<ModalRecomendarPrestador> {
                 width: double.infinity,
                 child: FilledButton.icon(
                   style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF16A34A),
+                    backgroundColor: Paleta.verde,
                     padding: const EdgeInsets.symmetric(vertical: 13),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),

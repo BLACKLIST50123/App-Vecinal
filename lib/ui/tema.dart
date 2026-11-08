@@ -25,6 +25,29 @@ class Paleta {
   static const rojoOscuro = Color(0xFFE53935);
   static const rojoSuave = Color(0xFFFDECEA);
 
+  // Superficies y bordes neutros.
+  static const grisFondo = Color(0xFFF1F5F9);
+  static const lineaFuerte = Color(0xFFCBD5E1);
+
+  // Colores de estado (los mismos en toda la app). Los de texto cumplen
+  // contraste AA sobre blanco o sobre su fondo suave.
+  static const verde = Color(0xFF2E7D32); // atendido, verificado, éxito
+  static const verdeSuave = Color(0xFFE8F5E9);
+  static const verdeClaro = Color(0xFF86EFAC);
+  static const azulInfo = Color(0xFF1565C0); // en atención, información, "estás aquí"
+  static const azulSuave = Color(0xFFE3F2FD);
+  static const violeta = Color(0xFF6A1B9A); // junta vecinal, colectas
+  static const violetaSuave = Color(0xFFF3E5F5);
+  static const rosa = Color(0xFFC2185B); // agradecimientos
+  static const rosaSuave = Color(0xFFFCE4EC);
+  static const ambar = Color(0xFFB45309); // advertencia, pendiente
+  static const ambarSuave = Color(0xFFFEF3C7);
+  static const oro = Color(0xFFFFB300); // reconocimiento
+  static const oroClaro = Color(0xFFFFE082);
+  static const oroFondo = Color(0xFFFFF8E1);
+  static const rojoTexto = Color(0xFFC62828); // texto rojo sobre fondo claro
+  static const whatsapp = Color(0xFF25D366); // color de marca de WhatsApp
+
   // Pares (texto, fondo) de las categorías.
   static const naranja = (Color(0xFFA9532B), Color(0xFFFCEEE6));
   static const azul = (Color(0xFF334155), Color(0xFFE8ECF2));
@@ -91,9 +114,9 @@ ThemeData construirTema({required bool emergencia, required bool altoContraste})
           surface: fondo,
           onSurface: Paleta.tinta,
           onSurfaceVariant: Paleta.gris,
-          outline: const Color(0xFF94A3B8),
+          outline: Paleta.grisClaro,
           outlineVariant: Paleta.linea,
-          surfaceContainerHighest: const Color(0xFFF1F5F9),
+          surfaceContainerHighest: Paleta.grisFondo,
         );
 
   final base = ThemeData(colorScheme: esquema, useMaterial3: true, scaffoldBackgroundColor: fondo);
@@ -164,7 +187,7 @@ ThemeData construirTema({required bool emergencia, required bool altoContraste})
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: borde)),
       enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: borde)),
       focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: primario, width: 2)),
-      hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
+      hintStyle: const TextStyle(color: Paleta.gris),
     ),
     chipTheme: base.chipTheme.copyWith(
       backgroundColor: Colors.white,
@@ -181,7 +204,7 @@ ThemeData construirTema({required bool emergencia, required bool altoContraste})
         backgroundColor: Colors.white,
         selectedBackgroundColor: primario,
         selectedForegroundColor: Colors.white,
-        foregroundColor: const Color(0xFF64748B),
+        foregroundColor: Paleta.gris,
         side: BorderSide(color: borde),
         textStyle: GoogleFonts.dmSans(fontSize: 14, fontWeight: FontWeight.w600),
       ),
