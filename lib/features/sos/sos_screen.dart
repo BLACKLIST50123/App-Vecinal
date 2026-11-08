@@ -523,7 +523,7 @@ class _TarjetaAtajo extends StatelessWidget {
               Text('Atajo con botones físicos', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
               SizedBox(height: 4),
               Text(
-                'Con App Vecinal abierta, presiona 3 veces seguidas cualquier botón de volumen para abrir el SOS sin mirar la pantalla.',
+                'Con Conecta Vecino abierta, presiona 3 veces seguidas cualquier botón de volumen para abrir el SOS sin mirar la pantalla.',
                 style: TextStyle(color: Color(0xF2FFFFFF), fontSize: 14, height: 1.4),
               ),
             ]),
