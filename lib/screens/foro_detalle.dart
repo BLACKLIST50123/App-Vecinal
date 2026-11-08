@@ -28,11 +28,15 @@ class DetalleTemaForoScreen extends StatefulWidget {
 
 class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
   final TextEditingController _respuestaCtrl = TextEditingController();
+  FocusNode? _focusNode;
+  FocusNode get _nodoFoco => _focusNode ??= FocusNode();
+  String? _respondiendoA;
   bool _enviando = false;
 
   @override
   void dispose() {
     _respuestaCtrl.dispose();
+    _focusNode?.dispose();
     super.dispose();
   }
 
@@ -56,14 +60,17 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
     setState(() => _enviando = true);
 
     try {
+      final aQuien = _respondiendoA;
       await st.repo.crearRespuestaForo({
         'tema_id': widget.tema.id,
         'autor_id': st.uid,
         'contenido': texto,
         'sector': st.sector,
+        if (aQuien != null && aQuien.isNotEmpty) 'respondiendo_a': aQuien,
       });
 
       _respuestaCtrl.clear();
+      setState(() => _respondiendoA = null);
       st.refrescar();
 
       if (mounted) {
@@ -265,12 +272,12 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                         Container(width: 5, color: colorTipo),
                         Expanded(
                           child: Padding(
-                            padding: const EdgeInsets.all(18),
+                            padding: const EdgeInsets.all(16),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
                                     CircleAvatar(
                                       radius: 20,
@@ -287,6 +294,7 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                                     Expanded(
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
+                                        mainAxisSize: MainAxisSize.min,
                                         children: [
                                           Row(
                                             children: [
@@ -307,6 +315,7 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                                               ],
                                             ],
                                           ),
+                                          const SizedBox(height: 2),
                                           Text(
                                             '${t.sector} · ${t.tiempoRelativo}',
                                             style: const TextStyle(
@@ -318,62 +327,67 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                                       ),
                                     ),
                                     const SizedBox(width: 8),
-                                    if (t.estado == 'resuelto') ...[
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 7,
-                                          vertical: 3,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFDCFCE7),
-                                          borderRadius: BorderRadius.circular(6),
-                                          border: Border.all(color: const Color(0xFF86EFAC)),
-                                        ),
-                                        child: const Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Icon(Icons.check_circle, size: 11, color: Color(0xFF16A34A)),
-                                            SizedBox(width: 3),
-                                            Text(
-                                              'Resuelto',
-                                              style: TextStyle(
-                                                color: Color(0xFF166534),
-                                                fontSize: 10,
-                                                fontWeight: FontWeight.w700,
-                                              ),
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        if (t.estado == 'resuelto') ...[
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 6,
+                                              vertical: 3,
                                             ),
-                                          ],
-                                        ),
-                                      ),
-                                      const SizedBox(width: 6),
-                                    ],
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 4,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: fondoTipo,
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(
-                                          color: colorTipo.withValues(alpha: 0.25),
-                                        ),
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(iconoTipo, size: 13, color: colorTipo),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            nombreTipo,
-                                            style: TextStyle(
-                                              color: colorTipo,
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.w700,
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFDCFCE7),
+                                              borderRadius: BorderRadius.circular(6),
+                                              border: Border.all(color: const Color(0xFF86EFAC)),
+                                            ),
+                                            child: const Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(Icons.check_circle, size: 10, color: Color(0xFF16A34A)),
+                                                SizedBox(width: 2.5),
+                                                Text(
+                                                  'Resuelto',
+                                                  style: TextStyle(
+                                                    color: Color(0xFF166534),
+                                                    fontSize: 9.5,
+                                                    fontWeight: FontWeight.w700,
+                                                  ),
+                                                ),
+                                              ],
                                             ),
                                           ),
+                                          const SizedBox(width: 5),
                                         ],
-                                      ),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 4,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: fondoTipo,
+                                            borderRadius: BorderRadius.circular(8),
+                                            border: Border.all(
+                                              color: colorTipo.withValues(alpha: 0.25),
+                                            ),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(iconoTipo, size: 12, color: colorTipo),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                nombreTipo,
+                                                style: TextStyle(
+                                                  color: colorTipo,
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w700,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 ),
@@ -388,7 +402,7 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                                     color: Paleta.tinta,
                                   ),
                                 ),
-                                const SizedBox(height: 10),
+                                const SizedBox(height: 8),
                                 Text(
                                   t.contenido,
                                   style: const TextStyle(
@@ -433,7 +447,7 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                                     ),
                                   ),
                                 ],
-                                const SizedBox(height: 16),
+                                const SizedBox(height: 14),
                                 Row(
                                   children: [
                                     Icon(
@@ -573,6 +587,10 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                       children: respuestas
                           .map((r) => TarjetaRespuesta(
                                 r: r,
+                                onResponder: () {
+                                  setState(() => _respondiendoA = r.autorNombre);
+                                  _nodoFoco.requestFocus();
+                                },
                                 onEliminar: () async {
                                   final confirmar = await showDialog<bool>(
                                     context: context,
@@ -615,6 +633,41 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
             ),
           ),
 
+          // Banner si se está respondiendo a un comentario específico
+          if (_respondiendoA != null)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEFF6FF),
+                border: Border(top: BorderSide(color: Colors.blue.shade100)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.reply_rounded, size: 16, color: Color(0xFF1D4ED8)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Respondiendo a @$_respondiendoA',
+                      style: const TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1D4ED8),
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  InkWell(
+                    onTap: () => setState(() => _respondiendoA = null),
+                    borderRadius: BorderRadius.circular(12),
+                    child: const Padding(
+                      padding: EdgeInsets.all(4),
+                      child: Icon(Icons.close_rounded, size: 18, color: Paleta.gris),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
           // Caja fija inferior para responder
           Container(
             padding: const EdgeInsets.fromLTRB(12, 10, 16, 24),
@@ -639,11 +692,14 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                 Expanded(
                   child: TextField(
                     controller: _respuestaCtrl,
+                    focusNode: _nodoFoco,
                     textCapitalization: TextCapitalization.sentences,
                     decoration: InputDecoration(
-                      hintText: t.tipo == TipoPublicacionForo.servicio
-                          ? 'Escribe tu respuesta o recomendación...'
-                          : 'Escribe tu respuesta...',
+                      hintText: _respondiendoA != null
+                          ? 'Escribe tu respuesta a @$_respondiendoA...'
+                          : (t.tipo == TipoPublicacionForo.servicio
+                              ? 'Escribe tu respuesta o recomendación...'
+                              : 'Escribe tu respuesta...'),
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 12,

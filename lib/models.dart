@@ -28,6 +28,7 @@ class Servicio {
     this.esEmergencia = false,
     this.activo = true,
     this.vistosBuenos = 0,
+    this.respondiendoA,
     this.pendiente = false,
     DateTime? creado,
   }) : creado = creado ?? DateTime.now();
@@ -40,6 +41,7 @@ class Servicio {
   final bool esEmergencia;
   final bool activo;
   final int vistosBuenos;
+  final String? respondiendoA;
   final bool pendiente;
   final DateTime creado;
 
@@ -540,6 +542,7 @@ class RespuestaForo {
     this.nombreComercial,
     this.servicioId,
     this.vistosBuenos = 0,
+    this.respondiendoA,
     required this.creado,
   });
 
@@ -556,6 +559,7 @@ class RespuestaForo {
   final String? nombreComercial;
   final String? servicioId;
   final int vistosBuenos;
+  final String? respondiendoA;
   final DateTime creado;
 
   String get tiempoRelativo {
@@ -587,6 +591,7 @@ class RespuestaForo {
       nombreComercial: m['nombre_comercial'] as String?,
       servicioId: m['servicio_id'] as String?,
       vistosBuenos: (m['vistos_buenos'] as num?)?.toInt() ?? 0,
+      respondiendoA: m['respondiendo_a'] as String?,
       creado: DateTime.tryParse(m['created_at']?.toString() ?? '')?.toLocal() ?? DateTime.now(),
     );
   }

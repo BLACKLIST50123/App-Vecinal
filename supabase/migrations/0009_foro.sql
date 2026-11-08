@@ -54,6 +54,7 @@ create table if not exists public.foro_respuestas (
   contacto_telefono   text,
   nombre_comercial    text,
   servicio_id         uuid references public.servicios(id) on delete set null,
+  respondiendo_a      text,
   
   created_at          timestamptz not null default now()
 );

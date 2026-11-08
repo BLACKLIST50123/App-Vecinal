@@ -27,7 +27,9 @@ import '../ui/widgets.dart';
 
 /// Distintivo de rol comunitario (Brigadista o Líder).
 Widget? badgeRolAutor(String? rol) {
-  if (rol == null || rol == 'vecino' || rol.isEmpty) return null;
+  if (rol == null || rol == 'vecino' || rol == 'moderador' || rol.isEmpty) {
+    return null;
+  }
   final (texto, icono, color) = switch (rol.toLowerCase()) {
     'brigadista' => (
         'Brigadista',
@@ -70,8 +72,8 @@ Widget? badgeRolAutor(String? rol) {
   );
 }
 
-/// Tarjeta estructurada de una publicación en el foro vecinal.
-/// Usa borde uniforme y clip para franja izquierda sin causar fallas en Flutter Web.
+/// Tarjeta estructurada de una publicación en el feed del foro vecinal.
+/// Diseño con franja lateral segura, jerarquía visual clara y sin truncamientos incómodos.
 class TarjetaForo extends StatelessWidget {
   const TarjetaForo({
     super.key,
@@ -110,7 +112,7 @@ class TarjetaForo extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Franja lateral con el color de la categoría
+            // Franja lateral con el color distintivo de la categoría
             Container(width: 5, color: colorTipo),
             Expanded(
               child: Material(
@@ -122,12 +124,12 @@ class TarjetaForo extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Cabecera: Autor, Sector, Badges y Menú
+                        // Cabecera: Autor + Categoría alineados limpiamente
                         Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
                             CircleAvatar(
-                              radius: 18,
+                              radius: 19,
                               backgroundColor: bgAvatar,
                               child: Text(
                                 iniciales(tema.autorNombre),
@@ -142,6 +144,7 @@ class TarjetaForo extends StatelessWidget {
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Row(
                                     children: [
@@ -177,7 +180,7 @@ class TarjetaForo extends StatelessWidget {
                                           overflow: TextOverflow.ellipsis,
                                           style: const TextStyle(
                                             color: Paleta.gris,
-                                            fontSize: 12,
+                                            fontSize: 11.5,
                                           ),
                                         ),
                                       ),
@@ -187,148 +190,155 @@ class TarjetaForo extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(width: 8),
-                            if (tema.estado == 'resuelto') ...[
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 7,
-                                  vertical: 3,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFDCFCE7),
-                                  borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(color: const Color(0xFF86EFAC)),
-                                ),
-                                child: const Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(Icons.check_circle, size: 11, color: Color(0xFF16A34A)),
-                                    SizedBox(width: 3),
-                                    Text(
-                                      'Resuelto',
-                                      style: TextStyle(
-                                        color: Color(0xFF166534),
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w700,
-                                      ),
+
+                            // Badges a la derecha
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (tema.estado == 'resuelto') ...[
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 3,
                                     ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                            ],
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: fondoTipo,
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: colorTipo.withValues(alpha: 0.25),
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(iconoTipo, size: 12, color: colorTipo),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    nombreTipo,
-                                    style: TextStyle(
-                                      color: colorTipo,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFDCFCE7),
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(color: const Color(0xFF86EFAC)),
+                                    ),
+                                    child: const Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.check_circle, size: 10, color: Color(0xFF16A34A)),
+                                        SizedBox(width: 2.5),
+                                        Text(
+                                          'Resuelto',
+                                          style: TextStyle(
+                                            color: Color(0xFF166534),
+                                            fontSize: 9.5,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
+                                  const SizedBox(width: 5),
                                 ],
-                              ),
-                            ),
-                            if (esMiTema) ...[
-                              const SizedBox(width: 2),
-                              PopupMenuButton<String>(
-                                icon: const Icon(Icons.more_vert, size: 18, color: Paleta.gris),
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                                tooltip: 'Opciones de mi publicación',
-                                onSelected: (accion) async {
-                                  if (accion == 'eliminar') {
-                                    final confirmar = await showDialog<bool>(
-                                      context: context,
-                                      builder: (ctx) => AlertDialog(
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(18),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: fondoTipo,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: colorTipo.withValues(alpha: 0.25),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(iconoTipo, size: 12, color: colorTipo),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        nombreTipo,
+                                        style: TextStyle(
+                                          color: colorTipo,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w700,
                                         ),
-                                        title: const Text('¿Eliminar publicación?'),
-                                        content: const Text(
-                                          'Esta acción borrará la consulta del foro permanentemente.',
-                                        ),
-                                        actions: [
-                                          TextButton(
-                                            onPressed: () => Navigator.pop(ctx, false),
-                                            child: const Text('Cancelar'),
-                                          ),
-                                          FilledButton(
-                                            style: FilledButton.styleFrom(
-                                              backgroundColor: Paleta.rojo,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                if (esMiTema) ...[
+                                  const SizedBox(width: 2),
+                                  PopupMenuButton<String>(
+                                    icon: const Icon(Icons.more_vert, size: 18, color: Paleta.gris),
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                    tooltip: 'Opciones de mi publicación',
+                                    onSelected: (accion) async {
+                                      if (accion == 'eliminar') {
+                                        final confirmar = await showDialog<bool>(
+                                          context: context,
+                                          builder: (ctx) => AlertDialog(
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(18),
                                             ),
-                                            onPressed: () => Navigator.pop(ctx, true),
-                                            child: const Text('Eliminar'),
+                                            title: const Text('¿Eliminar publicación?'),
+                                            content: const Text(
+                                              'Esta acción borrará la consulta del foro permanentemente.',
+                                            ),
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () => Navigator.pop(ctx, false),
+                                                child: const Text('Cancelar'),
+                                              ),
+                                              FilledButton(
+                                                style: FilledButton.styleFrom(
+                                                  backgroundColor: Paleta.rojo,
+                                                ),
+                                                onPressed: () => Navigator.pop(ctx, true),
+                                                child: const Text('Eliminar'),
+                                              ),
+                                            ],
                                           ),
-                                        ],
+                                        );
+                                        if (confirmar == true) {
+                                          await st.repo.eliminarTemaForo(tema.id);
+                                          st.refrescar();
+                                        }
+                                      } else if (accion == 'resolver') {
+                                        final nuevoEstado =
+                                            tema.estado == 'resuelto' ? 'abierto' : 'resuelto';
+                                        await st.repo.cambiarEstadoTemaForo(
+                                          tema.id,
+                                          nuevoEstado,
+                                        );
+                                        st.refrescar();
+                                      }
+                                    },
+                                    itemBuilder: (_) => [
+                                      PopupMenuItem(
+                                        value: 'resolver',
+                                        child: Row(
+                                          children: [
+                                            Icon(
+                                              tema.estado == 'resuelto'
+                                                  ? Icons.replay
+                                                  : Icons.check_circle_outline,
+                                              size: 18,
+                                              color: const Color(0xFF16A34A),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              tema.estado == 'resuelto'
+                                                  ? 'Reabrir consulta'
+                                                  : 'Marcar como resuelto',
+                                            ),
+                                          ],
+                                        ),
                                       ),
-                                    );
-                                    if (confirmar == true) {
-                                      await st.repo.eliminarTemaForo(tema.id);
-                                      st.refrescar();
-                                    }
-                                  } else if (accion == 'resolver') {
-                                    final nuevoEstado =
-                                        tema.estado == 'resuelto' ? 'abierto' : 'resuelto';
-                                    await st.repo.cambiarEstadoTemaForo(
-                                      tema.id,
-                                      nuevoEstado,
-                                    );
-                                    st.refrescar();
-                                  }
-                                },
-                                itemBuilder: (_) => [
-                                  PopupMenuItem(
-                                    value: 'resolver',
-                                    child: Row(
-                                      children: [
-                                        Icon(
-                                          tema.estado == 'resuelto'
-                                              ? Icons.replay
-                                              : Icons.check_circle_outline,
-                                          size: 18,
-                                          color: const Color(0xFF16A34A),
+                                      const PopupMenuItem(
+                                        value: 'eliminar',
+                                        child: Row(
+                                          children: [
+                                            Icon(Icons.delete_outline, size: 18, color: Paleta.rojo),
+                                            SizedBox(width: 8),
+                                            Text(
+                                              'Eliminar publicación',
+                                              style: TextStyle(color: Paleta.rojo),
+                                            ),
+                                          ],
                                         ),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          tema.estado == 'resuelto'
-                                              ? 'Reabrir consulta'
-                                              : 'Marcar como resuelto',
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  const PopupMenuItem(
-                                    value: 'eliminar',
-                                    child: Row(
-                                      children: [
-                                        Icon(Icons.delete_outline, size: 18, color: Paleta.rojo),
-                                        SizedBox(width: 8),
-                                        Text(
-                                          'Eliminar publicación',
-                                          style: TextStyle(color: Paleta.rojo),
-                                        ),
-                                      ],
-                                    ),
+                                      ),
+                                    ],
                                   ),
                                 ],
-                              ),
-                            ],
+                              ],
+                            ),
                           ],
                         ),
 
@@ -492,16 +502,18 @@ class TarjetaForo extends StatelessWidget {
   }
 }
 
-/// Tarjeta de respuesta en una conversación con soporte para recomendaciones y llamadas.
+/// Tarjeta de respuesta optimizada, limpia y con opción para responder a un usuario específico.
 class TarjetaRespuesta extends StatelessWidget {
   const TarjetaRespuesta({
     super.key,
     required this.r,
     required this.onEliminar,
+    required this.onResponder,
   });
 
   final RespuestaForo r;
   final VoidCallback onEliminar;
+  final VoidCallback onResponder;
 
   @override
   Widget build(BuildContext context) {
@@ -511,25 +523,33 @@ class TarjetaRespuesta extends StatelessWidget {
     final esMiRespuesta = st.uid != null && st.uid == r.autorId;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
+      margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: esPrestador
-              ? Paleta.acento.withValues(alpha: 0.4)
-              : Paleta.linea,
+              ? Paleta.acento.withValues(alpha: 0.35)
+              : const Color(0xFFE2E8F0),
         ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x060F172A),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Cabecera compacta y bien proporcionada
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               CircleAvatar(
-                radius: 17,
+                radius: 18,
                 backgroundColor: esPrestador ? Paleta.acentoSuave : bgAvatar,
                 child: Text(
                   iniciales(r.autorNombre),
@@ -544,6 +564,7 @@ class TarjetaRespuesta extends StatelessWidget {
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Row(
                       children: [
@@ -559,70 +580,13 @@ class TarjetaRespuesta extends StatelessWidget {
                           ),
                         ),
                         if (badgeRolAutor(r.autorRol) != null) ...[
-                          const SizedBox(width: 4),
+                          const SizedBox(width: 5),
                           badgeRolAutor(r.autorRol)!,
                         ],
-                        const Spacer(),
-                        if (esPrestador && r.vistosBuenos > 0) ...[
-                          const SizedBox(width: 6),
+                        if (esPrestador) ...[
+                          const SizedBox(width: 5),
                           Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFE8F5E9),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(
-                                  Icons.thumb_up_alt_rounded,
-                                  size: 11,
-                                  color: Color(0xFF2E7D32),
-                                ),
-                                const SizedBox(width: 3),
-                                Text(
-                                  '${r.vistosBuenos} Vistos Buenos',
-                                  style: const TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w700,
-                                    color: Color(0xFF2E7D32),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                        if (esMiRespuesta) ...[
-                          const SizedBox(width: 4),
-                          IconButton(
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                            icon: const Icon(
-                              Icons.delete_outline,
-                              size: 16,
-                              color: Paleta.grisClaro,
-                            ),
-                            tooltip: 'Eliminar mi respuesta',
-                            onPressed: onEliminar,
-                          ),
-                        ],
-                      ],
-                    ),
-                    const SizedBox(height: 3),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 3,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        if (esPrestador)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 1.5,
-                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
                             decoration: BoxDecoration(
                               color: Paleta.acentoSuave,
                               borderRadius: BorderRadius.circular(5),
@@ -630,102 +594,151 @@ class TarjetaRespuesta extends StatelessWidget {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(
-                                  Icons.handyman,
-                                  size: 10,
-                                  color: Paleta.acentoOscuro,
-                                ),
-                                const SizedBox(width: 3),
+                                const Icon(Icons.handyman, size: 9, color: Paleta.acentoOscuro),
+                                const SizedBox(width: 2.5),
                                 Text(
                                   r.autorOficio ?? 'Prestador',
                                   style: const TextStyle(
                                     color: Paleta.acentoOscuro,
-                                    fontSize: 10,
+                                    fontSize: 9.5,
                                     fontWeight: FontWeight.w700,
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                        Text(
-                          [
-                            if (r.sector != null) r.sector!,
-                            r.tiempoRelativo,
-                          ].join(' · '),
-                          style: const TextStyle(
-                            color: Paleta.gris,
-                            fontSize: 11,
-                          ),
-                        ),
+                        ],
                       ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      [
+                        if (r.sector != null && r.sector!.isNotEmpty) r.sector!,
+                        r.tiempoRelativo,
+                      ].join(' · '),
+                      style: const TextStyle(
+                        color: Paleta.gris,
+                        fontSize: 11.5,
+                      ),
                     ),
                   ],
                 ),
               ),
+              if (esMiRespuesta)
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, size: 18, color: Paleta.grisClaro),
+                  tooltip: 'Eliminar mi respuesta',
+                  visualDensity: VisualDensity.compact,
+                  onPressed: onEliminar,
+                ),
             ],
           ),
-          const SizedBox(height: 10),
+
+          // Indicador "Respuesta a @Usuario"
+          if (r.respondiendoA != null && r.respondiendoA!.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.reply_rounded, size: 12, color: Color(0xFF64748B)),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Respuesta a @${r.respondiendoA}',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF475569),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
+          const SizedBox(height: 9),
+
+          // Texto de la respuesta
           Text(
-            r.contenido,
+            r.contenido.startsWith('↳ @') && r.contenido.contains(': ')
+                ? r.contenido.substring(r.contenido.indexOf(': ') + 2)
+                : r.contenido,
             style: const TextStyle(
               fontSize: 14,
               color: Color(0xFF334155),
-              height: 1.4,
+              height: 1.45,
             ),
           ),
-          if (r.contactoTelefono != null) ...[
-            const SizedBox(height: 10),
+
+          // Tarjeta de recomendación de contacto
+          if (r.contactoTelefono != null && r.contactoTelefono!.isNotEmpty) ...[
+            const SizedBox(height: 12),
             Material(
               color: const Color(0xFFF0FDF4),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(12),
               child: InkWell(
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(12),
                 onTap: () => llamar(r.contactoTelefono!),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: const Color(0xFFBBF7D0)),
                   ),
                   child: Row(
                     children: [
-                      const Icon(
-                        Icons.phone_outlined,
-                        size: 16,
-                        color: Color(0xFF16A34A),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          '${r.nombreComercial ?? 'Contacto'}: ${r.contactoTelefono}',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF166534),
-                          ),
-                        ),
-                      ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF16A34A),
-                          borderRadius: BorderRadius.circular(6),
+                          color: const Color(0xFFDCFCE7),
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
+                        child: const Icon(Icons.phone_outlined, size: 16, color: Color(0xFF16A34A)),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(Icons.call, size: 11, color: Colors.white),
-                            SizedBox(width: 3),
                             Text(
-                              'Llamar',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
+                              r.nombreComercial ?? 'Prestador recomendado',
+                              style: const TextStyle(
+                                fontSize: 13,
                                 fontWeight: FontWeight.w700,
+                                color: Color(0xFF166534),
+                              ),
+                            ),
+                            Text(
+                              r.contactoTelefono!,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF15803D),
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
                           ],
                         ),
+                      ),
+                      FilledButton.icon(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: const Color(0xFF16A34A),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        onPressed: () => llamar(r.contactoTelefono!),
+                        icon: const Icon(Icons.call, size: 13),
+                        label: const Text('Llamar', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
                       ),
                     ],
                   ),
@@ -733,6 +746,34 @@ class TarjetaRespuesta extends StatelessWidget {
               ),
             ),
           ],
+
+          // Botón para responder a este comentario
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerRight,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(6),
+              onTap: onResponder,
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.reply_rounded, size: 14, color: Paleta.primario),
+                    SizedBox(width: 4),
+                    Text(
+                      'Responder',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: Paleta.primario,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
