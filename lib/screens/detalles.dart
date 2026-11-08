@@ -37,7 +37,7 @@ Future<bool> confirmarEliminar(BuildContext context, AppState st, String tabla, 
       actions: [
         TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancelar')),
         FilledButton(
-          style: FilledButton.styleFrom(backgroundColor: const Color(0xFFE53935), foregroundColor: Colors.white),
+          style: FilledButton.styleFrom(backgroundColor: Paleta.rojo, foregroundColor: Colors.white),
           onPressed: () => Navigator.pop(c, true),
           child: const Text('Eliminar'),
         ),
@@ -248,7 +248,7 @@ class _ServicioDetalleState extends State<ServicioDetalle> {
             return Column(children: [
               if (verificados > 0)
                 ListTile(
-                  leading: const Icon(Icons.verified_user, color: Color(0xFF2E7D32), size: 32),
+                  leading: const Icon(Icons.verified_user, color: Paleta.verde, size: 32),
                   title: Text('$verificados de ${lista.length} son vecinos verificados de ${Zona.nombre}',
                       style: const TextStyle(fontWeight: FontWeight.bold)),
                   subtitle: const Text('Confirmaron con GPS que viven en la zona'),
@@ -256,9 +256,9 @@ class _ServicioDetalleState extends State<ServicioDetalle> {
               for (final vb in lista)
                 ListTile(
                   leading: CircleAvatar(
-                    backgroundColor: vb.verificado ? const Color(0xFFC8E6C9) : null,
+                    backgroundColor: vb.verificado ? Paleta.verdeSuave : null,
                     child: Icon(vb.verificado ? Icons.verified_user : Icons.thumb_up, size: 20,
-                        color: vb.verificado ? const Color(0xFF1B5E20) : null),
+                        color: vb.verificado ? Paleta.verde : null),
                   ),
                   title: Text([vb.autorNombre ?? 'Vecino', if (vb.verificado) '· vecino verificado'].join(' ')),
                   subtitle: Text([?vb.comentario, haceCuanto(vb.creado)].join('\n')),
@@ -270,7 +270,7 @@ class _ServicioDetalleState extends State<ServicioDetalle> {
           Padding(
             padding: const EdgeInsets.all(16),
             child: OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFFE53935)),
+              style: OutlinedButton.styleFrom(foregroundColor: Paleta.rojo),
               onPressed: () async {
                 final ok = await confirmarEliminar(context, st, 'servicios', s.id, esModeracion: !esMio);
                 if (ok && context.mounted) Navigator.pop(context);
@@ -363,7 +363,7 @@ class _ModalSolicitarPedidoState extends State<ModalSolicitarPedido> {
           final wsp = await showDialog<bool>(
             context: context,
             builder: (c) => AlertDialog(
-              icon: const Icon(Icons.chat, color: Color(0xFF25D366), size: 36),
+              icon: const Icon(Icons.chat, color: Paleta.whatsapp, size: 36),
               title: const Text('¿Avisarle también por WhatsApp?'),
               content: const Text(
                   'Le hemos guardado el pedido en la app. ¿Deseas abrir WhatsApp para escribirle de una vez?'),
@@ -371,7 +371,7 @@ class _ModalSolicitarPedidoState extends State<ModalSolicitarPedido> {
                 TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Solo en la app')),
                 FilledButton.icon(
                   style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFF25D366), foregroundColor: Colors.white),
+                      backgroundColor: Paleta.whatsapp, foregroundColor: Colors.white),
                   onPressed: () => Navigator.pop(c, true),
                   icon: const Icon(Icons.chat),
                   label: const Text('Abrir WhatsApp'),
@@ -545,7 +545,7 @@ class _PublicacionDetalleState extends State<PublicacionDetalle> {
           context: context,
           builder: (c) => StatefulBuilder(
             builder: (c, setD) => AlertDialog(
-              icon: const Icon(Icons.favorite, color: Color(0xFFC2185B), size: 40),
+              icon: const Icon(Icons.favorite, color: Paleta.rosa, size: 40),
               title: Text(p.esColecta ? '¿Quiénes aportaron?' : '¿Quién te ayudó?'),
               content: SingleChildScrollView(
                 child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -647,7 +647,7 @@ class _PublicacionDetalleState extends State<PublicacionDetalle> {
     return showDialog<void>(
       context: context,
       builder: (c) => AlertDialog(
-        icon: const Icon(Icons.favorite, color: Color(0xFFC2185B), size: 44),
+        icon: const Icon(Icons.favorite, color: Paleta.rosa, size: 44),
         title: Text(titulo),
         content: Text(texto, style: const TextStyle(fontSize: 16)),
         actions: [
@@ -777,7 +777,7 @@ class _PublicacionDetalleState extends State<PublicacionDetalle> {
                             )
                           : FilledButton.icon(
                               style: FilledButton.styleFrom(
-                                backgroundColor: p.esColecta ? const Color(0xFF6A1B9A) : const Color(0xFF2E7D32),
+                                backgroundColor: p.esColecta ? Paleta.violeta : Paleta.verde,
                                 foregroundColor: Colors.white,
                               ),
                               onPressed: _ocupado ? null : () => _yoAyudo(st, false),
@@ -790,11 +790,11 @@ class _PublicacionDetalleState extends State<PublicacionDetalle> {
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 16),
                     child: Row(children: [
-                      Icon(Icons.check_circle_rounded, size: 18, color: Color(0xFF2E7D32)),
+                      Icon(Icons.check_circle_rounded, size: 18, color: Paleta.verde),
                       SizedBox(width: 6),
                       Expanded(
                         child: Text('Ya respondiste. Ahora ponte de acuerdo por llamada o WhatsApp.',
-                            style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF2E7D32))),
+                            style: TextStyle(fontWeight: FontWeight.w600, color: Paleta.verde)),
                       ),
                     ]),
                   ),
@@ -907,7 +907,7 @@ class _PublicacionDetalleState extends State<PublicacionDetalle> {
               if (p.estado != 'resuelta') ...[
                 const SizedBox(height: 12),
                 FilledButton.icon(
-                  style: FilledButton.styleFrom(backgroundColor: const Color(0xFF2E7D32), foregroundColor: Colors.white),
+                  style: FilledButton.styleFrom(backgroundColor: Paleta.verde, foregroundColor: Colors.white),
                   onPressed: _ocupado ? null : () => _cerrar(st),
                   icon: const Icon(Icons.check_circle),
                   label: Text(!esMio
@@ -922,7 +922,7 @@ class _PublicacionDetalleState extends State<PublicacionDetalle> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFFE53935)),
+              style: OutlinedButton.styleFrom(foregroundColor: Paleta.rojo),
               onPressed: () async {
                 final ok = await confirmarEliminar(context, st, 'publicaciones', p.id, esModeracion: !esMio);
                 if (ok && context.mounted) Navigator.pop(context);

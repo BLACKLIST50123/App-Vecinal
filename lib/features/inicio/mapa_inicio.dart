@@ -15,10 +15,10 @@ import '../../util.dart';
 
 /// Tipos de punto del mapa del Inicio.
 enum TipoPunto {
-  servicio('Servicios', 'Servicio', Color(0xFFD9692F), Icons.handyman_rounded),
-  producto('Productos', 'Producto', Color(0xFF2563EB), Icons.shopping_basket_rounded),
-  peticion('Peticiones', 'Petición de ayuda', Color(0xFF7C3AED), Icons.front_hand_rounded),
-  emergencia('Emergencias', 'Emergencia', Color(0xFFE53935), Icons.sos_rounded);
+  servicio('Servicios', 'Servicio', Paleta.ambar, Icons.handyman_rounded),
+  producto('Productos', 'Producto', Paleta.azulInfo, Icons.shopping_basket_rounded),
+  peticion('Peticiones', 'Petición de ayuda', Paleta.violeta, Icons.front_hand_rounded),
+  emergencia('Emergencias', 'Emergencia', Paleta.rojo, Icons.sos_rounded);
 
   const TipoPunto(this.plural, this.singular, this.color, this.icono);
   final String plural, singular;
@@ -132,7 +132,7 @@ class _MapaYCercanosState extends State<MapaYCercanos> {
           margin: const EdgeInsets.only(top: 14),
           padding: const EdgeInsets.only(top: 16, bottom: 18),
           // Fondo cálido suave: separa la sección sin cortes bruscos.
-          color: const Color(0xFFF3EEE7),
+          color: Paleta.acentoSuave,
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           // ── Introducción al mapa
           const Padding(
@@ -224,7 +224,7 @@ class _MapaYCercanosState extends State<MapaYCercanos> {
                           label: 'Tu ubicación',
                           child: Container(
                             decoration: BoxDecoration(
-                              color: const Color(0xFF2962FF),
+                              color: Paleta.azulInfo,
                               shape: BoxShape.circle,
                               border: Border.all(color: Colors.white, width: 4),
                               boxShadow: const [BoxShadow(blurRadius: 4, color: Colors.black26)],
@@ -247,7 +247,7 @@ class _MapaYCercanosState extends State<MapaYCercanos> {
                   right: 8,
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(color: const Color(0xFFFFF3C4), borderRadius: BorderRadius.circular(10)),
+                    decoration: BoxDecoration(color: Paleta.ambarSuave, borderRadius: BorderRadius.circular(10)),
                     child: const Row(children: [
                       Icon(Icons.cloud_off_rounded, size: 16, color: Colors.black87),
                       SizedBox(width: 6),

@@ -118,7 +118,7 @@ class EmergenciaScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final st = context.watch<AppState>();
     const rojo = Paleta.rojo;
-    const rojoCat = (Color(0xFFE53935), Color(0xFFFDECEA));
+    const rojoCat = (Paleta.rojo, Paleta.rojoSuave);
     return RefreshIndicator(
       onRefresh: () async => st.refrescar(),
       child: ListView(
@@ -464,7 +464,7 @@ class TarjetaMisAportes extends StatelessWidget {
                           : '${servs.length} ${servs.length == 1 ? 'publicación activa' : 'publicaciones activas'}',
                       style: TextStyle(
                         color: pendientes > 0
-                            ? const Color(0xFFC2185B)
+                            ? Paleta.rosa
                             : Paleta.gris,
                         fontWeight: pendientes > 0
                             ? FontWeight.bold

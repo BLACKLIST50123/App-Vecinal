@@ -163,7 +163,7 @@ class _SelectorModo extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(color: const Color(0xFFEDEFF2), borderRadius: BorderRadius.circular(999)),
+      decoration: BoxDecoration(color: Paleta.grisFondo, borderRadius: BorderRadius.circular(999)),
       child: Row(children: [
         opcion(false, Icons.volunteer_activism_rounded, 'Apoyar'),
         opcion(true, Icons.front_hand_rounded, 'Pedir ayuda'),
@@ -228,7 +228,7 @@ class TarjetaRango extends StatelessWidget {
                         child: Container(
                           height: 3,
                           decoration: BoxDecoration(
-                            color: escalera[k].indice <= i ? escalera[k].color : const Color(0xFFE3E6EA),
+                            color: escalera[k].indice <= i ? escalera[k].color : Paleta.linea,
                             borderRadius: BorderRadius.circular(2),
                           ),
                         ),
@@ -408,7 +408,7 @@ class _DesplegableCategoria extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
           decoration: BoxDecoration(
-            color: o.$4 == 0 ? const Color(0xFFF1F3F5) : Paleta.primarioSuave,
+            color: o.$4 == 0 ? Paleta.grisFondo : Paleta.primarioSuave,
             borderRadius: BorderRadius.circular(999),
           ),
           child: Text('${o.$4}',
@@ -911,12 +911,12 @@ class _MisPeticiones extends StatelessWidget {
 
 /// Estado de una petición: (texto, ícono, color).
 (String, IconData, Color) _estado(Publicacion p) => p.estado == 'resuelta'
-    ? ('Atendida', Icons.check_circle_rounded, const Color(0xFF2E7D32))
+    ? ('Atendida', Icons.check_circle_rounded, Paleta.verde)
     : p.ayudantes > 0
-        ? ('${p.ayudantes} ${p.ayudantes == 1 ? 'te apoya' : 'te apoyan'}', Icons.groups_rounded, const Color(0xFF1565C0))
+        ? ('${p.ayudantes} ${p.ayudantes == 1 ? 'te apoya' : 'te apoyan'}', Icons.groups_rounded, Paleta.azulInfo)
         : p.pendiente
             ? ('Por enviar', Icons.cloud_off_rounded, Paleta.gris)
-            : ('Esperando', Icons.hourglass_top_rounded, const Color(0xFFB45309));
+            : ('Esperando', Icons.hourglass_top_rounded, Paleta.ambar);
 
 class _IconoEstado extends StatelessWidget {
   const _IconoEstado(this.p);
