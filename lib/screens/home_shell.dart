@@ -3,6 +3,8 @@ import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
 
 import '../config.dart';
+import '../features/emergencia/emergencia_screen.dart';
+import '../features/inicio/mapa_inicio.dart';
 import '../features/solidaridad/solidaridad_screen.dart';
 import '../services/voz.dart';
 import '../state/app_state.dart';
@@ -61,119 +63,99 @@ class _HomeShellState extends State<HomeShell> {
     if (_modoAnterior != null && _modoAnterior != e) _tab = 0;
     _modoAnterior = e;
 
-    final paginas = <Widget>[
-      e ? EmergenciaScreen(irA: (i) => _irA(i)) : InicioScreen(irA: _irA),
-      ServiciosScreen(
-        key: ValueKey('serv-$e-$_grupo-$_consulta'),
-        emergencia: e,
-        grupoInicial: _grupo,
-        consultaInicial: _consulta,
-      ),
-      // Día a día: Solidaridad (colectas + apoyar/pedir). Emergencia: tablero.
-      e
-          ? const FavoresScreen(emergencia: true)
-          : SolidaridadScreen(
+    // En emergencia la app se reduce a 3 pestañas, solo para esta emergencia:
+    //   Emergencia (actuar ya) · Mapa de ayuda (quién necesita ayuda y puntos
+    //   de ayuda, un solo mapa) · Perfil (siempre).
+    final paginas = e
+        ? <Widget>[EmergenciaScreen(irA: (i) => _irA(i)), const _MapaEmergencia(), const PerfilScreen()]
+        : <Widget>[
+            InicioScreen(irA: _irA),
+            ServiciosScreen(
+              key: ValueKey('serv-$_grupo-$_consulta'),
+              emergencia: false,
+              grupoInicial: _grupo,
+              consultaInicial: _consulta,
+            ),
+            SolidaridadScreen(
               key: ValueKey('sol-$_grupo'),
               irAPerfil: () => _irA(4),
               iniciarEnPedir: _grupo == 'pedir',
             ),
-      // Mis aportes ahora vive en Perfil; esta pestaña es el Foro vecinal.
-      const ForoScreen(),
-      const PerfilScreen(),
-    ];
+            // Mis aportes vive en Perfil.
+            const ForoScreen(),
+            const PerfilScreen(),
+          ];
+    if (_tab >= paginas.length) _tab = 0;
 
-    final encabezados = <(String, String?)>[
-      e
-          ? ('Emergencia', st.emergencia.titulo)
-          : (
-              'Hola, ${st.logueado ? st.nombre.split(' ').first : 'vecino'}',
-              fechaLarga(DateTime.now()),
-            ),
-      e
-          ? ('Grupos de apoyo', 'Emergencia')
-          : ('Servicios y productos', 'Compra local en ${Zona.nombre}'),
-      e
-          ? ('Tablero de ayuda', 'Emergencia')
-          : ('Solidaridad', 'Juntos hacemos más'),
-      ('Foro Vecinal', 'Preguntas, servicios y diálogo de barrio'),
-      ('Mi perfil', st.logueado ? null : 'Estás como visitante'),
-    ];
+    final encabezados = e
+        ? <(String, String?)>[
+            ('Emergencia', st.emergencia.titulo),
+            ('Mapa de ayuda', 'Solo esta emergencia'),
+            ('Mi perfil', st.logueado ? null : 'Estás como visitante'),
+          ]
+        : <(String, String?)>[
+            ('Hola, ${st.logueado ? st.nombre.split(' ').first : 'vecino'}', fechaLarga(DateTime.now())),
+            ('Servicios y productos', 'Compra local en ${Zona.nombre}'),
+            ('Solidaridad', 'Juntos hacemos más'),
+            ('Foro Vecinal', 'Preguntas, servicios y diálogo de barrio'),
+            ('Mi perfil', st.logueado ? null : 'Estás como visitante'),
+          ];
 
-    final destinos = <NavigationDestination>[
-      e
-          ? const NavigationDestination(
-              icon: Icon(Icons.sos_outlined),
-              selectedIcon: Icon(Icons.sos),
-              label: 'Emergencia',
-            )
-          : const NavigationDestination(
-              icon: Icon(Icons.home_outlined),
-              selectedIcon: Icon(Icons.home),
-              label: 'Inicio',
-            ),
-      e
-          ? const NavigationDestination(
-              icon: Icon(Icons.health_and_safety_outlined),
-              selectedIcon: Icon(Icons.health_and_safety),
-              label: 'Apoyo',
-            )
-          : const NavigationDestination(
-              icon: Icon(Icons.storefront_outlined),
-              selectedIcon: Icon(Icons.storefront),
-              label: 'Servicios',
-            ),
-      e
-          ? const NavigationDestination(
-              icon: Icon(Icons.volunteer_activism_outlined),
-              selectedIcon: Icon(Icons.volunteer_activism),
-              label: 'Ayuda',
-            )
-          : const NavigationDestination(
-              icon: Icon(Icons.favorite_border),
-              selectedIcon: Icon(Icons.favorite),
-              label: 'Solidaridad',
-            ),
-      const NavigationDestination(
-        icon: Icon(Icons.forum_outlined),
-        selectedIcon: Icon(Icons.forum),
-        label: 'Foro',
+    // Perfil con puntito rojo: recuerda activar los avisos de emergencia.
+    final perfil = NavigationDestination(
+      icon: Badge(
+        isLabelVisible: st.faltaActivarAvisos,
+        smallSize: 10,
+        backgroundColor: Paleta.rojo,
+        child: const Icon(Icons.person_outline),
       ),
-      // Puntito rojo: recuerda activar los avisos de emergencia.
-      NavigationDestination(
-        icon: Badge(
-          isLabelVisible: st.faltaActivarAvisos,
-          smallSize: 10,
-          backgroundColor: Paleta.rojo,
-          child: const Icon(Icons.person_outline),
-        ),
-        selectedIcon: Badge(
-          isLabelVisible: st.faltaActivarAvisos,
-          smallSize: 10,
-          backgroundColor: Paleta.rojo,
-          child: const Icon(Icons.person),
-        ),
-        label: 'Perfil',
-        tooltip: st.faltaActivarAvisos ? 'Perfil: falta activar los avisos de emergencia' : null,
+      selectedIcon: Badge(
+        isLabelVisible: st.faltaActivarAvisos,
+        smallSize: 10,
+        backgroundColor: Paleta.rojo,
+        child: const Icon(Icons.person),
       ),
-    ];
+      label: 'Perfil',
+      tooltip: st.faltaActivarAvisos ? 'Perfil: falta activar los avisos de emergencia' : null,
+    );
+    final destinos = e
+        ? <NavigationDestination>[
+            const NavigationDestination(icon: Icon(Icons.sos_outlined), selectedIcon: Icon(Icons.sos), label: 'Emergencia'),
+            const NavigationDestination(icon: Icon(Icons.map_outlined), selectedIcon: Icon(Icons.map), label: 'Mapa de ayuda'),
+            perfil,
+          ]
+        : <NavigationDestination>[
+            const NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Inicio'),
+            const NavigationDestination(icon: Icon(Icons.storefront_outlined), selectedIcon: Icon(Icons.storefront), label: 'Servicios'),
+            const NavigationDestination(icon: Icon(Icons.favorite_border), selectedIcon: Icon(Icons.favorite), label: 'Solidaridad'),
+            const NavigationDestination(icon: Icon(Icons.forum_outlined), selectedIcon: Icon(Icons.forum), label: 'Foro'),
+            perfil,
+          ];
 
     final (titulo, subtitulo) = encabezados[_tab];
 
     // Un solo "Escuchar" por página: resume qué hay y qué se puede hacer.
-    final resumenes = <String>[
-      e
-          ? 'Emergencia. ${st.emergencia.titulo ?? ''}. ${st.emergencia.mensaje ?? ''}. Para pedir ayuda, toca el botón rojo Necesito ayuda.'
-          : 'Inicio. Arriba ves lo último que pasó en tu barrio. Luego el mapa con servicios, productos, peticiones y emergencias: usa los filtros o toca un punto. Para una emergencia, toca el botón rojo SOS arriba.',
-      e ? 'Grupos de apoyo para la emergencia. Toca uno para llamar.' : 'Servicios y productos de tu barrio. Usa el buscador o los filtros. Cada tarjeta muestra sus Vistos Buenos y el precio.',
-      e
-          ? 'Tablero de ayuda. Aquí ves quién necesita ayuda y qué cosas hay para compartir.'
-          : 'Solidaridad. Aquí los vecinos se ayudan sin dinero. Puedes pedir una mano, dar algo o aportar a una colecta.',
-      'Foro vecinal. Conversa con tus vecinos, pide recomendaciones o pregunta por servicios que necesitas en tu barrio.',
-      'Tu perfil: tu reconocimiento en el barrio, tu historial y los ajustes de accesibilidad.',
-    ];
+    const resumenPerfil = 'Tu perfil: tu reconocimiento en el barrio, tu historial y los ajustes de accesibilidad.';
+    final resumenes = e
+        ? <String>[
+            'Emergencia. ${st.emergencia.titulo ?? ''}. ${st.emergencia.mensaje ?? ''}. Avisa si estás bien o toca Necesito ayuda. '
+                'Abajo está tu punto de ayuda más cercano. Si hay riesgo de vida, llama al 105, 106 o 116.',
+            'Mapa de ayuda. Solo lo de esta emergencia: vecinos que necesitan ayuda y puntos de ayuda como albergues o postas. '
+                'Toca un punto para ayudar, llamar o ver cómo llegar.',
+            resumenPerfil,
+          ]
+        : <String>[
+            'Inicio. Arriba ves lo último que pasó en tu barrio. Luego el mapa con servicios, productos, peticiones y emergencias: '
+                'usa los filtros o toca un punto. Para una emergencia, toca el botón rojo SOS arriba.',
+            'Servicios y productos de tu barrio. Usa el buscador o los filtros. Cada tarjeta muestra sus Vistos Buenos y el precio.',
+            'Solidaridad. Aquí los vecinos se ayudan sin dinero. Puedes pedir una mano, dar algo o aportar a una colecta.',
+            'Foro vecinal. Conversa con tus vecinos, pide recomendaciones o pregunta por servicios que necesitas en tu barrio.',
+            resumenPerfil,
+          ];
     // Cada pestaña publica lo suyo: Servicios → servicio; Solidaridad → apoyo/evento.
     // Solidaridad (día a día) ya tiene su propio formulario para pedir ayuda.
-    final mostrarFab = e ? _tab <= 2 : _tab == 1;
+    // En emergencia no hay botón flotante: las acciones ya están a la vista.
+    final mostrarFab = !e && _tab == 1;
     void alPublicar() {
       if (e) {
         abrirMenuPublicar(context);
@@ -199,6 +181,7 @@ class _HomeShellState extends State<HomeShell> {
                 _MenuCabecera(
                   pendientes: st.pendientes,
                   voz: st.voz,
+                  emergencia: e,
                   alEscuchar: () => Voz.hablar(resumenes[_tab]),
                   alCambiarLetra: () {
                     final tamano = st.cambiarLetra();
@@ -251,6 +234,20 @@ class _HomeShellState extends State<HomeShell> {
   }
 }
 
+/// Pestaña Mapa en emergencia: emergencias, pedidos y grupos de apoyo.
+class _MapaEmergencia extends StatelessWidget {
+  const _MapaEmergencia();
+
+  @override
+  Widget build(BuildContext context) {
+    final st = context.read<AppState>();
+    return RefreshIndicator(
+      onRefresh: () async => st.refrescar(),
+      child: ListView(padding: const EdgeInsets.only(bottom: 40), children: const [MapaYCercanos(emergencia: true)]),
+    );
+  }
+}
+
 /// Menú hamburguesa de la cabecera: Mapa, QR y Audio en un solo botón.
 class _MenuCabecera extends StatelessWidget {
   const _MenuCabecera({
@@ -258,9 +255,11 @@ class _MenuCabecera extends StatelessWidget {
     required this.voz,
     required this.alEscuchar,
     required this.alCambiarLetra,
+    this.emergencia = false,
   });
   final int pendientes;
   final bool voz;
+  final bool emergencia;
   final VoidCallback alEscuchar;
   final VoidCallback alCambiarLetra;
 
@@ -283,6 +282,13 @@ class _MenuCabecera extends StatelessWidget {
             pendientes > 0 ? 'QR · $pendientes por enviar' : 'Mensajes por QR',
           ),
         ),
+        // En emergencia el foro sale de la barra, pero sigue a un toque.
+        if (emergencia)
+          MenuItemButton(
+            leadingIcon: const Icon(Icons.forum_outlined),
+            onPressed: () => ir(Scaffold(appBar: AppBar(title: const Text('Foro vecinal')), body: const ForoScreen())),
+            child: const Text('Foro vecinal'),
+          ),
         MenuItemButton(
           leadingIcon: const Icon(Icons.format_size),
           onPressed: alCambiarLetra,

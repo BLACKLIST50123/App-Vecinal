@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../config.dart';
 import '../../models.dart';
@@ -12,13 +13,15 @@ import '../../ui/diseno.dart';
 import '../../ui/tema.dart';
 import '../../ui/widgets.dart';
 import '../../util.dart';
+import '../emergencia/pedidos_emergencia.dart';
 
 /// Tipos de punto del mapa del Inicio.
 enum TipoPunto {
   servicio('Servicios', 'Servicio', Paleta.ambar, Icons.handyman_rounded),
   producto('Productos', 'Producto', Paleta.azulInfo, Icons.shopping_basket_rounded),
   peticion('Peticiones', 'Petición de ayuda', Paleta.violeta, Icons.front_hand_rounded),
-  emergencia('Emergencias', 'Emergencia', Paleta.rojo, Icons.sos_rounded);
+  emergencia('Emergencias', 'Emergencia', Paleta.rojo, Icons.sos_rounded),
+  grupo('Grupos de apoyo', 'Grupo de apoyo', Color(0xFF0E7490), Icons.health_and_safety_rounded);
 
   const TipoPunto(this.plural, this.singular, this.color, this.icono);
   final String plural, singular;
@@ -49,13 +52,13 @@ List<PuntoMapa> armarPuntos({
   final vistos = <String>{};
   final r = <PuntoMapa>[];
   for (final s in servicios) {
-    if (s.punto == null || s.esEmergencia) continue;
+    if (s.punto == null) continue;
     final esProducto = grupoServicio(s.categoria) == 'productos';
     r.add(PuntoMapa(
-      tipo: esProducto ? TipoPunto.producto : TipoPunto.servicio,
+      tipo: s.esEmergencia ? TipoPunto.grupo : (esProducto ? TipoPunto.producto : TipoPunto.servicio),
       titulo: s.titulo,
       punto: s.punto!,
-      icono: buscarCategoria(s.categoria).icono,
+      icono: buscarCategoria(s.categoria, emergencia: s.esEmergencia).icono,
       servicio: s,
     ));
   }
@@ -83,17 +86,232 @@ List<PuntoMapa> armarPuntos({
   return r;
 }
 
-void abrirPunto(BuildContext context, PuntoMapa p) => Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) =>
-            p.servicio != null ? ServicioDetalle(servicio: p.servicio!) : PublicacionDetalle(publicacion: p.publicacion!),
+/// Puntos del mapa en emergencia: SOLO lo de esta emergencia.
+///   - Necesitan ayuda: pedidos y SOS creados desde que se activó [desde].
+///   - Puntos de ayuda: grupos de apoyo con ubicación.
+/// Función pura para poder probarla.
+List<PuntoMapa> armarPuntosEmergencia({
+  required List<Servicio> grupos,
+  required List<Publicacion> pedidos,
+  DateTime? desde,
+}) =>
+    armarPuntos(
+      servicios: [for (final g in grupos) if (g.esEmergencia) g],
+      publicaciones: const [],
+      emergencias: [
+        for (final p in pedidos)
+          if (p.esPedido && (desde == null || !p.creado.isBefore(desde.toLocal()))) p,
+      ],
+    );
+
+/// Nombre del tipo según el modo: en emergencia se habla de quién necesita
+/// ayuda y de puntos de ayuda.
+String nombreTipo(TipoPunto t, {required bool emergencia, bool plural = false}) {
+  if (emergencia && t == TipoPunto.emergencia) return plural ? 'Necesitan ayuda' : 'Necesita ayuda';
+  if (emergencia && t == TipoPunto.grupo) return plural ? 'Puntos de ayuda' : 'Punto de ayuda';
+  return plural ? t.plural : t.singular;
+}
+
+void abrirPunto(BuildContext context, PuntoMapa p) {
+  if (p.tipo == TipoPunto.grupo && p.servicio != null) {
+    abrirPuntoDeAyuda(context, p.servicio!);
+    return;
+  }
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) =>
+          p.servicio != null ? ServicioDetalle(servicio: p.servicio!) : PublicacionDetalle(publicacion: p.publicacion!),
+    ),
+  );
+}
+
+/// Punto de ayuda (albergue, posta, centro de acopio...): llamar, cómo llegar
+/// o pedirle ayuda directamente.
+Future<void> abrirPuntoDeAyuda(BuildContext context, Servicio g) => showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (_) => _HojaPuntoDeAyuda(g),
+    );
+
+class _HojaPuntoDeAyuda extends StatelessWidget {
+  const _HojaPuntoDeAyuda(this.g);
+  final Servicio g;
+
+  Future<void> _abrir(Uri u) async {
+    try {
+      await launchUrl(u, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      avisar('No se pudo abrir.');
+    }
+  }
+
+  Future<void> _pedir(BuildContext context) async {
+    final st = context.read<AppState>();
+    if (!st.logueado) {
+      avisar('Para escribirle al grupo necesitas una cuenta. Mientras tanto, llámalos o ve directamente.');
+      return;
+    }
+    final detalle = await showDialog<String>(context: context, builder: (_) => _DialogoPedido(g.titulo));
+    if (detalle == null || !context.mounted) return;
+    try {
+      await st.repo.crearPedidoServicio({
+        'id': nuevoId(),
+        'servicio_id': g.id,
+        'prestador_id': g.autorId,
+        'cliente_nombre': st.nombre,
+        'cliente_telefono': st.perfil?['telefono'],
+        'cliente_sector': st.sector,
+        'detalle': detalle,
+        'estado': 'pendiente',
+      });
+      if (context.mounted) Navigator.pop(context);
+      avisar('Listo. ${g.titulo} recibió tu pedido de ayuda.');
+    } catch (e) {
+      avisar(traducirError(e));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final st = context.watch<AppState>();
+    final km = g.punto == null ? null : distanciaKm(st.referencia, g.punto!);
+    final cat = buscarCategoria(g.categoria, emergencia: true);
+    final tel = g.telefono?.trim();
+    final puedePedir = g.autorId != null && g.autorId != st.uid;
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Row(children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(color: TipoPunto.grupo.color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(14)),
+              child: Icon(cat.icono, color: TipoPunto.grupo.color, size: 26),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(g.titulo, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Paleta.tinta)),
+                Text([cat.nombre, if (km != null) formatoDistancia(km)].join(' · '),
+                    style: const TextStyle(fontSize: 14, color: Paleta.gris)),
+              ]),
+            ),
+          ]),
+          if (g.descripcion != null && g.descripcion!.trim().isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Text(g.descripcion!, style: const TextStyle(fontSize: 14, color: Paleta.tinta)),
+          ],
+          if (g.horario != null && g.horario!.trim().isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Row(children: [
+              const Icon(Icons.schedule_rounded, size: 16, color: Paleta.gris),
+              const SizedBox(width: 4),
+              Expanded(child: Text(g.horario!, style: const TextStyle(fontSize: 13, color: Paleta.gris))),
+            ]),
+          ],
+          const SizedBox(height: 16),
+          Row(children: [
+            if (tel != null && tel.isNotEmpty) ...[
+              Expanded(
+                child: SizedBox(
+                  height: 52,
+                  child: FilledButton.icon(
+                    onPressed: () => _abrir(Uri.parse('tel:${tel.replaceAll(RegExp(r'[^0-9+]'), '')}')),
+                    icon: const Icon(Icons.call_rounded),
+                    label: const Text('Llamar'),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+            ],
+            if (g.punto != null)
+              Expanded(
+                child: SizedBox(
+                  height: 52,
+                  child: OutlinedButton.icon(
+                    onPressed: () => _abrir(Uri.parse(
+                        'https://www.google.com/maps/dir/?api=1&destination=${g.punto!.lat},${g.punto!.lng}&travelmode=walking')),
+                    icon: const Icon(Icons.directions_walk_rounded),
+                    label: const Text('Cómo llegar'),
+                  ),
+                ),
+              ),
+          ]),
+          if (puedePedir) ...[
+            const SizedBox(height: 10),
+            SizedBox(
+              height: 52,
+              child: FilledButton.icon(
+                style: FilledButton.styleFrom(backgroundColor: Paleta.rojo),
+                onPressed: () => _pedir(context),
+                icon: const Icon(Icons.front_hand_rounded),
+                label: const Text('Pedir ayuda a este grupo'),
+              ),
+            ),
+          ],
+        ]),
       ),
     );
+  }
+}
+
+class _DialogoPedido extends StatefulWidget {
+  const _DialogoPedido(this.grupo);
+  final String grupo;
+
+  @override
+  State<_DialogoPedido> createState() => _DialogoPedidoState();
+}
+
+class _DialogoPedidoState extends State<_DialogoPedido> {
+  final _texto = TextEditingController();
+  String? _error;
+
+  @override
+  void dispose() {
+    _texto.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+        title: Text('Pedir ayuda a ${widget.grupo}'),
+        content: TextField(
+          controller: _texto,
+          autofocus: true,
+          minLines: 2,
+          maxLines: 4,
+          maxLength: 300,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: InputDecoration(hintText: 'Ej: Somos 4, necesitamos donde dormir esta noche', errorText: _error),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Paleta.rojo),
+            onPressed: () {
+              final t = _texto.text.trim();
+              if (t.length < 2) {
+                setState(() => _error = 'Cuéntales en pocas palabras qué necesitas.');
+                return;
+              }
+              Navigator.pop(context, t);
+            },
+            child: const Text('Enviar'),
+          ),
+        ],
+      );
+}
 
 /// Mapa del barrio (con filtros) y, debajo, "Cerca de ti" con el mismo filtro.
 class MapaYCercanos extends StatefulWidget {
-  const MapaYCercanos({super.key});
+  const MapaYCercanos({super.key, this.emergencia = false});
+
+  /// En emergencia: suma los grupos de apoyo y empieza filtrado en Emergencias.
+  final bool emergencia;
 
   @override
   State<MapaYCercanos> createState() => _MapaYCercanosState();
@@ -108,7 +326,20 @@ class _MapaYCercanosState extends State<MapaYCercanos> {
   Widget build(BuildContext context) {
     final st = context.watch<AppState>();
     return Cargador<List<PuntoMapa>>(
+      claves: [widget.emergencia, st.emergencia.clave],
       cargar: (st) async {
+        if (widget.emergencia) {
+          final r = await Future.wait([
+            st.repo.servicios(emergencia: true),
+            st.repo.publicaciones(emergencia: true),
+            st.repo.alertasSos(),
+          ]);
+          return armarPuntosEmergencia(
+            grupos: r[0] as List<Servicio>,
+            pedidos: [...r[2] as List<Publicacion>, ...r[1] as List<Publicacion>],
+            desde: st.emergencia.desde,
+          );
+        }
         final r = await Future.wait([
           st.repo.servicios(emergencia: false),
           st.repo.publicaciones(emergencia: false),
@@ -129,20 +360,26 @@ class _MapaYCercanosState extends State<MapaYCercanos> {
         final alto = (MediaQuery.of(context).size.height * 0.32).clamp(220.0, 300.0);
 
         return Container(
-          margin: const EdgeInsets.only(top: 14),
-          padding: const EdgeInsets.only(top: 16, bottom: 18),
+          margin: EdgeInsets.only(top: widget.emergencia ? 0 : 14),
+          padding: EdgeInsets.only(top: widget.emergencia ? 4 : 16, bottom: 18),
           // Fondo cálido suave: separa la sección sin cortes bruscos.
           color: Paleta.acentoSuave,
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           // ── Introducción al mapa
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Explora tu barrio',
-                  style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: Paleta.tinta)),
-              SizedBox(height: 2),
-              Text('Servicios, productos, vecinos que piden ayuda y emergencias cerca de ti. Toca un punto para ver más.',
-                  style: TextStyle(fontSize: 14, color: Paleta.gris, height: 1.3)),
+              // En emergencia el título ya está en la cabecera: solo la explicación.
+              if (!widget.emergencia) ...[
+                const Text('Explora tu barrio',
+                    style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: Paleta.tinta)),
+                const SizedBox(height: 2),
+              ],
+              Text(
+                  widget.emergencia
+                      ? 'En rojo, vecinos que piden ayuda ahora. En celeste, puntos de ayuda (albergues, postas). Toca uno para actuar.'
+                      : 'Servicios, productos, vecinos que piden ayuda y emergencias cerca de ti. Toca un punto para ver más.',
+                  style: const TextStyle(fontSize: 14, color: Paleta.gris, height: 1.3)),
             ]),
           ),
           // ── Filtros
@@ -162,9 +399,11 @@ class _MapaYCercanosState extends State<MapaYCercanos> {
                     _elegido = null;
                   }),
                 ),
-                for (final t in TipoPunto.values)
+                for (final t in TipoPunto.values.where((t) => widget.emergencia
+                    ? t == TipoPunto.emergencia || t == TipoPunto.grupo
+                    : t != TipoPunto.grupo))
                   _Filtro(
-                    texto: t.plural,
+                    texto: nombreTipo(t, emergencia: widget.emergencia, plural: true),
                     cantidad: conteo[t]!,
                     color: t.color,
                     icono: t.icono,
@@ -285,7 +524,7 @@ class _MapaYCercanosState extends State<MapaYCercanos> {
                   left: 10,
                   right: 10,
                   bottom: 22,
-                  child: _TarjetaPunto(_elegido!, km: distanciaKm(ref, _elegido!.punto)),
+                  child: _TarjetaPunto(_elegido!, km: distanciaKm(ref, _elegido!.punto), emergencia: widget.emergencia),
                 ),
               if (visibles.isEmpty)
                 Positioned(
@@ -296,7 +535,7 @@ class _MapaYCercanosState extends State<MapaYCercanos> {
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
                     child: Text(
-                      _filtro == null ? 'Todavía no hay nada publicado en el mapa.' : 'No hay ${_filtro!.plural.toLowerCase()} por ahora.',
+                      _filtro == null ? (widget.emergencia ? 'Aún no hay pedidos ni puntos de ayuda en esta emergencia.' : 'Todavía no hay nada publicado en el mapa.') : (widget.emergencia ? 'Nada por ahora en esta emergencia.' : 'No hay ${_filtro!.plural.toLowerCase()} por ahora.'),
                       textAlign: TextAlign.center,
                       style: const TextStyle(color: Paleta.gris),
                     ),
@@ -318,7 +557,17 @@ class _MapaYCercanosState extends State<MapaYCercanos> {
           ),
 
           // ── Cerca de ti
-          TituloDiseno('Cerca de ti', detalle: _filtro?.plural),
+          TituloDiseno(
+            'Cerca de ti',
+            detalle: widget.emergencia || _filtro == null ? null : nombreTipo(_filtro!, emergencia: false, plural: true),
+            // En emergencia: todos los pedidos de ayuda, en una lista aparte.
+            accion: widget.emergencia && conteo[TipoPunto.emergencia]! > 0
+                ? (
+                    'Todos los pedidos (${conteo[TipoPunto.emergencia]})',
+                    () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PedidosEmergenciaScreen())),
+                  )
+                : null,
+          ),
           if (cercanos.isEmpty)
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 20),
@@ -345,7 +594,7 @@ class _MapaYCercanosState extends State<MapaYCercanos> {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: Paleta.tinta)),
-                          Text('${p.tipo.singular} · ${formatoDistancia(distanciaKm(ref, p.punto))}',
+                          Text(['${nombreTipo(p.tipo, emergencia: widget.emergencia)} · ${formatoDistancia(distanciaKm(ref, p.punto))}', if (p.publicacion?.sector != null) p.publicacion!.sector!].join(' · '),
                               style: const TextStyle(fontSize: 13, color: Paleta.gris)),
                         ]),
                       ),
@@ -453,7 +702,8 @@ class _BotonMapa extends StatelessWidget {
 
 /// Tarjeta corta que sube al tocar un pin: qué es, a qué distancia y "Ver".
 class _TarjetaPunto extends StatelessWidget {
-  const _TarjetaPunto(this.p, {required this.km});
+  const _TarjetaPunto(this.p, {required this.km, this.emergencia = false});
+  final bool emergencia;
   final PuntoMapa p;
   final double km;
 
@@ -485,7 +735,7 @@ class _TarjetaPunto extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Paleta.tinta)),
-                Text('${p.tipo.singular} · ${formatoDistancia(km)}$extra',
+                Text('${nombreTipo(p.tipo, emergencia: emergencia)} · ${formatoDistancia(km)}$extra',
                     maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: Paleta.gris)),
               ]),
             ),

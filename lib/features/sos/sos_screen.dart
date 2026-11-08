@@ -118,6 +118,8 @@ class _SosScreenState extends State<SosScreen> {
     };
     try {
       final enviado = await st.publicar('publicaciones', datos);
+      // Durante una emergencia, un SOS también cuenta como "necesito ayuda".
+      if (st.modoEmergencia && st.logueado) st.marcarEstado('ayuda').catchError((_) {});
       if (!mounted) return;
       if (!t.reservado) HapticFeedback.heavyImpact();
       setState(() {

@@ -301,15 +301,22 @@ class EntradaHistorial {
 }
 
 class EstadoEmergencia {
-  const EstadoEmergencia({required this.activa, this.titulo, this.mensaje});
+  const EstadoEmergencia({required this.activa, this.titulo, this.mensaje, this.desde});
   const EstadoEmergencia.inactiva() : this(activa: false);
   final bool activa;
   final String? titulo, mensaje;
+
+  /// Cuándo se activó (identifica esta emergencia para "Estoy bien").
+  final DateTime? desde;
+
+  /// Clave estable de esta emergencia (UTC, ISO-8601).
+  String? get clave => desde?.toUtc().toIso8601String();
 
   factory EstadoEmergencia.fromMap(Map<String, dynamic> m) => EstadoEmergencia(
         activa: m['activa'] == true,
         titulo: m['titulo'] as String?,
         mensaje: m['mensaje'] as String?,
+        desde: DateTime.tryParse('${m['actualizado_en']}'),
       );
 }
 

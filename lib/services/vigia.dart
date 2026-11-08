@@ -171,7 +171,7 @@ class Vigia {
           if (quiere(TipoAviso.emergencia)) {
             await Notificaciones.mostrar(
               TipoAviso.emergencia,
-              activa ? '🚨 EMERGENCIA en tu barrio' : 'Terminó la emergencia',
+              activa ? 'EMERGENCIA en tu barrio' : 'Terminó la emergencia',
               activa ? '${e['titulo'] ?? 'La junta vecinal activó el modo emergencia.'}' : 'Tu barrio volvió a la normalidad.',
               clave: 'emergencia-$activa',
             );
