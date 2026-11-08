@@ -14,6 +14,7 @@ supabase/
     0007_sos_seguro.sql      avisos reservados (secuestro, extorsión, violencia) y límite por cuenta
     0008_aportes_y_pedidos.sql  pedidos de servicio y "Mis aportes"
     0009_foro.sql            foro vecinal: temas, respuestas y reacciones
+    0010_foto_perfil.sql     foto de perfil (Storage "avatares")
   seed.sql                   datos de demostración (se puede repetir)
 ```
 

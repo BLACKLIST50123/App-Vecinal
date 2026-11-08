@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -620,6 +621,30 @@ class Repo {
 
   Future<void> actualizarPerfil(Map<String, dynamic> cambios) =>
       db.from('perfiles').update(cambios).eq('id', uid!);
+
+  /// Sube la foto de perfil a Storage (bucket "avatares", carpeta propia) y
+  /// guarda su URL en el perfil. Devuelve la URL nueva.
+  Future<String> subirFotoPerfil(Uint8List bytes, String tipo) async {
+    final ruta = '$uid/avatar';
+    await db.storage.from('avatares').uploadBinary(
+          ruta,
+          bytes,
+          fileOptions: FileOptions(upsert: true, contentType: tipo, cacheControl: '3600'),
+        ).timeout(const Duration(seconds: 30));
+    // "?v=" evita que el celular muestre la foto anterior guardada en caché.
+    final url = '${db.storage.from('avatares').getPublicUrl(ruta)}?v=${DateTime.now().millisecondsSinceEpoch}';
+    await actualizarPerfil({'foto_url': url});
+    return url;
+  }
+
+  Future<void> quitarFotoPerfil() async {
+    try {
+      await db.storage.from('avatares').remove(['$uid/avatar']);
+    } catch (_) {
+      // Si el archivo ya no estaba, igual se quita del perfil.
+    }
+    await actualizarPerfil({'foto_url': null});
+  }
 
   Future<void> crearPedidoServicio(Map<String, dynamic> datos) =>
       db.from('pedidos_servicio').insert(datos);

@@ -341,6 +341,9 @@ class AppState extends ChangeNotifier {
   bool get esBrigadista => rolSimulado == 'brigadista';
   bool get esPrestador => perfil?['es_prestador'] == true;
 
+  /// URL de la foto de perfil (null = se muestran las iniciales).
+  String? get fotoUrl => perfil?['foto_url'] as String?;
+
   void elegirRol(String rol) {
     rolSimulado = (rol == 'brigadista') ? 'brigadista' : 'vecino';
     rolElegido = true;
