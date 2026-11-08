@@ -126,9 +126,25 @@ class _MapaYCercanosState extends State<MapaYCercanos> {
         final conteo = {for (final t in TipoPunto.values) t: todos.where((p) => p.tipo == t).length};
         final visibles = todos.where((p) => _filtro == null || p.tipo == _filtro).toList();
         final cercanos = [...visibles]..sort((a, b) => distanciaKm(ref, a.punto).compareTo(distanciaKm(ref, b.punto)));
-        final alto = (MediaQuery.of(context).size.height * 0.52).clamp(320.0, 560.0);
+        final alto = (MediaQuery.of(context).size.height * 0.32).clamp(220.0, 300.0);
 
-        return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        return Container(
+          margin: const EdgeInsets.only(top: 14),
+          padding: const EdgeInsets.only(top: 16, bottom: 18),
+          // Fondo cálido suave: separa la sección sin cortes bruscos.
+          color: const Color(0xFFF3EEE7),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          // ── Introducción al mapa
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Explora tu barrio',
+                  style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: Paleta.tinta)),
+              SizedBox(height: 2),
+              Text('Servicios, productos, vecinos que piden ayuda y emergencias cerca de ti. Toca un punto para ver más.',
+                  style: TextStyle(fontSize: 14, color: Paleta.gris, height: 1.3)),
+            ]),
+          ),
           // ── Filtros
           SizedBox(
             height: 52,
@@ -166,7 +182,10 @@ class _MapaYCercanosState extends State<MapaYCercanos> {
           Container(
             height: alto,
             margin: const EdgeInsets.fromLTRB(16, 6, 16, 0),
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(20), border: Border.all(color: Paleta.linea)),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 10, offset: const Offset(0, 3))],
+            ),
             clipBehavior: Clip.antiAlias,
             child: Stack(children: [
               FlutterMap(
@@ -176,7 +195,11 @@ class _MapaYCercanosState extends State<MapaYCercanos> {
                   initialZoom: st.ubicacion != null ? 14.5 : 13,
                   minZoom: 11,
                   maxZoom: 18,
-                  interactionOptions: const InteractionOptions(flags: InteractiveFlag.all & ~InteractiveFlag.rotate),
+                  // Con un dedo se desplaza la pantalla; el mapa se mueve y amplía con dos dedos
+                  // (o en pantalla completa). Así el mapa no "atrapa" el desplazamiento.
+                  interactionOptions: const InteractionOptions(
+                    flags: InteractiveFlag.pinchZoom | InteractiveFlag.pinchMove | InteractiveFlag.doubleTapZoom,
+                  ),
                   onTap: (_, _) => setState(() => _elegido = null),
                 ),
                 children: [
@@ -282,6 +305,18 @@ class _MapaYCercanosState extends State<MapaYCercanos> {
             ]),
           ),
 
+          const Padding(
+            padding: EdgeInsets.fromLTRB(20, 8, 20, 0),
+            child: Row(children: [
+              Icon(Icons.pinch_outlined, size: 15, color: Paleta.gris),
+              SizedBox(width: 5),
+              Expanded(
+                child: Text('Usa dos dedos para mover el mapa, o ábrelo en pantalla completa.',
+                    style: TextStyle(fontSize: 12, color: Paleta.gris)),
+              ),
+            ]),
+          ),
+
           // ── Cerca de ti
           TituloDiseno('Cerca de ti', detalle: _filtro?.plural),
           if (cercanos.isEmpty)
@@ -319,7 +354,8 @@ class _MapaYCercanosState extends State<MapaYCercanos> {
                   ),
                 ),
             ]),
-        ]);
+          ]),
+        );
       },
     );
   }

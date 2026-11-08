@@ -7,7 +7,6 @@ import '../features/solidaridad/solidaridad_screen.dart';
 import '../services/voz.dart';
 import '../state/app_state.dart';
 import '../ui/diseno.dart';
-import '../ui/tema.dart';
 import '../ui/widgets.dart';
 import 'foro.dart';
 import 'inicio.dart';
@@ -16,7 +15,7 @@ import 'mapa.dart';
 import 'perfil.dart';
 import 'publicar.dart';
 import 'qr_screens.dart';
-import '../features/sos/sos_navegacion.dart';
+import '../features/sos/sos_cabecera.dart';
 
 /// Estructura principal (diseño Figma): encabezado propio en cada pestaña,
 /// barra inferior blanca y botón de publicar. Con emergencia activa, toda
@@ -183,7 +182,7 @@ class _HomeShellState extends State<HomeShell> {
               titulo: titulo,
               subtitulo: subtitulo,
               acciones: [
-                const _BotonSOSCabecera(),
+                const BotonSosCabecera(),
                 _MenuCabecera(
                   pendientes: st.pendientes,
                   voz: st.voz,
@@ -196,6 +195,8 @@ class _HomeShellState extends State<HomeShell> {
                 ),
               ],
             ),
+            // Emergencia nueva cerca: aviso corto bajo la cabecera.
+            const AvisoEmergenciaNueva(),
             Expanded(
               child: NotificationListener<UserScrollNotification>(
                 onNotification: _alDesplazar,
@@ -291,56 +292,3 @@ class _MenuCabecera extends StatelessWidget {
   }
 }
 
-/// Botón SOS de cabecera:
-/// Fondo rojo vibrante con bordes redondeados, icono de alerta blanco y texto SOS blanco.
-class _BotonSOSCabecera extends StatelessWidget {
-  const _BotonSOSCabecera();
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: 'SOS · Auxilio rápido',
-      child: Semantics(
-        button: true,
-        label: 'SOS. Abrir auxilio rápido.',
-        excludeSemantics: true,
-        child: Material(
-          color: Paleta.rojo,
-          elevation: 2,
-          shadowColor: Paleta.rojo.withValues(alpha: 0.4),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(16),
-            onTap: abrirSos,
-            child: Container(
-              height: 48,
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.crisis_alert_rounded,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                  SizedBox(width: 6),
-                  Text(
-                    'SOS',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 14,
-                      letterSpacing: 0.8,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}

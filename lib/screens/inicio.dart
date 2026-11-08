@@ -39,7 +39,6 @@ class InicioScreen extends StatelessWidget {
           if (st.esBrigadista) const PanelBrigadista(),
           const _Bienvenida(),
           const PulsoBarrio(),
-          const SizedBox(height: 10),
           const MapaYCercanos(),
           const TituloDiseno('¿Qué quieres hacer hoy?'),
           Padding(
@@ -71,6 +70,8 @@ class InicioScreen extends StatelessWidget {
               ),
             ]),
           ),
+          // Al final: invitar a más vecinos.
+          const BotonInvitarWhatsapp(),
         ],
       ),
     );
