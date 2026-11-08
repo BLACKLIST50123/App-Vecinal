@@ -173,7 +173,7 @@ class _MisAportesScreenState extends State<MisAportesScreen> {
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFC2185B),
+                              color: Paleta.rosa,
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
@@ -504,7 +504,7 @@ class _TarjetaPedido extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: pedido.esPendiente
-              ? const Color(0xFFC2185B).withValues(alpha: 0.4)
+              ? Paleta.rosa.withValues(alpha: 0.4)
               : Paleta.linea,
           width: pedido.esPendiente ? 1.5 : 1,
         ),
@@ -566,7 +566,7 @@ class _TarjetaPedido extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
+              color: Paleta.grisFondo,
               borderRadius: BorderRadius.circular(14),
               border: Border.all(color: Paleta.linea),
             ),
@@ -651,7 +651,7 @@ class _TarjetaPedido extends StatelessWidget {
                     ),
                     FilledButton.icon(
                       style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFF25D366),
+                        backgroundColor: Paleta.whatsapp,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(
                           horizontal: 10,
@@ -857,7 +857,7 @@ class _TarjetaMiPublicacion extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: s.activo ? const Color(0xFF2E7D32) : Paleta.gris,
+                      color: s.activo ? Paleta.verde : Paleta.gris,
                     ),
                   ),
                   const SizedBox(width: 4),
@@ -913,7 +913,7 @@ class _TarjetaMiPublicacion extends StatelessWidget {
                   const Icon(
                     Icons.thumb_up,
                     size: 15,
-                    color: Color(0xFF2E7D32),
+                    color: Paleta.verde,
                   ),
                   const SizedBox(width: 4),
                   Text(

@@ -11,15 +11,15 @@ import '../ui/widgets.dart';
 /// Paleta armónica para avatares vecinales con vida y color.
 (Color, Color) colorAvatar(String nombre) {
   const paletas = [
-    (Color(0xFFFEE2E2), Color(0xFFDC2626)), // Coral / Rojo
-    (Color(0xFFFFF7ED), Color(0xFFEA580C)), // Naranja cálido
-    (Color(0xFFFEFCE8), Color(0xFFCA8A04)), // Ámbar
-    (Color(0xFFECFDF5), Color(0xFF059669)), // Esmeralda
-    (Color(0xFFF0FDF4), Color(0xFF16A34A)), // Verde
-    (Color(0xFFF0FDFA), Color(0xFF0D9488)), // Turquesa
-    (Color(0xFFF0F9FF), Color(0xFF0284C7)), // Celeste
-    (Color(0xFFEEF2FF), Color(0xFF4F46E5)), // Índigo
-    (Color(0xFFFAF5FF), Color(0xFF9333EA)), // Púrpura
+    (Paleta.rojoSuave, Paleta.rojo), // Coral / Rojo
+    (Paleta.ambarSuave, Paleta.ambar), // Naranja cálido
+    (Paleta.ambarSuave, Paleta.ambar), // Ámbar
+    (Paleta.verdeSuave, Paleta.verde), // Esmeralda
+    (Paleta.verdeSuave, Paleta.verde), // Verde
+    (Paleta.verdeSuave, Paleta.verde), // Turquesa
+    (Paleta.azulSuave, Paleta.azulInfo), // Celeste
+    (Paleta.azulSuave, Paleta.azulInfo), // Índigo
+    (Paleta.violetaSuave, Paleta.violeta), // Púrpura
   ];
   final hash = nombre.codeUnits.fold<int>(0, (prev, elem) => prev + elem);
   return paletas[hash % paletas.length];
@@ -32,17 +32,17 @@ Widget? badgeRolAutor(String? rol) {
     'brigadista' => (
         'Brigadista',
         Icons.health_and_safety_outlined,
-        const Color(0xFFC62828),
+        Paleta.rojoTexto,
       ),
     'lider' || 'lider_comunitario' => (
         'Líder Comunitario',
         Icons.shield_outlined,
-        const Color(0xFF1565C0),
+        Paleta.azulInfo,
       ),
     _ => (
         rol[0].toUpperCase() + rol.substring(1),
         Icons.verified_user_outlined,
-        const Color(0xFF0369A1),
+        Paleta.azulInfo,
       ),
   };
   return Container(
@@ -194,19 +194,19 @@ class TarjetaForo extends StatelessWidget {
                                   vertical: 3,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFDCFCE7),
+                                  color: Paleta.verdeSuave,
                                   borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(color: const Color(0xFF86EFAC)),
+                                  border: Border.all(color: Paleta.verdeClaro),
                                 ),
                                 child: const Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Icon(Icons.check_circle, size: 11, color: Color(0xFF16A34A)),
+                                    Icon(Icons.check_circle, size: 11, color: Paleta.verde),
                                     SizedBox(width: 3),
                                     Text(
                                       'Resuelto',
                                       style: TextStyle(
-                                        color: Color(0xFF166534),
+                                        color: Paleta.verde,
                                         fontSize: 10,
                                         fontWeight: FontWeight.w700,
                                       ),
@@ -302,7 +302,7 @@ class TarjetaForo extends StatelessWidget {
                                               ? Icons.replay
                                               : Icons.check_circle_outline,
                                           size: 18,
-                                          color: const Color(0xFF16A34A),
+                                          color: Paleta.verde,
                                         ),
                                         const SizedBox(width: 8),
                                         Text(
@@ -355,7 +355,7 @@ class TarjetaForo extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             fontSize: 14,
-                            color: Color(0xFF334155),
+                            color: Paleta.primarioClaro,
                             height: 1.45,
                           ),
                         ),
@@ -420,7 +420,7 @@ class TarjetaForo extends StatelessWidget {
                                           : Icons.thumb_up_alt_outlined,
                                       size: 16,
                                       color: tema.apoyadoPorUsuario
-                                          ? const Color(0xFF2E7D32)
+                                          ? Paleta.verde
                                           : Paleta.gris,
                                     ),
                                     const SizedBox(width: 5),
@@ -430,7 +430,7 @@ class TarjetaForo extends StatelessWidget {
                                         fontSize: 13,
                                         fontWeight: FontWeight.w700,
                                         color: tema.apoyadoPorUsuario
-                                            ? const Color(0xFF2E7D32)
+                                            ? Paleta.verde
                                             : Paleta.gris,
                                       ),
                                     ),
@@ -571,7 +571,7 @@ class TarjetaRespuesta extends StatelessWidget {
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFE8F5E9),
+                              color: Paleta.verdeSuave,
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Row(
@@ -580,7 +580,7 @@ class TarjetaRespuesta extends StatelessWidget {
                                 const Icon(
                                   Icons.thumb_up_alt_rounded,
                                   size: 11,
-                                  color: Color(0xFF2E7D32),
+                                  color: Paleta.verde,
                                 ),
                                 const SizedBox(width: 3),
                                 Text(
@@ -588,7 +588,7 @@ class TarjetaRespuesta extends StatelessWidget {
                                   style: const TextStyle(
                                     fontSize: 10,
                                     fontWeight: FontWeight.w700,
-                                    color: Color(0xFF2E7D32),
+                                    color: Paleta.verde,
                                   ),
                                 ),
                               ],
@@ -669,14 +669,14 @@ class TarjetaRespuesta extends StatelessWidget {
             r.contenido,
             style: const TextStyle(
               fontSize: 14,
-              color: Color(0xFF334155),
+              color: Paleta.primarioClaro,
               height: 1.4,
             ),
           ),
           if (r.contactoTelefono != null) ...[
             const SizedBox(height: 10),
             Material(
-              color: const Color(0xFFF0FDF4),
+              color: Paleta.verdeSuave,
               borderRadius: BorderRadius.circular(10),
               child: InkWell(
                 borderRadius: BorderRadius.circular(10),
@@ -685,14 +685,14 @@ class TarjetaRespuesta extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: const Color(0xFFBBF7D0)),
+                    border: Border.all(color: Paleta.verdeSuave),
                   ),
                   child: Row(
                     children: [
                       const Icon(
                         Icons.phone_outlined,
                         size: 16,
-                        color: Color(0xFF16A34A),
+                        color: Paleta.verde,
                       ),
                       const SizedBox(width: 8),
                       Expanded(
@@ -701,14 +701,14 @@ class TarjetaRespuesta extends StatelessWidget {
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF166534),
+                            color: Paleta.verde,
                           ),
                         ),
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF16A34A),
+                          color: Paleta.verde,
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: const Row(

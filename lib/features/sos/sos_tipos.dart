@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
+import '../../ui/tema.dart';
 
 /// Colores del modo SOS.
 class ColoresSos {
-  static const rojo = Color(0xFFE53935); // Rojo Alerta Crítica
-  static const rojoOscuro = Color(0xFFB71C1C);
-  static const rojoSuave = Color(0xFFFFEBEE);
-  static const ambar = Color(0xFFEF6C00); // advertencia (desastres naturales)
-  static const ambarSuave = Color(0xFFFFF3E0);
+  static const rojo = Paleta.rojo; // Rojo Alerta Crítica
+  static const rojoOscuro = Paleta.rojoTexto;
+  static const rojoSuave = Paleta.rojoSuave;
+  static const ambar = Paleta.ambar; // advertencia (desastres naturales)
+  static const ambarSuave = Paleta.ambarSuave;
 }
 
 /// Reportes de un toque ("One-Tap Reporting"). Elegidos según las

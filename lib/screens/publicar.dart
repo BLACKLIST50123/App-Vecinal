@@ -114,7 +114,7 @@ Future<void> _menuOpciones(BuildContext context, String titulo, List<TipoForm> o
               padding: const EdgeInsets.only(bottom: 10),
               child: Material(
                 color: o == TipoForm.necesitoAyuda
-                    ? const Color(0xFFE53935)
+                    ? Paleta.rojo
                     : Theme.of(c).colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(16),
                 child: ListTile(
@@ -466,7 +466,7 @@ class _FormularioPublicarState extends State<FormularioPublicar> {
         child: ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, 120), children: [
           if (!st.online)
             const Card(
-              color: Color(0xFFFFE082),
+              color: Paleta.oroClaro,
               child: ListTile(
                 leading: Icon(Icons.cloud_off, color: Colors.black87),
                 title: Text('Sin internet: se guardará y podrás compartirlo por QR.', style: TextStyle(color: Colors.black87)),
@@ -685,7 +685,7 @@ class _FormularioPublicarState extends State<FormularioPublicar> {
             height: 60,
             child: FilledButton.icon(
               style: t == TipoForm.necesitoAyuda || t == TipoForm.reportarVulnerable
-                  ? FilledButton.styleFrom(backgroundColor: const Color(0xFFE53935), foregroundColor: Colors.white)
+                  ? FilledButton.styleFrom(backgroundColor: Paleta.rojo, foregroundColor: Colors.white)
                   : null,
               onPressed: _enviando ? null : _publicar,
               icon: _enviando
