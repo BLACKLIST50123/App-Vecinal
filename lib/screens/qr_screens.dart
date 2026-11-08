@@ -21,7 +21,7 @@ class MostrarQrScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final codigo = QrCodec.codificar(datos);
     final titulo = (datos['titulo'] ?? '') as String;
-    const instrucciones = 'Pide a un vecino que abra App Vecinal, toque "Llevar mensajes" y escanee este código. '
+    const instrucciones = 'Pide a un vecino que abra Conecta Vecino, toque "Llevar mensajes" y escanee este código. '
         'Cuando él tenga internet, tu pedido se publicará automáticamente.';
     return Scaffold(
       appBar: AppBar(title: const Text('Compartir por QR')),

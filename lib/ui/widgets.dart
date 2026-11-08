@@ -439,7 +439,7 @@ class _TarjetaPublicacionState extends State<TarjetaPublicacion> {
                   if (!p.esPedido) const _Etiqueta('OFRECE', Color(0xFF376A89)),
                   if (critica) const _Etiqueta('MUY URGENTE', Color(0xFFE53935)),
                   if (p.esEmergencia && p.prioridad == 'alta') const _Etiqueta('URGENTE', Color(0xFFC62828)),
-                  if (p.verificada) const _Etiqueta('✓ VERIFICADO', Color(0xFF00695C)),
+                  if (p.verificada) const _Etiqueta('VERIFICADO', Color(0xFF00695C)),
                   if (p.estado == 'no_verificado') const _Etiqueta('SIN CONFIRMAR', Color(0xFF616161)),
                   if (p.origen == 'qr') const _Etiqueta('LLEGÓ POR QR', Color(0xFF6A1B9A)),
                   if (p.pendiente) const _Etiqueta('POR ENVIAR', Color(0xFF616161)),
@@ -461,12 +461,18 @@ class _TarjetaPublicacionState extends State<TarjetaPublicacion> {
                 if (!p.esColecta && p.ayudantes > 0)
                   Padding(
                     padding: const EdgeInsets.only(top: 4),
-                    child: Text(
-                      p.esPedido
-                          ? '💛 ${p.ayudantes} ${p.ayudantes == 1 ? 'vecino va' : 'vecinos van'} a ayudar'
-                          : '🙋 ${p.ayudantes} ${p.ayudantes == 1 ? 'interesado' : 'interesados'}',
-                      style: TextStyle(color: esquema.primary, fontWeight: FontWeight.w600, fontSize: 13),
-                    ),
+                    child: Row(children: [
+                      Icon(p.esPedido ? Icons.favorite_rounded : Icons.front_hand_rounded, size: 15, color: esquema.primary),
+                      const SizedBox(width: 5),
+                      Expanded(
+                        child: Text(
+                          p.esPedido
+                              ? '${p.ayudantes} ${p.ayudantes == 1 ? 'vecino va' : 'vecinos van'} a ayudar'
+                              : '${p.ayudantes} ${p.ayudantes == 1 ? 'interesado' : 'interesados'}',
+                          style: TextStyle(color: esquema.primary, fontWeight: FontWeight.w600, fontSize: 13),
+                        ),
+                      ),
+                    ]),
                   ),
                 const SizedBox(height: 8),
                 Row(children: [
@@ -506,7 +512,39 @@ class _TarjetaPublicacionState extends State<TarjetaPublicacion> {
   }
 }
 
-/// Insignia de reconocimiento vecinal ("🤝 Vecino solidario").
+/// Medalla de un rango: círculo de color con su ícono. Si está bloqueada
+/// (rango que aún no se alcanza) se ve en gris.
+class MedallaNivel extends StatelessWidget {
+  const MedallaNivel(this.nivel, {super.key, this.tamano = 40, this.bloqueada = false, this.actual = false});
+  final Nivel nivel;
+  final double tamano;
+  final bool bloqueada, actual;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = nivel.color;
+    return Container(
+      width: tamano,
+      height: tamano,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: bloqueada ? const Color(0xFFEEF0F3) : null,
+        gradient: bloqueada
+            ? null
+            : LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color.lerp(color, Colors.white, 0.18)!, color],
+              ),
+        border: actual ? Border.all(color: Colors.white, width: 3) : null,
+        boxShadow: actual ? [BoxShadow(color: color.withValues(alpha: 0.35), blurRadius: 10, spreadRadius: 1)] : null,
+      ),
+      child: Icon(nivel.icono, size: tamano * 0.5, color: bloqueada ? const Color(0xFFB4BCC8) : Colors.white),
+    );
+  }
+}
+
+/// Insignia de reconocimiento vecinal (medalla pequeña + nombre del rango).
 class InsigniaNivel extends StatelessWidget {
   const InsigniaNivel(this.ayudas, {super.key, this.mostrarSiCero = false});
   final int ayudas;
@@ -520,9 +558,13 @@ class InsigniaNivel extends StatelessWidget {
       label: 'Reconocimiento: ${n.nombre}, $ayudas ayudas confirmadas',
       excludeSemantics: true,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-        decoration: BoxDecoration(color: const Color(0xFFFFF8E1), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFFFB300))),
-        child: Text('${n.emoji} ${n.nombre}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
+        padding: const EdgeInsets.fromLTRB(3, 3, 10, 3),
+        decoration: BoxDecoration(color: n.color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          MedallaNivel(n, tamano: 20),
+          const SizedBox(width: 6),
+          Text(n.nombre, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: n.color)),
+        ]),
       ),
     );
   }

@@ -13,11 +13,11 @@ class Paleta {
   static const crema = Color(0xFFFAF8F5);
   // Acento naranja.
   static const acento = Color(0xFFE8956B);
-  static const acentoOscuro = Color(0xFFC96F45);
+  static const acentoOscuro = Color(0xFFA9532B); // 5:1 sobre crema (AA)
   static const acentoSuave = Color(0xFFFCEEE6);
   // Texto y líneas.
   static const tinta = Color(0xFF1E293B);
-  static const gris = Color(0xFF64748B);
+  static const gris = Color(0xFF5B6577); // 5.5:1 sobre crema (AA para texto pequeño)
   static const grisClaro = Color(0xFF94A3B8);
   static const linea = Color(0xFFE5E7EB);
   // Rojo alerta crítica.

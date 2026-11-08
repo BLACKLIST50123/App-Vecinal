@@ -4,10 +4,15 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'config.dart';
+import 'data/datos_iniciales.dart';
 import 'data/repo.dart';
+import 'features/sos/sos_atajo.dart';
+import 'features/sos/sos_boton.dart';
+import 'features/sos/sos_navegacion.dart';
+import 'screens/bienvenida.dart';
 import 'screens/home_shell.dart';
 import 'screens/roles.dart';
-import 'screens/sos.dart';
 import 'screens/tutorial.dart';
 import 'state/app_state.dart';
 import 'ui/tema.dart';
@@ -23,10 +28,13 @@ Future<void> main() async {
     runApp(const SinCredenciales());
     return;
   }
+  // Datos incluidos en la app (números de emergencia, grupos de apoyo) para
+  // que funcione desde el primer uso, aunque nunca haya tenido internet.
+  await DatosIniciales.cargar(Zona.nombre);
   final prefs = await SharedPreferences.getInstance();
   await Supabase.initialize(url: supabaseUrl, publishableKey: supabaseKey);
   final estado = AppState(prefs, Repo(prefs, Supabase.instance.client));
-  AtajoVolumen.instalar();
+  AtajoVolumenSos.instalar();
   runApp(ChangeNotifierProvider.value(value: estado, child: const AppVecinal()));
 }
 
@@ -37,10 +45,11 @@ class AppVecinal extends StatelessWidget {
   Widget build(BuildContext context) {
     final st = context.watch<AppState>();
     return MaterialApp(
-      title: 'App Vecinal',
+      title: 'Conecta Vecino',
       debugShowCheckedModeBanner: false,
       scaffoldMessengerKey: mensajero,
       navigatorKey: navegador,
+      navigatorObservers: [observadorSos],
       locale: const Locale('es', 'PE'),
       supportedLocales: const [Locale('es', 'PE'), Locale('es')],
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
@@ -50,18 +59,20 @@ class AppVecinal extends StatelessWidget {
         final sistema = mq.textScaler.scale(1);
         return MediaQuery(
           data: mq.copyWith(textScaler: TextScaler.linear(sistema > st.escala ? sistema : st.escala)),
-          child: Stack(children: [
-            child!,
-            // Botón de pánico accesible desde cualquier pantalla.
-            if (st.tutorialVisto && st.rolElegido) const BotonSOSFlotante(),
-          ]),
+          // Botón SOS sobre todas las pantallas (después de la bienvenida,
+          // el tutorial y de elegir rol).
+          child: CapaSos(child: child!),
         );
       },
-      home: !st.tutorialVisto
-          ? const TutorialScreen(inicial: true)
-          : !st.rolElegido
-              ? const SelectorRolScreen()
-              : const HomeShell(),
+      // Bienvenida (iniciar sesión / crear cuenta / invitado) → tutorial y
+      // rol solo la primera vez → la app.
+      home: !st.entro
+          ? const BienvenidaScreen()
+          : !st.tutorialVisto
+              ? const TutorialScreen(inicial: true)
+              : !st.rolElegido
+                  ? const SelectorRolScreen()
+                  : const HomeShell(),
     );
   }
 }

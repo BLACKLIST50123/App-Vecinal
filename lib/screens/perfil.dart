@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../config.dart';
 import '../models.dart';
@@ -13,7 +12,6 @@ import 'aportes.dart';
 import 'auth_screen.dart';
 import 'confianza.dart';
 import 'detalles.dart';
-import 'publicar.dart';
 import 'qr_screens.dart';
 import 'roles.dart';
 import 'tutorial.dart';
@@ -25,6 +23,33 @@ class PerfilScreen extends StatelessWidget {
 
   void _ir(BuildContext context, Widget pantalla) =>
       Navigator.push(context, MaterialPageRoute(builder: (_) => pantalla));
+
+  /// Pide confirmación (evita salir por un toque accidental) y avisa si hay
+  /// publicaciones guardadas sin enviar. Al cerrar, vuelve a la bienvenida;
+  /// el tamaño de letra y la accesibilidad se mantienen.
+  Future<void> _confirmarCierre(BuildContext context, AppState st) async {
+    final n = st.pendientes;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        icon: const Icon(Icons.logout, size: 36),
+        title: const Text('¿Cerrar sesión?'),
+        content: Text(n > 0
+            ? 'Tienes ${n == 1 ? '1 publicación' : '$n publicaciones'} sin enviar. '
+                'Si cierras sesión ahora, podrían no enviarse. Mejor espera a tener internet.'
+            : 'Volverás a la pantalla de inicio. Podrás entrar de nuevo con tu celular y tu clave.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancelar')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Paleta.rojo, foregroundColor: Colors.white),
+            onPressed: () => Navigator.pop(c, true),
+            child: const Text('Cerrar sesión'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) await st.cerrarSesion();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -84,9 +109,13 @@ class PerfilScreen extends StatelessWidget {
                       children: [
                         Icon(Icons.handyman, size: 12, color: Paleta.acentoOscuro),
                         SizedBox(width: 4),
-                        Text(
-                          'Prestador de servicios local',
-                          style: TextStyle(color: Paleta.acentoOscuro, fontSize: 11, fontWeight: FontWeight.bold),
+                        Flexible(
+                          child: Text(
+                            'Prestador de servicios',
+                            style: TextStyle(color: Paleta.acentoOscuro, fontSize: 11, fontWeight: FontWeight.bold),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
                         ),
                       ],
                     ),
@@ -111,7 +140,7 @@ class PerfilScreen extends StatelessWidget {
                 const VerticalDivider(width: 1),
                 ImpactoNumero('${datos.$1.length + datos.$2.length}', 'Publicaciones'),
                 const VerticalDivider(width: 1),
-                ImpactoNumero(nivel.emoji, nivel.nombre),
+                ImpactoNumero('${nivel.indice + 1} de ${Nivel.todos.length}', nivel.nombre),
               ]),
             ),
           ),
@@ -132,25 +161,6 @@ class PerfilScreen extends StatelessWidget {
             ),
           ),
           FilaAjuste(icono: Icons.history, texto: 'Mi historial de ayudas', onTap: () => _ir(context, const HistorialScreen())),
-          FilaAjuste(icono: Icons.list_alt, texto: 'Mis publicaciones', onTap: () => _ir(context, const MisPublicacionesScreen())),
-          FilaAjuste(
-            icono: Icons.storefront_outlined,
-            texto: 'Ofrezco un servicio o producto',
-            final_: Switch(
-              value: esPrestador,
-              onChanged: st.online
-                  ? (v) async {
-                      try {
-                        await st.repo.actualizarPerfil({'es_prestador': v});
-                        await st.cargarPerfil();
-                        if (v && context.mounted) abrirFormulario(context, TipoForm.servicio);
-                      } catch (e) {
-                        avisar(traducirError(e));
-                      }
-                    }
-                  : null,
-            ),
-          ),
           if (st.esOrganizacion || st.esModerador)
             FilaAjuste(icono: Icons.dashboard_outlined, texto: 'Panel de coordinación', onTap: () => _ir(context, const PanelCoordinacionScreen())),
           if (st.esModerador)
@@ -197,6 +207,28 @@ class PerfilScreen extends StatelessWidget {
         FilaAjuste(icono: Icons.shield_outlined, texto: 'Ayudar con seguridad', onTap: () => mostrarConsejos(context)),
       ]),
 
+      // Reconocimiento público (antes estaba en Solidaridad).
+      Cargador<List<Map<String, dynamic>>>(
+        cargar: (st) => st.repo.vecinosDestacados(),
+        builder: (c, destacados) {
+          if (destacados.isEmpty) return const SizedBox.shrink();
+          return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            const TituloDiseno('Vecinos que más ayudan', ceja: 'Reconocimiento'),
+            ListaAjustes(filas: [
+              for (final d in destacados)
+                FilaAjuste(
+                  icono: Icons.emoji_events_outlined,
+                  texto: (d['nombre'] ?? 'Vecino') as String,
+                  valor: () {
+                    final n = (d['ayudas_confirmadas'] as num?)?.toInt() ?? 0;
+                    return '${Nivel.de(n).corto} · $n ${n == 1 ? 'ayuda' : 'ayudas'}';
+                  }(),
+                ),
+            ]),
+          ]);
+        },
+      ),
+
       const TituloDiseno('Ajustes'),
       ListaAjustes(filas: [
         FilaAjuste(
@@ -217,16 +249,13 @@ class PerfilScreen extends StatelessWidget {
             icono: Icons.logout,
             texto: 'Cerrar sesión',
             color: Paleta.rojo,
-            onTap: () async {
-              await Supabase.instance.client.auth.signOut();
-              await st.cargarPerfil();
-            },
+            onTap: () => _confirmarCierre(context, st),
           ),
       ]),
       const Padding(
         padding: EdgeInsets.all(20),
-        child: Text('App Vecinal · Equipo AlphaCoders · Hackathon UTP 2026',
-            textAlign: TextAlign.center, style: TextStyle(color: Paleta.grisClaro)),
+        child: Text('Conecta Vecino · Equipo AlphaCoders · Hackathon UTP 2026',
+            textAlign: TextAlign.center, style: TextStyle(color: Paleta.gris)),
       ),
     ]);
   }
@@ -361,7 +390,7 @@ class _TarjetaReconocimiento extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
-            Text(n.emoji, style: const TextStyle(fontSize: 48)),
+            MedallaNivel(n, tamano: 56),
             const SizedBox(width: 12),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -388,7 +417,7 @@ class _TarjetaReconocimiento extends StatelessWidget {
           Text(
             sig == null
                 ? '¡Llegaste al nivel más alto! Gracias por cuidar tu barrio.'
-                : 'Te ${faltan == 1 ? 'falta 1 ayuda confirmada' : 'faltan $faltan ayudas confirmadas'} para ser ${sig.emoji} ${sig.nombre}',
+                : 'Te ${faltan == 1 ? 'falta 1 ayuda confirmada' : 'faltan $faltan ayudas confirmadas'} para ser ${sig.nombre}',
             style: const TextStyle(color: Colors.black87),
           ),
           const SizedBox(height: 8),
@@ -402,6 +431,7 @@ class _TarjetaReconocimiento extends StatelessWidget {
   }
 }
 
+/// Historial: una frase de resumen, 3 cifras, distintivos y lo hecho por mes.
 class HistorialScreen extends StatelessWidget {
   const HistorialScreen({super.key});
 
@@ -410,6 +440,8 @@ class HistorialScreen extends StatelessWidget {
         'visto_bueno' => (Icons.thumb_up, const Color(0xFF2E7D32)),
         _ => (Icons.volunteer_activism, const Color(0xFF1565C0)),
       };
+
+  static const _meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -426,18 +458,36 @@ class HistorialScreen extends StatelessWidget {
             }
             final respondi = lista.where((e) => e.tipo == 'respondi').toList();
             final gracias = lista.where((e) => e.tipo == 'agradecimiento').length;
+            final vbs = lista.where((e) => e.tipo == 'visto_bueno').length;
             final colectas = respondi.where((e) => e.publicacion?.esColecta == true).length;
             final emergencias = respondi.where((e) => e.publicacion?.esEmergencia == true).length;
             final cuidado = respondi.where((e) => e.publicacion?.categoria == 'cuidado').length;
-            final vbs = lista.where((e) => e.tipo == 'visto_bueno').length;
+            final vecinos = respondi.map((e) => e.publicacion?.autorVisible).whereType<String>().toSet().length;
+
+            // Agrupa por mes, manteniendo el orden (más reciente primero).
+            final porMes = <String, List<EntradaHistorial>>{};
+            for (final e in lista) {
+              porMes.putIfAbsent('${_meses[e.fecha.month - 1]} ${e.fecha.year}', () => []).add(e);
+            }
+
             return ListView(padding: const EdgeInsets.only(bottom: 32), children: [
               Padding(
-                padding: const EdgeInsets.all(12),
-                child: Wrap(spacing: 8, runSpacing: 8, children: [
-                  _Dato(Icons.volunteer_activism, 'Veces que respondiste', respondi.length),
-                  _Dato(Icons.favorite, 'Agradecimientos', gracias),
-                  _Dato(Icons.diversity_1, 'Colectas apoyadas', colectas),
-                  _Dato(Icons.thumb_up, 'Vistos Buenos dados', vbs),
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                child: Text(
+                  respondi.isEmpty
+                      ? 'Aún no respondes a un pedido, ¡pero ya sumas en el barrio!'
+                      : 'Ayudaste a $vecinos ${vecinos == 1 ? 'vecino' : 'vecinos'} y recibiste $gracias ${gracias == 1 ? 'agradecimiento' : 'agradecimientos'}.',
+                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                child: Row(children: [
+                  _Dato(Icons.volunteer_activism, 'Ayudas', respondi.length),
+                  const SizedBox(width: 8),
+                  _Dato(Icons.favorite, 'Gracias', gracias),
+                  const SizedBox(width: 8),
+                  _Dato(Icons.thumb_up, 'Vistos Buenos', vbs),
                 ]),
               ),
               if (emergencias > 0 || cuidado > 0 || colectas > 0) ...[
@@ -445,23 +495,34 @@ class HistorialScreen extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   child: Wrap(spacing: 8, runSpacing: 8, children: [
-                    if (emergencias > 0) const Chip(avatar: Text('🚨'), label: Text('Ayudó en una emergencia')),
-                    if (cuidado > 0) const Chip(avatar: Text('👵'), label: Text('Acompaña a los mayores')),
-                    if (colectas > 0) const Chip(avatar: Text('🎁'), label: Text('Aporta a las colectas')),
+                    if (emergencias > 0)
+                      const Chip(avatar: Icon(Icons.health_and_safety_rounded, size: 18), label: Text('Ayudó en una emergencia')),
+                    if (cuidado > 0) const Chip(avatar: Icon(Icons.elderly_rounded, size: 18), label: Text('Acompaña a los mayores')),
+                    if (colectas > 0)
+                      const Chip(avatar: Icon(Icons.redeem_rounded, size: 18), label: Text('Apoya eventos solidarios')),
                   ]),
                 ),
               ],
-              const TituloSeccion('Lo que has hecho'),
-              for (final e in lista)
-                ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: _icono(e.tipo).$2.withValues(alpha: 0.15),
-                    child: Icon(_icono(e.tipo).$1, color: _icono(e.tipo).$2),
+              for (final MapEntry(key: mes, value: entradas) in porMes.entries) ...[
+                TituloSeccion(mes),
+                for (final e in entradas)
+                  ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: _icono(e.tipo).$2.withValues(alpha: 0.15),
+                      child: Icon(_icono(e.tipo).$1, color: _icono(e.tipo).$2),
+                    ),
+                    title: Text(e.titulo, style: const TextStyle(fontWeight: FontWeight.w600)),
+                    subtitle: Text([?e.detalle, haceCuanto(e.fecha)].where((s) => s.isNotEmpty).join('\n')),
+                    trailing: e.publicacion == null
+                        ? null
+                        : e.publicacion!.estado == 'resuelta'
+                            ? const Icon(Icons.check_circle, color: Color(0xFF2E7D32))
+                            : const Icon(Icons.chevron_right),
+                    onTap: e.publicacion == null
+                        ? null
+                        : () => Navigator.push(context, MaterialPageRoute(builder: (_) => PublicacionDetalle(publicacion: e.publicacion!))),
                   ),
-                  title: Text(e.tipo == 'respondi' ? e.titulo : e.titulo, style: const TextStyle(fontWeight: FontWeight.w600)),
-                  subtitle: Text([?e.detalle, haceCuanto(e.fecha)].join('\n')),
-                  trailing: e.publicacion?.estado == 'resuelta' ? const Icon(Icons.check_circle, color: Color(0xFF2E7D32)) : null,
-                ),
+              ],
             ]);
           },
         ),
@@ -475,58 +536,18 @@ class _Dato extends StatelessWidget {
   final int valor;
 
   @override
-  Widget build(BuildContext context) => Container(
-        width: 160,
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.primaryContainer,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Icon(icono),
-          Text('$valor', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900)),
-          Text(texto, style: const TextStyle(fontWeight: FontWeight.w600)),
-        ]),
-      );
-}
-
-class MisPublicacionesScreen extends StatelessWidget {
-  const MisPublicacionesScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Mis publicaciones')),
-        body: Cargador<(List<Publicacion>, List<Servicio>)>(
-          cargar: (st) => st.repo.misPublicaciones(),
-          builder: (context, datos) {
-            final (pubs, servs) = datos;
-            final abiertas = pubs.where((p) => p.estado != 'resuelta').toList();
-            final resueltas = pubs.where((p) => p.estado == 'resuelta').toList();
-            if (pubs.isEmpty && servs.isEmpty) {
-              return EstadoVacio(
-                icono: Icons.post_add,
-                texto: 'Todavía no publicaste nada.\nToca Publicar para pedir u ofrecer algo a tus vecinos.',
-                accion: ('Publicar ahora', () {
-                  Navigator.pop(context);
-                  abrirMenuPublicar(context);
-                }),
-              );
-            }
-            return ListView(padding: const EdgeInsets.only(bottom: 32), children: [
-              if (abiertas.isNotEmpty) ...[
-                TituloSeccion('Activas (${abiertas.length})'),
-                for (final p in abiertas) TarjetaPublicacion(p),
-              ],
-              if (servs.isNotEmpty) ...[
-                TituloSeccion('Mis servicios y productos (${servs.length})'),
-                for (final s in servs) TarjetaServicio(s),
-              ],
-              if (resueltas.isNotEmpty) ...[
-                TituloSeccion('Resueltas (${resueltas.length})'),
-                for (final p in resueltas) Opacity(opacity: 0.6, child: TarjetaPublicacion(p)),
-              ],
-            ]);
-          },
+  Widget build(BuildContext context) => Expanded(
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primaryContainer,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Icon(icono),
+            Text('$valor', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900)),
+            Text(texto, style: const TextStyle(fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
+          ]),
         ),
       );
 }

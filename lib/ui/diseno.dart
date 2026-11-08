@@ -47,8 +47,11 @@ class EncabezadoPantalla extends StatelessWidget {
 
 /// Botón cuadrado blanco con borde (como la campana del diseño).
 class BotonCuadrado extends StatelessWidget {
-  const BotonCuadrado({super.key, required this.icono, required this.tooltip, required this.onTap, this.contador = 0, this.color});
+  const BotonCuadrado({super.key, required this.icono, required this.tooltip, required this.onTap, this.contador = 0, this.color, this.texto});
   final IconData icono;
+
+  /// Si se indica, se muestra este texto (ej. "Aa") en lugar del ícono.
+  final String? texto;
   final String tooltip;
   final VoidCallback onTap;
   final int contador;
@@ -71,7 +74,10 @@ class BotonCuadrado extends StatelessWidget {
                 width: 48,
                 height: 48,
                 child: Stack(alignment: Alignment.center, children: [
-                  Icon(icono, color: const Color(0xFF475569)),
+                  if (texto != null)
+                    Text(texto!, textScaler: TextScaler.noScaling, style: const TextStyle(color: Color(0xFF475569), fontSize: 19, fontWeight: FontWeight.w800, height: 1))
+                  else
+                    Icon(icono, color: const Color(0xFF475569)),
                   if (contador > 0)
                     Positioned(
                       top: 8,
@@ -351,7 +357,7 @@ class TarjetaCerca extends StatelessWidget {
   }
 }
 
-/// Tarjeta de la cuadrícula de "Servicios y productos".
+/// Tarjeta horizontal de "Servicios y productos": ícono, datos, precio y flecha.
 class TarjetaMercado extends StatelessWidget {
   const TarjetaMercado(this.s, {super.key});
   final Servicio s;
@@ -363,50 +369,82 @@ class TarjetaMercado extends StatelessWidget {
     final grupo = s.esEmergencia ? 'apoyo' : grupoServicio(s.categoria);
     final colores = colorGrupo(grupo);
     final dist = s.punto == null ? null : distanciaKm(st.referencia, s.punto!);
+    final apoyo = grupo == 'apoyo';
+    const naranja = Paleta.acentoOscuro;
     return Card(
-      margin: EdgeInsets.zero,
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ServicioDetalle(servicio: s))),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Container(
-            height: 84,
-            color: colores.$2,
-            child: Stack(children: [
-              Center(child: Icon(cat.icono, color: colores.$1, size: 34)),
-              Positioned(
-                top: 8,
-                left: 8,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                  decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.85), borderRadius: BorderRadius.circular(6)),
-                  child: Text(cat.nombre.toUpperCase(),
-                      maxLines: 1, overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: Color(0xFF475569), fontSize: 11, fontWeight: FontWeight.w700)),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(children: [
+            // Ícono de categoría (relleno naranja para ayuda voluntaria).
+            Semantics(
+              label: cat.nombre,
+              child: Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  color: apoyo ? Paleta.acento : colores.$2,
+                  borderRadius: BorderRadius.circular(16),
                 ),
+                child: Icon(cat.icono, color: apoyo ? Colors.white : colores.$1, size: 28),
               ),
-              if (s.autorRol == 'organizacion')
-                const Positioned(top: 8, right: 8, child: Icon(Icons.verified, color: Color(0xFF1565C0), size: 20)),
-            ]),
-          ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(11, 10, 11, 11),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(s.titulo, maxLines: 2, overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, height: 1.2)),
+                Row(children: [
+                  Flexible(
+                    child: Text(s.titulo, maxLines: 2, overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, height: 1.2)),
+                  ),
+                  if (s.autorRol == 'organizacion')
+                    const Padding(
+                      padding: EdgeInsets.only(left: 4),
+                      child: Icon(Icons.verified, color: Color(0xFF1565C0), size: 16),
+                    ),
+                ]),
                 const SizedBox(height: 3),
-                Text(s.autorNombre ?? 'Vecino', maxLines: 1, overflow: TextOverflow.ellipsis,
+                Text([s.autorNombre ?? 'Vecino', if (dist != null) formatoDistancia(dist)].join(' · '),
+                    maxLines: 1, overflow: TextOverflow.ellipsis,
                     style: const TextStyle(color: Paleta.gris, fontSize: 13)),
-                if (dist != null)
-                  Text(formatoDistancia(dist), style: const TextStyle(color: Paleta.gris, fontSize: 13)),
-                const Spacer(),
-                const SizedBox(height: 8),
-                _PieServicio(s),
+                const SizedBox(height: 4),
+                if (s.pendiente)
+                  const Text('Por enviar', style: TextStyle(fontWeight: FontWeight.w700, color: Paleta.gris, fontSize: 13))
+                else
+                  Semantics(
+                    label: apoyo ? 'Ayuda voluntaria' : '${s.vistosBuenos} Vistos Buenos',
+                    excludeSemantics: true,
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(apoyo ? Icons.favorite_border : Icons.thumb_up_alt_outlined, size: 16, color: naranja),
+                      const SizedBox(width: 4),
+                      Text(
+                        apoyo ? 'Ayuda voluntaria' : '${s.vistosBuenos} Vistos Buenos',
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: naranja),
+                      ),
+                    ]),
+                  ),
+                if (s.precioRef != null) ...[
+                  const SizedBox(height: 3),
+                  Text(s.precioRef!, maxLines: 1, overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Paleta.tinta)),
+                ],
               ]),
             ),
-          ),
-        ]),
+            const SizedBox(width: 10),
+            // Botón cuadrado con flecha (como el diseño).
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Paleta.linea),
+              ),
+              child: const Icon(Icons.chevron_right, color: Paleta.tinta),
+            ),
+          ]),
+        ),
       ),
     );
   }

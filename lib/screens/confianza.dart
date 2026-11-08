@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../config.dart';
+import '../data/datos_iniciales.dart';
+import '../features/sos/sos_alertas.dart';
 import '../models.dart';
 import '../state/app_state.dart';
 import '../ui/widgets.dart';
@@ -21,12 +23,12 @@ Future<void> compartirWhatsapp(String texto) async {
 }
 
 String textoCompartir(Publicacion p) =>
-    '${p.esEmergencia ? '🚨 ' : ''}Vecino${p.sector != null ? ' de ${p.sector}' : ''} '
+    '${p.esEmergencia ? 'EMERGENCIA. ' : ''}Vecino${p.sector != null ? ' de ${p.sector}' : ''} '
     '${p.esPedido ? 'necesita' : 'ofrece'}: "${p.titulo}". '
-    '${p.esPedido ? '¿Puedes ayudar? ' : ''}Míralo en App Vecinal ${Zona.nombre}.';
+    '${p.esPedido ? '¿Puedes ayudar? ' : ''}Míralo en Conecta Vecino ${Zona.nombre}.';
 
-const textoInvitacion = 'Únete a App Vecinal ${Zona.nombre}: encuentra servicios y productos recomendados por tus vecinos, '
-    'pide o presta cosas sin dinero y coordina ayuda en emergencias, incluso sin internet. Pídeme el instalador 📲';
+const textoInvitacion = 'Únete a Conecta Vecino ${Zona.nombre}: encuentra servicios y productos recomendados por tus vecinos, '
+    'pide o presta cosas sin dinero y coordina ayuda en emergencias, incluso sin internet. Pídeme el instalador.';
 
 // ================================================================== normas
 
@@ -71,7 +73,7 @@ const consejosSeguridad = <(IconData, String, String)>[
   (Icons.location_off, 'Tu dirección, solo por teléfono', 'No la escribas en la publicación. Dísela solo a quien te va a ayudar.'),
   (Icons.money_off, 'Aquí no se cobra', 'La Red de Solidaridad es sin dinero. Si alguien te pide pago o un adelanto, repórtalo.'),
   (Icons.groups, 'Si es un adulto mayor, que esté acompañado', 'Que un familiar o vecino de confianza sepa quién va a ir.'),
-  (Icons.flag, 'Si algo te parece raro, repórtalo', 'Toca la banderita 🚩 de la publicación. Entre todos cuidamos el barrio.'),
+  (Icons.flag, 'Si algo te parece raro, repórtalo', 'Toca la banderita de la publicación. Entre todos cuidamos el barrio.'),
 ];
 
 Future<void> mostrarConsejos(BuildContext context) => showModalBottomSheet<void>(
@@ -160,18 +162,53 @@ class AvisoAutoridades extends StatelessWidget {
             const SizedBox(height: 4),
             const Text('Si hay riesgo de vida, llama primero:', style: TextStyle(color: Colors.black87)),
             const SizedBox(height: 8),
-            Wrap(spacing: 8, runSpacing: 8, children: [
-              for (final (nombre, numero, icono) in numerosEmergencia)
-                FilledButton.icon(
-                  style: FilledButton.styleFrom(backgroundColor: const Color(0xFFE53935), foregroundColor: Colors.white),
-                  onPressed: () => llamar(numero),
-                  icon: Icon(icono),
-                  label: Text('$nombre $numero'),
-                ),
-            ]),
+            BotonesNumeros(numeros: DatosIniciales.actual.numeros),
           ]),
         ),
       );
+}
+
+/// Botones para llamar: nacionales (105, 106, 116) y, si la zona los tiene
+/// confirmados, los locales (Serenazgo, comisaría...).
+class BotonesNumeros extends StatelessWidget {
+  const BotonesNumeros({super.key, required this.numeros, this.claro = false});
+  final List<NumeroEmergencia> numeros;
+
+  /// Estilo para fondo rojo (pantalla SOS): botones blancos con borde.
+  final bool claro;
+
+  @override
+  Widget build(BuildContext context) {
+    final locales = numeros.where((n) => n.local).toList();
+    final nacionales = numeros.where((n) => !n.local).toList();
+    Widget boton(NumeroEmergencia n) => claro
+        ? OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(
+              backgroundColor: Colors.transparent,
+              foregroundColor: Colors.white,
+              side: const BorderSide(color: Colors.white, width: 2),
+            ),
+            onPressed: () => llamar(n.numero),
+            icon: Icon(n.icono),
+            label: Text('${n.numero} · ${n.nombre}'),
+          )
+        : FilledButton.icon(
+            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFE53935), foregroundColor: Colors.white),
+            onPressed: () => llamar(n.numero),
+            icon: Icon(n.icono),
+            label: Text('${n.nombre} ${n.numero}'),
+          );
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      Wrap(spacing: 8, runSpacing: 8, children: [for (final n in nacionales) boton(n)]),
+      if (locales.isNotEmpty) ...[
+        const SizedBox(height: 10),
+        Text('Números de tu zona',
+            style: TextStyle(fontWeight: FontWeight.w700, color: claro ? Colors.white : Colors.black87)),
+        const SizedBox(height: 6),
+        Wrap(spacing: 8, runSpacing: 8, children: [for (final n in locales) boton(n)]),
+      ],
+    ]);
+  }
 }
 
 // ======================================================== panel de coordinación
@@ -201,6 +238,8 @@ class _PanelCoordinacionScreenState extends State<PanelCoordinacionScreen> {
           st.refrescar();
         },
         child: ListView(padding: const EdgeInsets.only(bottom: 32), children: [
+          // Los SOS se atienden siempre, haya o no emergencia activa.
+          if (!emergencia) const FranjaAlertasSos(maximo: 5),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
             child: Text(emergencia ? 'Emergencia en curso' : 'Cadena de favores (día a día)',

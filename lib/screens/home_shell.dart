@@ -3,9 +3,11 @@ import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
 
 import '../config.dart';
+import '../features/solidaridad/solidaridad_screen.dart';
 import '../services/voz.dart';
 import '../state/app_state.dart';
 import '../ui/diseno.dart';
+import '../ui/tema.dart';
 import '../ui/widgets.dart';
 import 'foro.dart';
 import 'inicio.dart';
@@ -14,6 +16,7 @@ import 'mapa.dart';
 import 'perfil.dart';
 import 'publicar.dart';
 import 'qr_screens.dart';
+import '../features/sos/sos_navegacion.dart';
 
 /// Estructura principal (diseño Figma): encabezado propio en cada pestaña,
 /// barra inferior blanca y botón de publicar. Con emergencia activa, toda
@@ -148,7 +151,18 @@ class _HomeShellState extends State<HomeShell> {
       'Foro vecinal. Conversa con tus vecinos, pide recomendaciones o pregunta por servicios que necesitas en tu barrio.',
       'Tu perfil: tu reconocimiento en el barrio, tu historial y los ajustes de accesibilidad.',
     ];
-    final mostrarFab = _tab != 3 && _tab != 4 && (e || _tab != 2);
+    // Cada pestaña publica lo suyo: Servicios → servicio; Solidaridad → apoyo/evento.
+    // Solidaridad (día a día) ya tiene su propio formulario para pedir ayuda.
+    final mostrarFab = e ? _tab <= 2 : _tab == 1;
+    void alPublicar() {
+      if (e) {
+        abrirMenuPublicar(context);
+      } else if (_tab == 1) {
+        abrirFormulario(context, TipoForm.servicio);
+      } else {
+        abrirMenuSolidaridad(context);
+      }
+    }
 
     return Scaffold(
       body: SafeArea(
@@ -207,16 +221,131 @@ class _HomeShellState extends State<HomeShell> {
                 duration: const Duration(milliseconds: 200),
                 child: FloatingActionButton.extended(
                   heroTag: 'publicar',
-                  onPressed: () => abrirMenuPublicar(context),
+                  onPressed: alPublicar,
                   icon: const Icon(Icons.add, size: 26),
                   label: Text(e ? 'Pedir o dar ayuda' : 'Publicar'),
                 ),
               ),
             ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _tab,
-        onDestinationSelected: (i) => _irA(i),
-        destinations: destinos,
+      // Con letra grande, las etiquetas de la barra crecen poco para no partirse
+      // ("Solidari-dad"); el resto de la pantalla sí usa el tamaño elegido.
+      bottomNavigationBar: MediaQuery(
+        data: MediaQuery.of(context).copyWith(
+          textScaler: MediaQuery.textScalerOf(context).clamp(maxScaleFactor: 1.1),
+        ),
+        child: NavigationBar(
+          selectedIndex: _tab,
+          onDestinationSelected: (i) => _irA(i),
+          destinations: destinos,
+        ),
+      ),
+    );
+  }
+}
+
+/// Menú hamburguesa de la cabecera: Mapa, QR y Audio en un solo botón.
+class _MenuCabecera extends StatelessWidget {
+  const _MenuCabecera({
+    required this.pendientes,
+    required this.voz,
+    required this.alEscuchar,
+    required this.alCambiarLetra,
+  });
+  final int pendientes;
+  final bool voz;
+  final VoidCallback alEscuchar;
+  final VoidCallback alCambiarLetra;
+
+  @override
+  Widget build(BuildContext context) {
+    void ir(Widget p) =>
+        Navigator.push(context, MaterialPageRoute(builder: (_) => p));
+    return MenuAnchor(
+      alignmentOffset: const Offset(-140, 6),
+      menuChildren: [
+        MenuItemButton(
+          leadingIcon: const Icon(Icons.map_outlined),
+          onPressed: () => ir(const PantallaMapaCompleto()),
+          child: const Text('Mapa del barrio'),
+        ),
+        MenuItemButton(
+          leadingIcon: const Icon(Icons.qr_code_scanner),
+          onPressed: () => ir(const PendientesScreen()),
+          child: Text(
+            pendientes > 0 ? 'QR · $pendientes por enviar' : 'Mensajes por QR',
+          ),
+        ),
+        MenuItemButton(
+          leadingIcon: const Icon(Icons.format_size),
+          onPressed: alCambiarLetra,
+          child: const Text('Tamaño de letra'),
+        ),
+        if (voz)
+          MenuItemButton(
+            leadingIcon: const Icon(Icons.volume_up_outlined),
+            onPressed: alEscuchar,
+            child: const Text('Escuchar esta página'),
+          ),
+      ],
+      builder: (context, menu, _) => BotonCuadrado(
+        icono: menu.isOpen ? Icons.close : Icons.menu,
+        tooltip: 'Más opciones',
+        contador: pendientes,
+        onTap: () => menu.isOpen ? menu.close() : menu.open(),
+      ),
+    );
+  }
+}
+
+/// Botón SOS de cabecera:
+/// Fondo rojo vibrante con bordes redondeados, icono de alerta blanco y texto SOS blanco.
+class _BotonSOSCabecera extends StatelessWidget {
+  const _BotonSOSCabecera();
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: 'SOS · Auxilio rápido',
+      child: Semantics(
+        button: true,
+        label: 'SOS. Abrir auxilio rápido.',
+        excludeSemantics: true,
+        child: Material(
+          color: Paleta.rojo,
+          elevation: 2,
+          shadowColor: Paleta.rojo.withValues(alpha: 0.4),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: abrirSos,
+            child: Container(
+              height: 48,
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.crisis_alert_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                  SizedBox(width: 6),
+                  Text(
+                    'SOS',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 14,
+                      letterSpacing: 0.8,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

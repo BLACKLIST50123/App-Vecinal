@@ -12,7 +12,9 @@ import 'auth_screen.dart';
 import 'confianza.dart';
 
 String traducirError(Object e) {
+  if (e is SinPermiso) return e.mensaje;
   if (e is PostgrestException) {
+    if (e.code == 'P0001') return e.message; // mensajes propios del servidor (anti-spam)
     if (e.code == '23505') return 'Esto ya estaba registrado.';
     if (e.code == '42501' || e.message.contains('row-level security')) {
       return 'No tienes permiso para hacer esto.';
@@ -135,7 +137,7 @@ class _ServicioDetalleState extends State<ServicioDetalle> {
           icon: const Icon(Icons.share),
           onPressed: () => compartirWhatsapp(
               'Te recomiendo "${s.titulo}"${s.sector != null ? ' en ${s.sector}' : ''}, '
-              '${s.vistosBuenos} vecinos le dieron su Visto Bueno en App Vecinal ${Zona.nombre}.'),
+              '${s.vistosBuenos} vecinos le dieron su Visto Bueno en Conecta Vecino ${Zona.nombre}.'),
         ),
         if (!esMio && !s.pendiente)
           IconButton(
@@ -208,7 +210,7 @@ class _ServicioDetalleState extends State<ServicioDetalle> {
               const SizedBox(width: 12),
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () => abrirWhatsapp(s.telefono!, 'Hola, te encontré en App Vecinal: "${s.titulo}"'),
+                  onPressed: () => abrirWhatsapp(s.telefono!, 'Hola, te encontré en Conecta Vecino: "${s.titulo}"'),
                   icon: const Icon(Icons.chat),
                   label: const Text('WhatsApp'),
                 ),
@@ -296,6 +298,7 @@ class _ModalSolicitarPedidoState extends State<ModalSolicitarPedido> {
   final _telefono = TextEditingController();
   String? _sector;
   bool _enviando = false;
+  String? _errDetalle, _errTelefono;
 
   @override
   void initState() {
@@ -326,10 +329,11 @@ class _ModalSolicitarPedidoState extends State<ModalSolicitarPedido> {
       return;
     }
     final detalle = _detalle.text.trim();
-    if (detalle.length < 2) {
-      avisar('Escribe qué necesitas o qué deseas pedir.');
-      return;
-    }
+    setState(() {
+      _errDetalle = validarTexto(detalle, obligatorio: true);
+      _errTelefono = validarTelefono(_telefono.text);
+    });
+    if (_errDetalle != null || _errTelefono != null) return;
     if (widget.servicio.autorId == null) {
       avisar('No se puede enviar pedido a este servicio.');
       return;
@@ -432,14 +436,17 @@ class _ModalSolicitarPedidoState extends State<ModalSolicitarPedido> {
               TextField(
                 controller: _detalle,
                 maxLines: 3,
-                decoration: const InputDecoration(
+                maxLength: 500,
+                decoration: InputDecoration(
                   labelText: '¿Qué necesitas o qué deseas pedir? *',
                   hintText: 'Ej. Reparar fuga de agua en el lavadero / 1 torta para el sábado',
+                  errorText: _errDetalle,
                 ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: _fecha,
+                maxLength: 60,
                 decoration: const InputDecoration(
                   labelText: '¿Para cuándo lo necesitas? (opcional)',
                   hintText: 'Ej. Mañana a las 10 am / Lo antes posible',
@@ -449,9 +456,12 @@ class _ModalSolicitarPedidoState extends State<ModalSolicitarPedido> {
               TextField(
                 controller: _telefono,
                 keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(
-                  labelText: 'Tu teléfono de contacto',
-                  hintText: 'Para que el prestador te llame o escriba',
+                inputFormatters: formatoTelefono,
+                decoration: InputDecoration(
+                  labelText: 'Tu celular de contacto',
+                  hintText: '987654321',
+                  helperText: 'Para que el prestador te llame o escriba',
+                  errorText: _errTelefono,
                 ),
               ),
               const SizedBox(height: 12),
@@ -572,7 +582,7 @@ class _PublicacionDetalleState extends State<PublicacionDetalle> {
         try {
           await st.repo.agradecer(p.id, elegidos.toList(), mensaje: mensaje.text);
           if (elegidos.isNotEmpty) {
-            avisar(elegidos.length == 1 ? 'Le enviaste tu agradecimiento 💛' : 'Les enviaste tu agradecimiento 💛');
+            avisar(elegidos.length == 1 ? 'Le enviaste tu agradecimiento.' : 'Les enviaste tu agradecimiento.');
           }
         } catch (e) {
           avisar(traducirError(e));
@@ -654,7 +664,7 @@ class _PublicacionDetalleState extends State<PublicacionDetalle> {
             FilledButton.icon(
               onPressed: () {
                 Navigator.pop(c);
-                abrirWhatsapp(tel, 'Hola ${p.autorVisible}, te escribo por App Vecinal: "${p.titulo}". ${p.textoResponder == 'Yo aporto' ? 'Quiero aportar.' : (p.esPedido ? 'Puedo ayudarte.' : 'Me interesa.')}');
+                abrirWhatsapp(tel, 'Hola ${p.autorVisible}, te escribo por Conecta Vecino: "${p.titulo}". ${p.textoResponder == 'Yo aporto' ? 'Quiero aportar.' : (p.esPedido ? 'Puedo ayudarte.' : 'Me interesa.')}');
               },
               icon: const Icon(Icons.chat),
               label: const Text('WhatsApp'),
@@ -779,8 +789,14 @@ class _PublicacionDetalleState extends State<PublicacionDetalle> {
                 if (yaRespondi)
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 16),
-                    child: Text('✓ Ya respondiste. Ahora ponte de acuerdo por llamada o WhatsApp.',
-                        style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF2E7D32))),
+                    child: Row(children: [
+                      Icon(Icons.check_circle_rounded, size: 18, color: Color(0xFF2E7D32)),
+                      SizedBox(width: 6),
+                      Expanded(
+                        child: Text('Ya respondiste. Ahora ponte de acuerdo por llamada o WhatsApp.',
+                            style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF2E7D32))),
+                      ),
+                    ]),
                   ),
                 TituloSeccion('$tituloLista (${lista.length})'),
                 if (lista.isEmpty)
@@ -791,7 +807,7 @@ class _PublicacionDetalleState extends State<PublicacionDetalle> {
                 else
                   for (final a in lista)
                     ListTile(
-                      leading: CircleAvatar(child: Text(Nivel.de(a.ayudasConfirmadas).emoji)),
+                      leading: MedallaNivel(Nivel.de(a.ayudasConfirmadas)),
                       title: Text(a.vecinoId == st.uid ? 'Tú' : (a.vecinoNombre ?? 'Vecino')),
                       subtitle: Wrap(spacing: 6, crossAxisAlignment: WrapCrossAlignment.center, children: [
                         Text('Respondió ${haceCuanto(a.creado)}'),
@@ -817,7 +833,7 @@ class _PublicacionDetalleState extends State<PublicacionDetalle> {
               const SizedBox(width: 12),
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () => abrirWhatsapp(tel, 'Hola ${p.autorVisible}, te escribo por App Vecinal: "${p.titulo}".'),
+                  onPressed: () => abrirWhatsapp(tel, 'Hola ${p.autorVisible}, te escribo por Conecta Vecino: "${p.titulo}".'),
                   icon: const Icon(Icons.chat),
                   label: const Text('WhatsApp'),
                 ),
