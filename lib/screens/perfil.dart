@@ -157,6 +157,13 @@ class PerfilScreen extends StatelessWidget {
               color: st.modoEmergencia ? Paleta.rojo : null,
               onTap: () => _ir(context, const JuntaVecinalScreen()),
             ),
+          if (st.esModerador)
+            FilaAjuste(
+              icono: Icons.report_outlined,
+              texto: 'Quejas de servicios',
+              valor: 'Revisar',
+              onTap: () => _ir(context, const ServiciosConQuejasScreen()),
+            ),
         ]),
       ],
 
@@ -588,7 +595,6 @@ class JuntaVecinalScreen extends StatelessWidget {
                 style: TextStyle(color: Paleta.gris, fontSize: 15)),
           ),
           _PanelModerador(),
-          _ServiciosConQuejas(),
         ]),
       );
 }
@@ -918,6 +924,27 @@ class _RecordatorioAvisos extends StatelessWidget {
 
 /// Para la junta: servicios con varias respuestas "No me fue bien"
 /// (privadas). Permite revisar antes de que un vecino salga perjudicado.
+class ServiciosConQuejasScreen extends StatelessWidget {
+  const ServiciosConQuejasScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        appBar: AppBar(title: const Text('Quejas de servicios')),
+        body: ListView(padding: const EdgeInsets.only(bottom: 32), children: const [
+          Padding(
+            padding: EdgeInsets.fromLTRB(20, 4, 20, 12),
+            child: Text(
+              'Cuando un vecino responde "No me fue bien", se guarda en privado. '
+              'Aquí ves los servicios con 2 o más quejas. Con 3, dejan de salir como recomendados.\n\n'
+              'Antes de decidir algo, conversa con el vecino que ofrece el servicio.',
+              style: TextStyle(color: Paleta.gris, fontSize: 16, height: 1.4),
+            ),
+          ),
+          _ServiciosConQuejas(),
+        ]),
+      );
+}
+
 class _ServiciosConQuejas extends StatelessWidget {
   const _ServiciosConQuejas();
 
@@ -933,11 +960,6 @@ class _ServiciosConQuejas extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            const Text('Servicios con quejas', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
-            const SizedBox(height: 4),
-            const Text('Respuestas privadas de "No me fue bien" (2 o más). Con 3 pierden el sello y el N.º 1.',
-                style: TextStyle(color: Paleta.gris)),
-            const SizedBox(height: 8),
             Cargador<List<Map<String, dynamic>>>(
               cargar: (st) async {
                 try {
@@ -963,11 +985,12 @@ class _ServiciosConQuejas extends StatelessWidget {
                             backgroundColor: Paleta.rojoSuave,
                             child: Text('${q['total']}', style: const TextStyle(color: Paleta.rojoTexto, fontWeight: FontWeight.w800)),
                           ),
-                          title: Text('${q['titulo']}', style: const TextStyle(fontWeight: FontWeight.w700)),
+                          title: Text('${q['titulo']}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
                           subtitle: Text([
                             '${q['autor_nombre'] ?? 'Vecino'}',
+                            '${q['total']} quejas',
                             for (final m in (q['motivos'] as List?) ?? const []) _motivos['$m'] ?? '$m',
-                          ].join(' · ')),
+                          ].join(' · '), style: const TextStyle(fontSize: 15)),
                         ),
                     ]),
             ),
