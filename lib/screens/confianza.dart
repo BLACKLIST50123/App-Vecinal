@@ -23,12 +23,12 @@ Future<void> compartirWhatsapp(String texto) async {
 }
 
 String textoCompartir(Publicacion p) =>
-    '${p.esEmergencia ? '🚨 ' : ''}Vecino${p.sector != null ? ' de ${p.sector}' : ''} '
+    '${p.esEmergencia ? 'EMERGENCIA. ' : ''}Vecino${p.sector != null ? ' de ${p.sector}' : ''} '
     '${p.esPedido ? 'necesita' : 'ofrece'}: "${p.titulo}". '
     '${p.esPedido ? '¿Puedes ayudar? ' : ''}Míralo en Conecta Vecino ${Zona.nombre}.';
 
 const textoInvitacion = 'Únete a Conecta Vecino ${Zona.nombre}: encuentra servicios y productos recomendados por tus vecinos, '
-    'pide o presta cosas sin dinero y coordina ayuda en emergencias, incluso sin internet. Pídeme el instalador 📲';
+    'pide o presta cosas sin dinero y coordina ayuda en emergencias, incluso sin internet. Pídeme el instalador.';
 
 // ================================================================== normas
 
@@ -73,7 +73,7 @@ const consejosSeguridad = <(IconData, String, String)>[
   (Icons.location_off, 'Tu dirección, solo por teléfono', 'No la escribas en la publicación. Dísela solo a quien te va a ayudar.'),
   (Icons.money_off, 'Aquí no se cobra', 'La Red de Solidaridad es sin dinero. Si alguien te pide pago o un adelanto, repórtalo.'),
   (Icons.groups, 'Si es un adulto mayor, que esté acompañado', 'Que un familiar o vecino de confianza sepa quién va a ir.'),
-  (Icons.flag, 'Si algo te parece raro, repórtalo', 'Toca la banderita 🚩 de la publicación. Entre todos cuidamos el barrio.'),
+  (Icons.flag, 'Si algo te parece raro, repórtalo', 'Toca la banderita de la publicación. Entre todos cuidamos el barrio.'),
 ];
 
 Future<void> mostrarConsejos(BuildContext context) => showModalBottomSheet<void>(

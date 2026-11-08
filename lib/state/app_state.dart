@@ -228,7 +228,7 @@ class AppState extends ChangeNotifier {
       // Nunca dejar una alerta "guardada" que en realidad no se enviará.
       final hayEmergencia = rechazadas.any((e) => e.datos['es_emergencia'] == true);
       avisar(hayEmergencia
-          ? '⚠️ No se pudo enviar tu pedido de ayuda. Si es urgente, llama al 105 (Policía), 106 (SAMU) o 116 (Bomberos).'
+          ? 'No se pudo enviar tu pedido de ayuda. Si es urgente, llama al 105 (Policía), 106 (SAMU) o 116 (Bomberos).'
           : 'No se pudo enviar una publicación guardada. Revísala en "Llevar mensajes".');
       notifyListeners();
     }

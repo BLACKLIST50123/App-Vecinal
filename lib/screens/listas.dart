@@ -278,7 +278,7 @@ class _FavoresScreenState extends State<FavoresScreen> {
                           return FilaAjuste(
                             icono: Icons.emoji_events_outlined,
                             texto: (d['nombre'] ?? 'Vecino') as String,
-                            valor: '${nivel.emoji} $n ${n == 1 ? 'ayuda' : 'ayudas'}',
+                            valor: '${nivel.corto} · $n ${n == 1 ? 'ayuda' : 'ayudas'}',
                           );
                         }(),
                     ]),

@@ -137,7 +137,7 @@ class PerfilScreen extends StatelessWidget {
                 const VerticalDivider(width: 1),
                 ImpactoNumero('${datos.$1.length + datos.$2.length}', 'Publicaciones'),
                 const VerticalDivider(width: 1),
-                ImpactoNumero(nivel.emoji, nivel.nombre),
+                ImpactoNumero('${nivel.indice + 1} de ${Nivel.todos.length}', nivel.nombre),
               ]),
             ),
           ),
@@ -237,7 +237,7 @@ class PerfilScreen extends StatelessWidget {
                   texto: (d['nombre'] ?? 'Vecino') as String,
                   valor: () {
                     final n = (d['ayudas_confirmadas'] as num?)?.toInt() ?? 0;
-                    return '${Nivel.de(n).emoji} $n ${n == 1 ? 'ayuda' : 'ayudas'}';
+                    return '${Nivel.de(n).corto} · $n ${n == 1 ? 'ayuda' : 'ayudas'}';
                   }(),
                 ),
             ]),
@@ -406,7 +406,7 @@ class _TarjetaReconocimiento extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
-            Text(n.emoji, style: const TextStyle(fontSize: 48)),
+            MedallaNivel(n, tamano: 56),
             const SizedBox(width: 12),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -433,7 +433,7 @@ class _TarjetaReconocimiento extends StatelessWidget {
           Text(
             sig == null
                 ? '¡Llegaste al nivel más alto! Gracias por cuidar tu barrio.'
-                : 'Te ${faltan == 1 ? 'falta 1 ayuda confirmada' : 'faltan $faltan ayudas confirmadas'} para ser ${sig.emoji} ${sig.nombre}',
+                : 'Te ${faltan == 1 ? 'falta 1 ayuda confirmada' : 'faltan $faltan ayudas confirmadas'} para ser ${sig.nombre}',
             style: const TextStyle(color: Colors.black87),
           ),
           const SizedBox(height: 8),
@@ -490,9 +490,11 @@ class HistorialScreen extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   child: Wrap(spacing: 8, runSpacing: 8, children: [
-                    if (emergencias > 0) const Chip(avatar: Text('🚨'), label: Text('Ayudó en una emergencia')),
-                    if (cuidado > 0) const Chip(avatar: Text('👵'), label: Text('Acompaña a los mayores')),
-                    if (colectas > 0) const Chip(avatar: Text('🎁'), label: Text('Aporta a las colectas')),
+                    if (emergencias > 0)
+                      const Chip(avatar: Icon(Icons.health_and_safety_rounded, size: 18), label: Text('Ayudó en una emergencia')),
+                    if (cuidado > 0) const Chip(avatar: Icon(Icons.elderly_rounded, size: 18), label: Text('Acompaña a los mayores')),
+                    if (colectas > 0)
+                      const Chip(avatar: Icon(Icons.redeem_rounded, size: 18), label: Text('Aporta a las colectas')),
                   ]),
                 ),
               ],

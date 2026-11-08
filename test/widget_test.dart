@@ -115,6 +115,12 @@ void main() {
       expect(Nivel.de(40).nombre, 'Guardián del barrio');
     });
 
+    test('cada rango tiene su propio ícono y su posición en la escala', () {
+      expect(Nivel.todos.map((n) => n.icono).toSet().length, Nivel.todos.length);
+      expect(Nivel.de(0).indice, 0);
+      expect(Nivel.de(7).indice, 3);
+    });
+
     test('siguiente nivel y fin de la escala', () {
       expect(Nivel.siguiente(1)!.nombre, 'Vecino solidario');
       expect(Nivel.siguiente(15), isNull);

@@ -58,7 +58,7 @@ class CapaSos extends StatelessWidget {
   }
 }
 
-/// Aviso rojo arriba: "🚨 Alerta SOS a 350 m". Se cierra solo en 45 s.
+/// Aviso rojo arriba: "Alerta SOS a 350 m". Se cierra solo en 45 s.
 class _AvisoSosCercano extends StatefulWidget {
   const _AvisoSosCercano({required this.publicacion, required this.km});
   final Publicacion publicacion;
@@ -113,7 +113,7 @@ class _AvisoSosCercanoState extends State<_AvisoSosCercano> {
               const SizedBox(width: 10),
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('🚨 Alerta SOS ${formatoDistancia(widget.km)}',
+                  Text('Alerta SOS ${formatoDistancia(widget.km)}',
                       style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900)),
                   Text(p.titulo, maxLines: 2, overflow: TextOverflow.ellipsis,
                       style: const TextStyle(color: Colors.white, fontSize: 14)),

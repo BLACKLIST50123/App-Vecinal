@@ -268,8 +268,14 @@ class _Cuadricula extends StatelessWidget {
       if (onVolver != null)
         const Padding(
           padding: EdgeInsets.only(bottom: 4),
-          child: Text('🔒 Secuestro, extorsión y violencia se envían como aviso reservado.',
-              style: TextStyle(color: Color(0xF2FFFFFF), fontSize: 14)),
+          child: Row(children: [
+            Icon(Icons.lock_rounded, size: 16, color: Color(0xF2FFFFFF)),
+            SizedBox(width: 6),
+            Expanded(
+              child: Text('Secuestro, extorsión y violencia se envían como aviso reservado.',
+                  style: TextStyle(color: Color(0xF2FFFFFF), fontSize: 14)),
+            ),
+          ]),
         ),
       const SizedBox(height: 12),
       for (var i = 0; i < tipos.length; i += 2)

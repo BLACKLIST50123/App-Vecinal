@@ -68,7 +68,7 @@ class _HomeShellState extends State<HomeShell> {
         consultaInicial: _consulta,
       ),
       // Día a día: Solidaridad (colectas + apoyar/pedir). Emergencia: tablero.
-      e ? const FavoresScreen(emergencia: true) : const SolidaridadScreen(),
+      e ? const FavoresScreen(emergencia: true) : SolidaridadScreen(irAPerfil: () => _irA(4)),
       const MisAportesScreen(),
       const PerfilScreen(),
     ];
