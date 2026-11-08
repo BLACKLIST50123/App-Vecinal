@@ -20,7 +20,7 @@ const frasesRapidas = <String, List<FraseRapida>>{
     FraseRapida('Necesito un taladro', 'herramientas', Icons.hardware),
     FraseRapida('Necesito ayuda para cargar algo', 'ayuda', Icons.front_hand),
     FraseRapida('Necesito que alguien me lleve', 'movilidad', Icons.directions_car),
-    FraseRapida('Busco compañía para un adulto mayor', 'cuidado', Icons.elderly),
+    FraseRapida('Busco compañía para un adulto mayor', 'ayuda', Icons.elderly),
     FraseRapida('Quiero aprender a usar el celular', 'habilidad', Icons.phone_android),
   ],
   'ofrezcoFavor': [
@@ -29,7 +29,7 @@ const frasesRapidas = <String, List<FraseRapida>>{
     FraseRapida('Puedo ayudar a cargar cosas', 'ayuda', Icons.front_hand),
     FraseRapida('Enseño a usar el celular', 'habilidad', Icons.phone_android),
     FraseRapida('Puedo llevar a alguien en mi carro', 'movilidad', Icons.directions_car),
-    FraseRapida('Acompaño a un adulto mayor', 'cuidado', Icons.elderly),
+    FraseRapida('Acompaño a un adulto mayor', 'ayuda', Icons.elderly),
   ],
   'colecta': [
     FraseRapida('Útiles escolares para niños del sector', 'colecta', Icons.backpack),
@@ -79,10 +79,10 @@ const _palabrasClave = <String, List<String>>{
   // Cadena de favores
   'herramientas': ['escalera', 'taladro', 'herramienta', 'martillo', 'alicate', 'carretilla', 'prest'],
   'movilidad': ['llev', 'carro', 'auto', 'taxi', 'moto', 'movilidad', 'viaje'],
-  'cuidado': ['compania', 'acompan', 'adulto mayor', 'abuel', 'cuid', 'nino'],
   'habilidad': ['ensen', 'aprend', 'tarea'],
   'donacion': ['regal', 'donac', 'dono', 'ropa', 'juguete'],
-  'ayuda': ['cargar', 'mano', 'mudanza', 'ayud'],
+  // "Compañía y cuidado" ahora es parte de "Ayuda temporal".
+  'ayuda': ['cargar', 'mano', 'mudanza', 'ayud', 'compania', 'acompan', 'adulto mayor', 'abuel', 'cuid', 'nino'],
   // Servicios y productos
   'gasfiteria': ['gasfit', 'cano', 'desague', 'fuga', 'tuberia', 'inodoro'],
   'electricidad': ['electric', 'luz', 'enchufe', 'foco', 'cable'],

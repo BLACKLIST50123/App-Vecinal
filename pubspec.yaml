@@ -73,8 +73,9 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
-  # Logo de Conecta Vecino (incluido en la app: funciona sin internet).
+  # Datos de primer uso sin internet y logo de Conecta Vecino.
   assets:
+    - assets/datos_iniciales.json
     - assets/images/
 
   # To add assets to your application, add an assets section, like this:

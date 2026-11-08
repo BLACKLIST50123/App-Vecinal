@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models.dart';
+import 'datos_iniciales.dart';
 
 /// Publicación creada sin conexión (o traída por QR) que espera enviarse.
 class EntradaPendiente {
@@ -73,7 +74,8 @@ class Repo {
       }
     }
     final raw = prefs.getString('cache_$clave');
-    if (raw == null) return [];
+    // Primer uso sin internet: datos incluidos en la app (grupos de apoyo).
+    if (raw == null) return DatosIniciales.actual.respaldo(clave) ?? [];
     return (jsonDecode(raw) as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
   }
 
@@ -125,6 +127,44 @@ class Repo {
           .map((p) => Publicacion.fromMap(p.datos, pendiente: true)),
       ...enviadas,
     ];
+  }
+
+  /// Cuánto tiempo sigue visible una alerta SOS sin atender: así no quedan
+  /// alertas abiertas para siempre ("continuas").
+  static Duration vigenciaSos(String prioridad) =>
+      prioridad == 'critica' ? const Duration(hours: 24) : const Duration(hours: 6);
+
+  /// Alertas SOS vigentes y sin atender. Se muestran SIEMPRE, aunque la
+  /// junta no haya activado el modo emergencia. Las marcadas "sin confirmar"
+  /// (3 reportes de vecinos o una organización) salen de la lista.
+  Future<List<Publicacion>> alertasSos() async {
+    final desde = DateTime.now().toUtc().subtract(const Duration(hours: 24)).toIso8601String();
+    final filas = await _consultar(
+      'alertas_sos',
+      () => db
+          .from('publicaciones')
+          .select('*, ayudas(count)')
+          .eq('origen', 'sos')
+          .not('estado', 'in', '(resuelta,no_verificado)')
+          .gte('created_at', desde)
+          .order('created_at', ascending: false)
+          .limit(30),
+    );
+    final ahora = DateTime.now();
+    final enviadas = filas
+        .map(Publicacion.fromMap)
+        .where((p) => ahora.difference(p.creado) <= vigenciaSos(p.prioridad))
+        .toList();
+    final ids = enviadas.map((p) => p.id).toSet();
+    return [
+      ...pendientes
+          .where((p) => p.tabla == 'publicaciones' && p.datos['origen'] == 'sos' && !ids.contains(p.id))
+          .map((p) => Publicacion.fromMap(p.datos, pendiente: true)),
+      ...enviadas,
+    ]..sort((a, b) {
+        final x = b.pesoPrioridad.compareTo(a.pesoPrioridad);
+        return x != 0 ? x : b.creado.compareTo(a.creado);
+      });
   }
 
   Future<EstadoEmergencia> emergencia() async {
@@ -397,10 +437,13 @@ class Repo {
     return false;
   }
 
-  /// Envía la cola. Devuelve cuántas se enviaron.
-  Future<int> sincronizar() async {
-    if (forzarOffline || pendientes.isEmpty) return 0;
+  /// Envía la cola. Devuelve cuántas se enviaron y cuáles fueron RECHAZADAS
+  /// por primera vez (permiso, límite anti-spam...), para avisar a la persona
+  /// en lugar de dejarlas en silencio como "guardadas".
+  Future<(int, List<EntradaPendiente>)> sincronizar() async {
+    if (forzarOffline || pendientes.isEmpty) return (0, <EntradaPendiente>[]);
     var enviados = 0;
+    final rechazadas = <EntradaPendiente>[];
     for (final e in List.of(pendientes)) {
       try {
         await _enviar(e);
@@ -408,11 +451,12 @@ class Repo {
         enviados++;
       } catch (err) {
         if (esErrorDeRed(err)) break;
+        if (e.error == null) rechazadas.add(e);
         e.error = err is PostgrestException ? err.message : err.toString();
       }
     }
     await _guardarCola();
-    return enviados;
+    return (enviados, rechazadas);
   }
 
   /// Guarda un pedido recibido por QR. false si ya lo tenías.

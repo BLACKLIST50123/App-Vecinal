@@ -1,0 +1,90 @@
+{
+  "version": 1,
+  "_nota": "Datos incluidos en la app para que funcione desde el primer uso, aunque nunca haya tenido internet. Los números NACIONALES están verificados. Los LOCALES dependen de cada zona y solo se agregan cuando el equipo o la municipalidad los confirman. Nunca inventar un número de emergencia.",
+
+  "numeros_nacionales": [
+    { "nombre": "Policía", "numero": "105", "tipo": "policia" },
+    { "nombre": "SAMU (ambulancia)", "numero": "106", "tipo": "ambulancia" },
+    { "nombre": "Bomberos", "numero": "116", "tipo": "bomberos" }
+  ],
+
+  "zonas": {
+    "Chimbote": {
+      "_pendiente": "Completar con números VERIFICADOS: Serenazgo, comisaría del sector, compañía de bomberos, emergencia del hospital y Defensa Civil municipal. Formato: { \"nombre\": \"Serenazgo\", \"numero\": \"...\", \"tipo\": \"serenazgo\" }",
+      "numeros_locales": []
+    }
+  },
+
+  "grupos_apoyo_demo": [
+    {
+      "id": "00000000-0000-4000-8000-000000000201",
+      "autor_nombre": "Brigada Vecinal Chimbote",
+      "autor_rol": "organizacion",
+      "categoria": "salud",
+      "titulo": "Brigada vecinal de primeros auxilios",
+      "descripcion": "Voluntarios capacitados en primeros auxilios y traslado de heridos leves. (Dato de demostración)",
+      "telefono": "999 000 201",
+      "horario": "24 horas durante la emergencia",
+      "sector": "Casco Urbano",
+      "lat": -9.0758,
+      "lng": -78.5920,
+      "es_emergencia": true
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000202",
+      "autor_nombre": "Olla Común Villa María",
+      "autor_rol": "organizacion",
+      "categoria": "alimentos",
+      "titulo": "Olla común Villa María",
+      "descripcion": "Desayuno y almuerzo para familias afectadas. (Dato de demostración)",
+      "telefono": "999 000 202",
+      "horario": "7 am a 2 pm",
+      "sector": "Villa María",
+      "lat": -9.0992,
+      "lng": -78.5688,
+      "es_emergencia": true
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000203",
+      "autor_nombre": "Junta Vecinal Bellamar",
+      "autor_rol": "organizacion",
+      "categoria": "albergue",
+      "titulo": "Albergue temporal: local comunal Bellamar",
+      "descripcion": "Capacidad para 40 personas. (Dato de demostración)",
+      "telefono": "999 000 203",
+      "horario": "24 horas",
+      "sector": "Bellamar",
+      "lat": -9.1182,
+      "lng": -78.5415,
+      "es_emergencia": true
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000204",
+      "autor_nombre": "Rescatistas del Barrio",
+      "autor_rol": "organizacion",
+      "categoria": "rescate",
+      "titulo": "Rescatistas voluntarios",
+      "descripcion": "Apoyo para evacuar a personas con movilidad reducida. (Dato de demostración)",
+      "telefono": "999 000 204",
+      "horario": "24 horas",
+      "sector": "La Florida",
+      "lat": -9.0812,
+      "lng": -78.5762,
+      "es_emergencia": true
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000205",
+      "autor_nombre": "Escucha Solidaria",
+      "autor_rol": "organizacion",
+      "categoria": "psicologico",
+      "titulo": "Escucha solidaria: apoyo emocional",
+      "descripcion": "Psicólogos voluntarios por llamada. (Dato de demostración)",
+      "telefono": "999 000 205",
+      "horario": "8 am a 10 pm",
+      "sector": "Buenos Aires",
+      "lat": -9.1255,
+      "lng": -78.5270,
+      "es_emergencia": true
+    }
+  ]
+}

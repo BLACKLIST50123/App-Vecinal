@@ -75,13 +75,15 @@ class _AuthScreenState extends State<AuthScreen> {
     super.dispose();
   }
 
-  String? _faltaPaso1() => _nombre.text.trim().length < 2
-      ? 'Escribe tu nombre.'
-      : _id == null
+  String? _faltaPaso1() =>
+      validarNombre(_nombre.text) ??
+      (_id == null
           ? _errorId
-          : _clave.text.length < 6
-              ? (_usarCorreo ? 'La contraseña debe tener al menos 6 caracteres.' : 'La clave debe tener al menos 6 números.')
-              : null;
+          : _usarCorreo && validarTelefono(_telefono.text) != null
+              ? validarTelefono(_telefono.text)
+              : _clave.text.length < 6
+                  ? (_usarCorreo ? 'La contraseña debe tener al menos 6 caracteres.' : 'La clave debe tener al menos 6 números.')
+                  : null);
 
   void _siguiente() {
     final falta = _faltaPaso1();
@@ -349,6 +351,7 @@ class _AuthScreenState extends State<AuthScreen> {
           textCapitalization: TextCapitalization.words,
           textInputAction: TextInputAction.next,
           autofillHints: const [AutofillHints.name],
+          inputFormatters: [soloLetras, LengthLimitingTextInputFormatter(60)],
           style: const TextStyle(fontSize: 18),
           decoration: const InputDecoration(labelText: 'Tu nombre', hintText: 'Ej. Rosa Huamán', prefixIcon: Icon(Icons.person)),
         ),
@@ -359,7 +362,9 @@ class _AuthScreenState extends State<AuthScreen> {
           TextField(
             controller: _telefono,
             keyboardType: TextInputType.phone,
-            decoration: const InputDecoration(labelText: 'Teléfono o WhatsApp (opcional)', prefixIcon: Icon(Icons.phone)),
+            inputFormatters: formatoTelefono,
+            decoration: const InputDecoration(
+                labelText: 'Celular o WhatsApp (opcional)', hintText: '987654321', prefixIcon: Icon(Icons.phone)),
           ),
         ],
         _mensajeError(),

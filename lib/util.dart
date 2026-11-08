@@ -39,6 +39,19 @@ Punto aproximar(Punto p) {
 String formatoDistancia(double km) =>
     km < 1 ? 'a ${(km * 1000 / 10).round() * 10} m' : 'a ${km.toStringAsFixed(1)} km';
 
+/// Fecha y hora claras: "Hoy 14:30", "Ayer 09:15", "Mié 5 nov · 18:40".
+String fechaHora(DateTime t) {
+  const dias = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+  const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  final hora = '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+  final hoy = DateTime.now();
+  final dia = DateTime(t.year, t.month, t.day);
+  final diferencia = DateTime(hoy.year, hoy.month, hoy.day).difference(dia).inDays;
+  if (diferencia == 0) return 'Hoy $hora';
+  if (diferencia == 1) return 'Ayer $hora';
+  return '${dias[t.weekday - 1]} ${t.day} ${meses[t.month - 1]} · $hora';
+}
+
 String haceCuanto(DateTime t) {
   final d = DateTime.now().difference(t);
   if (d.inMinutes < 1) return 'hace un momento';

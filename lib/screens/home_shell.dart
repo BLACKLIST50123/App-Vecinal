@@ -3,6 +3,7 @@ import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
 
 import '../config.dart';
+import '../features/solidaridad/solidaridad_screen.dart';
 import '../services/voz.dart';
 import '../state/app_state.dart';
 import '../ui/diseno.dart';
@@ -15,7 +16,7 @@ import 'mapa.dart';
 import 'perfil.dart';
 import 'publicar.dart';
 import 'qr_screens.dart';
-import 'sos.dart';
+import '../features/sos/sos_navegacion.dart';
 
 /// Estructura principal (diseño Figma): encabezado propio en cada pestaña,
 /// barra inferior blanca y botón de publicar. Con emergencia activa, toda
@@ -68,7 +69,8 @@ class _HomeShellState extends State<HomeShell> {
         grupoInicial: _grupo,
         consultaInicial: _consulta,
       ),
-      FavoresScreen(emergencia: e),
+      // Día a día: Solidaridad (colectas + apoyar/pedir). Emergencia: tablero.
+      e ? const FavoresScreen(emergencia: true) : SolidaridadScreen(irAPerfil: () => _irA(4)),
       MisAportesScreen(alIrAServicios: () => _irA(1)),
       const PerfilScreen(),
     ];
@@ -151,7 +153,8 @@ class _HomeShellState extends State<HomeShell> {
       'Tu perfil: tu reconocimiento en el barrio, tu historial y los ajustes de accesibilidad.',
     ];
     // Cada pestaña publica lo suyo: Servicios → servicio; Solidaridad → apoyo/evento.
-    final mostrarFab = e ? _tab <= 2 : (_tab == 1 || _tab == 2);
+    // Solidaridad (día a día) ya tiene su propio formulario para pedir ayuda.
+    final mostrarFab = e ? _tab <= 2 : _tab == 1;
     void alPublicar() {
       if (e) {
         abrirMenuPublicar(context);
@@ -178,6 +181,11 @@ class _HomeShellState extends State<HomeShell> {
                   pendientes: st.pendientes,
                   voz: st.voz,
                   alEscuchar: () => Voz.hablar(resumenes[_tab]),
+                  alCambiarLetra: () {
+                    final tamano = st.cambiarLetra();
+                    avisar('Letra $tamano');
+                    if (st.voz) Voz.hablar('Letra $tamano');
+                  },
                 ),
               ],
             ),
@@ -228,10 +236,12 @@ class _MenuCabecera extends StatelessWidget {
     required this.pendientes,
     required this.voz,
     required this.alEscuchar,
+    required this.alCambiarLetra,
   });
   final int pendientes;
   final bool voz;
   final VoidCallback alEscuchar;
+  final VoidCallback alCambiarLetra;
 
   @override
   Widget build(BuildContext context) {
@@ -251,6 +261,11 @@ class _MenuCabecera extends StatelessWidget {
           child: Text(
             pendientes > 0 ? 'QR · $pendientes por enviar' : 'Mensajes por QR',
           ),
+        ),
+        MenuItemButton(
+          leadingIcon: const Icon(Icons.format_size),
+          onPressed: alCambiarLetra,
+          child: const Text('Tamaño de letra'),
         ),
         if (voz)
           MenuItemButton(
@@ -291,7 +306,7 @@ class _BotonSOSCabecera extends StatelessWidget {
           ),
           child: InkWell(
             borderRadius: BorderRadius.circular(16),
-            onTap: abrirSOS,
+            onTap: abrirSos,
             child: Container(
               height: 48,
               padding: const EdgeInsets.symmetric(horizontal: 14),

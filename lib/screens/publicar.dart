@@ -44,7 +44,9 @@ enum TipoForm {
         grupoApoyo => categoriasApoyo,
         necesitoAyuda => categoriasEmergencia.where((c) => c.id != 'recurso' && c.id != 'vulnerable').toList(),
         reportarVulnerable => categoriasEmergencia.where((c) => c.id == 'vulnerable').toList(),
-        ofrezcoRecurso => categoriasEmergencia.where((c) => c.id != 'vulnerable' && c.id != 'rescate').toList(),
+        ofrezcoRecurso => categoriasEmergencia
+            .where((c) => !{'vulnerable', 'rescate', 'inseguridad', 'sismo'}.contains(c.id))
+            .toList(),
       };
 
   String get pista => switch (this) {
@@ -170,7 +172,9 @@ class _FormularioPublicarState extends State<FormularioPublicar> {
   int _meta = 20;
   String _prioridad = 'alta';
   bool _enviando = false;
-  String? _error;
+  bool _editarContacto = false;
+  String? _error; // error del servidor o de conexión
+  String? _errTitulo, _errDetalle, _errNombre, _errTelefono, _errPrecio;
   bool _escuchando = false;
   bool _vozDisponible = true;
   bool _categoriaManual = false; // el vecino eligió el tipo a mano: no se cambia solo
@@ -475,6 +479,8 @@ class _FormularioPublicarState extends State<FormularioPublicar> {
                 title: Text('Estás publicando sin cuenta. Solo pedimos tu nombre para que te encuentren.'),
               ),
             ),
+
+          // 1 ─ La pregunta principal
           const SizedBox(height: 8),
           Semantics(
             header: true,
@@ -492,8 +498,10 @@ class _FormularioPublicarState extends State<FormularioPublicar> {
             maxLength: 120,
             textCapitalization: TextCapitalization.sentences,
             style: const TextStyle(fontSize: 18),
+            onChanged: (_) => _errTitulo != null ? setState(() => _errTitulo = null) : null,
             decoration: InputDecoration(
               hintText: t.pista,
+              errorText: _errTitulo,
               prefixIcon: const Icon(Icons.edit_outlined),
               helperText: _vozDisponible ? null : 'Tip: puedes dictar con el micrófono de tu teclado',
               suffixIcon: _titulo.text.isEmpty
@@ -519,7 +527,7 @@ class _FormularioPublicarState extends State<FormularioPublicar> {
           if (t.categorias.length > 1) ...[
             const SizedBox(height: 20),
             Row(children: [
-              const Expanded(child: Text('Tipo', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
+              const Expanded(child: Text('¿De qué tipo es?', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
               if (_categoriaAuto)
                 const Row(children: [
                   Icon(Icons.auto_awesome, size: 16, color: Paleta.acentoOscuro),
@@ -544,7 +552,8 @@ class _FormularioPublicarState extends State<FormularioPublicar> {
             ]),
             espacio,
           ],
-          const SizedBox(height: 8),
+
+          // 3 ─ Lo propio de cada tipo
           if (t == TipoForm.colecta) ...[
             _contador('¿Cuántas donaciones quieren juntar?', _meta, 5, 5, (v) => setState(() => _meta = v), 'Cinco menos', 'Cinco más'),
             const Text('Los vecinos verán cuánto falta para llegar a la meta.'),

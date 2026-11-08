@@ -3,15 +3,27 @@ import 'dart:convert';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../config.dart';
 import '../data/repo.dart';
+import '../features/sos/sos_navegacion.dart';
 import '../models.dart';
 import '../services/ubicacion.dart';
+import '../util.dart';
 
 final mensajero = GlobalKey<ScaffoldMessengerState>();
+
+/// La acción no está permitida (no es un problema de red): se muestra el
+/// mensaje tal cual, con los números de emergencia.
+class SinPermiso implements Exception {
+  const SinPermiso(this.mensaje);
+  final String mensaje;
+  @override
+  String toString() => mensaje;
+}
 
 void avisar(String texto) {
   mensajero.currentState
@@ -27,6 +39,7 @@ class AppState extends ChangeNotifier {
     voz = prefs.getBool('voz') ?? true;
     tutorialVisto = prefs.getBool('tutorial_visto') ?? false;
     rolSimulado = prefs.getString('rol_simulado') ?? 'vecino';
+    if (rolSimulado != 'vecino' && rolSimulado != 'brigadista') rolSimulado = 'vecino';
     // El rol se elige una sola vez; después se cambia desde Perfil.
     rolElegido = prefs.getBool('rol_elegido') ?? false;
     // El modo invitado no se recuerda: cada vez que se abre la app sin
@@ -125,7 +138,8 @@ class AppState extends ChangeNotifier {
             event: PostgresChangeEvent.all,
             schema: 'public',
             table: 'publicaciones',
-            callback: (_) {
+            callback: (cambio) {
+              if (cambio.eventType == PostgresChangeEvent.insert) _avisarSiEsSosCercano(cambio.newRecord);
               _debounce?.cancel();
               _debounce = Timer(const Duration(milliseconds: 800), refrescar);
             },
@@ -143,6 +157,22 @@ class AppState extends ChangeNotifier {
     } catch (_) {
       // Sin tiempo real la app sigue funcionando con la consulta cada 30 s.
     }
+  }
+
+  /// Un SOS nuevo a ≤ 2 km (y que no es mío) se avisa al instante, con
+  /// vibración, para que los vecinos más cercanos puedan ayudar.
+  /// Los avisos reservados solo llegan a quien el servidor deja verlos.
+  void _avisarSiEsSosCercano(Map<String, dynamic> fila) {
+    try {
+      if (fila['origen'] != 'sos' || fila['id'] == null) return;
+      final p = Publicacion.fromMap(fila);
+      if (p.autorId != null && p.autorId == uid) return;
+      if (p.punto == null) return;
+      final km = distanciaKm(referencia, p.punto!);
+      if (km > radioAlertaKm) return;
+      alertaEntrante.value = (p, km);
+      HapticFeedback.vibrate();
+    } catch (_) {}
   }
 
   Future<void> ubicar() async {
@@ -193,7 +223,15 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> sincronizar({bool silencioso = false}) async {
-    final n = await repo.sincronizar();
+    final (n, rechazadas) = await repo.sincronizar();
+    if (rechazadas.isNotEmpty) {
+      // Nunca dejar una alerta "guardada" que en realidad no se enviará.
+      final hayEmergencia = rechazadas.any((e) => e.datos['es_emergencia'] == true);
+      avisar(hayEmergencia
+          ? 'No se pudo enviar tu pedido de ayuda. Si es urgente, llama al 105 (Policía), 106 (SAMU) o 116 (Bomberos).'
+          : 'No se pudo enviar una publicación guardada. Revísala en "Llevar mensajes".');
+      notifyListeners();
+    }
     if (n > 0) {
       avisar(n == 1 ? 'Se envió 1 publicación guardada' : 'Se enviaron $n publicaciones guardadas');
       refrescar();
@@ -210,6 +248,14 @@ class AppState extends ChangeNotifier {
   }
 
   Future<bool> publicar(String tabla, Map<String, dynamic> datos) async {
+    // Sin cuenta, un pedido normal solo se acepta con emergencia activa (D5).
+    // Se avisa ahora, en vez de guardarlo en la cola y que falle en silencio.
+    if (!logueado && datos['origen'] == 'sin_cuenta' && !modoEmergencia) {
+      throw const SinPermiso(
+        'Sin cuenta solo puedes pedir ayuda cuando la junta activa la emergencia. '
+        'Usa el botón SOS, o si es urgente llama al 105, 106 o 116.',
+      );
+    }
     final enviado = await repo.publicar(tabla, datos);
     refrescar();
     return enviado;
@@ -298,12 +344,8 @@ class AppState extends ChangeNotifier {
   void elegirRol(String rol) {
     rolSimulado = (rol == 'brigadista') ? 'brigadista' : 'vecino';
     rolElegido = true;
-    prefs.setString('rol_simulado', rol);
+    prefs.setString('rol_simulado', rolSimulado);
     prefs.setBool('rol_elegido', true);
-    if (oficio != null && oficio.trim().isNotEmpty) {
-      especialidad = oficio.trim();
-      prefs.setString('especialidad', especialidad!);
-    }
     notifyListeners();
   }
 

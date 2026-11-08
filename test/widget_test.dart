@@ -1,6 +1,9 @@
 import 'package:app_vecinal/config.dart';
 import 'package:app_vecinal/data/qr_codec.dart';
+import 'package:app_vecinal/data/repo.dart';
 import 'package:app_vecinal/data/sugerencias.dart';
+import 'package:app_vecinal/features/solidaridad/clasificador.dart';
+import 'package:app_vecinal/features/sos/sos_tipos.dart';
 import 'package:app_vecinal/main.dart';
 import 'package:app_vecinal/models.dart';
 import 'package:app_vecinal/screens/roles.dart';
@@ -48,6 +51,60 @@ void main() {
     });
   });
 
+  group('Modo SOS', () {
+    test('6 emergencias nacionales en la pantalla principal, sin "falta de agua"', () {
+      expect(TipoSos.principales.map((t) => t.titulo),
+          ['Emergencia Médica', 'Inseguridad', 'Lluvia o Inundación', 'Incendio o Gas', 'Accidente', 'Sismo']);
+      expect(TipoSos.values.any((t) => t.titulo.toLowerCase().contains('agua')), isFalse);
+    });
+
+    test('Inseguridad abre 4 subtipos', () {
+      expect(TipoSos.inseguridad.abreSubmenu, isTrue);
+      expect(TipoSos.deInseguridad.map((t) => t.titulo), ['Robo', 'Secuestro', 'Extorsión', 'Violencia']);
+    });
+
+    test('secuestro, extorsión y violencia son avisos reservados; robo no', () {
+      expect(TipoSos.values.where((t) => t.reservado), [TipoSos.secuestro, TipoSos.extorsion, TipoSos.violencia]);
+      expect(TipoSos.robo.reservado, isFalse);
+    });
+
+    test('desastres naturales en ámbar; el resto en rojo', () {
+      expect(TipoSos.values.where((t) => t.advertencia), [TipoSos.inundacion, TipoSos.sismo]);
+      expect(TipoSos.medico.color, ColoresSos.rojo);
+    });
+
+    test('las alertas vencen: 24 h las muy urgentes, 6 h las demás', () {
+      expect(Repo.vigenciaSos('critica'), const Duration(hours: 24));
+      expect(Repo.vigenciaSos('alta'), const Duration(hours: 6));
+    });
+  });
+
+  group('Solidaridad: clasificador por palabras clave', () {
+    test('detecta las 5 categorías del reto', () {
+      expect(Clasificador.categoria('Necesito que me presten una escalera').categoria, 'herramientas');
+      expect(Clasificador.categoria('¿Alguien me lleva al hospital el jueves?').categoria, 'movilidad');
+      expect(Clasificador.categoria('Busco donación de útiles y cuadernos').categoria, 'donacion');
+      expect(Clasificador.categoria('Quiero clases de inglés, enseño matemática').categoria, 'habilidad');
+      expect(Clasificador.categoria('Ayuda para cargar muebles en la mudanza').categoria, 'ayuda');
+    });
+
+    test('si no reconoce nada queda en Otro (no detectada)', () {
+      final c = Clasificador.categoria('Necesito algo raro');
+      expect(c.categoria, 'otros');
+      expect(c.detectada, isFalse);
+    });
+
+    test('detecta urgencia por palabras', () {
+      expect(Clasificador.esUrgente('Lo necesito hoy, es urgente'), isTrue);
+      expect(Clasificador.esUrgente('Cuando puedas, el próximo mes'), isFalse);
+    });
+
+    test('fecha y hora legibles', () {
+      final ahora = DateTime.now();
+      expect(fechaHora(DateTime(ahora.year, ahora.month, ahora.day, 9, 5)), 'Hoy 09:05');
+    });
+  });
+
   group('Reconocimiento vecinal', () {
     test('niveles según ayudas confirmadas', () {
       expect(Nivel.de(0).nombre, 'Vecino nuevo');
@@ -56,6 +113,12 @@ void main() {
       expect(Nivel.de(6).nombre, 'Vecino solidario');
       expect(Nivel.de(7).nombre, 'Corazón del barrio');
       expect(Nivel.de(40).nombre, 'Guardián del barrio');
+    });
+
+    test('cada rango tiene su propio ícono y su posición en la escala', () {
+      expect(Nivel.todos.map((n) => n.icono).toSet().length, Nivel.todos.length);
+      expect(Nivel.de(0).indice, 0);
+      expect(Nivel.de(7).indice, 3);
     });
 
     test('siguiente nivel y fin de la escala', () {
@@ -87,6 +150,73 @@ void main() {
     test('distancia aproximada correcta', () {
       final km = distanciaKm(Zona.sectores['Casco Urbano']!, Zona.sectores['Buenos Aires']!);
       expect(km, inInclusiveRange(7, 10));
+    });
+  });
+
+  group('Roles simplificados', () {
+    test('solo existen 2 roles elegibles: vecino y brigadista', () {
+      expect(roles.length, 2);
+      expect(roles.map((r) => r.id).toList(), ['vecino', 'brigadista']);
+    });
+  });
+
+  group('Pedidos de Servicio y Aportes', () {
+    test('creación y serialización de PedidoServicio', () {
+      final pedido = PedidoServicio(
+        id: 'p-123',
+        servicioId: 's-456',
+        prestadorId: 'user-prestador',
+        clienteId: 'user-cliente',
+        clienteNombre: 'María',
+        clienteTelefono: '987654321',
+        clienteSector: 'Casco Urbano',
+        detalle: 'Reparación de cañería en la cocina',
+        fechaDeseada: 'Mañana a las 10 am',
+      );
+
+      expect(pedido.esPendiente, isTrue);
+      expect(pedido.estadoLegible, 'Pendiente');
+
+      final map = pedido.toInsert();
+      expect(map['id'], 'p-123');
+      expect(map['servicio_id'], 's-456');
+      expect(map['prestador_id'], 'user-prestador');
+      expect(map['cliente_nombre'], 'María');
+      expect(map['detalle'], 'Reparación de cañería en la cocina');
+      expect(map['estado'], 'pendiente');
+
+      final reconstruido = PedidoServicio.fromMap({
+        'id': 'p-123',
+        'servicio_id': 's-456',
+        'prestador_id': 'user-prestador',
+        'cliente_nombre': 'María',
+        'detalle': 'Reparación de cañería en la cocina',
+        'estado': 'aceptado',
+        'servicios': {'titulo': 'Gasfitería a domicilio'},
+      });
+
+      expect(reconstruido.esAceptado, isTrue);
+      expect(reconstruido.estadoLegible, 'Aceptado');
+      expect(reconstruido.servicioTitulo, 'Gasfitería a domicilio');
+    });
+
+    test('Servicio soporta estado activo/pausado', () {
+      final s = Servicio(
+        id: 's-1',
+        categoria: 'gasfiteria',
+        titulo: 'Gasfitero del barrio',
+        activo: true,
+      );
+      expect(s.activo, isTrue);
+      expect(s.toInsert()['activo'], isTrue);
+
+      final sPausado = Servicio.fromMap({
+        'id': 's-2',
+        'categoria': 'gasfiteria',
+        'titulo': 'Gasfitero del barrio',
+        'activo': false,
+      });
+      expect(sPausado.activo, isFalse);
     });
   });
 

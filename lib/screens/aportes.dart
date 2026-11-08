@@ -675,19 +675,19 @@ class _TarjetaPedido extends StatelessWidget {
                 itemBuilder: (_) => const [
                   PopupMenuItem(
                     value: 'aceptado',
-                    child: Text('✅ Aceptar pedido'),
+                    child: ListTile(leading: Icon(Icons.check_circle_outline_rounded), title: Text('Aceptar pedido')),
                   ),
                   PopupMenuItem(
                     value: 'en_proceso',
-                    child: Text('🚚 En camino / En proceso'),
+                    child: ListTile(leading: Icon(Icons.local_shipping_outlined), title: Text('En camino / En proceso')),
                   ),
                   PopupMenuItem(
                     value: 'completado',
-                    child: Text('🎉 Marcar completado'),
+                    child: ListTile(leading: Icon(Icons.task_alt_rounded), title: Text('Marcar completado')),
                   ),
                   PopupMenuItem(
                     value: 'cancelado',
-                    child: Text('❌ Cancelar pedido'),
+                    child: ListTile(leading: Icon(Icons.cancel_outlined), title: Text('Cancelar pedido')),
                   ),
                 ],
                 child: Container(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../config.dart';
+import '../features/sos/sos_alertas.dart';
 import '../models.dart';
 import '../state/app_state.dart';
 import '../ui/diseno.dart';
@@ -30,8 +31,11 @@ class InicioScreen extends StatelessWidget {
     return RefreshIndicator(
       onRefresh: () async => st.refrescar(),
       child: ListView(
-        padding: const EdgeInsets.only(bottom: 40),
+        padding: const EdgeInsets.only(bottom: 110),
         children: [
+          // Lo más urgente primero: alertas SOS de vecinos (si las hay).
+          // El brigadista ya las ve en su panel, así que no se repiten.
+          if (!st.esBrigadista) const FranjaAlertasSos(),
           if (st.esBrigadista) const PanelBrigadista(),
           if (st.esPrestador) TarjetaMisAportes(irA: irA),
           Padding(
@@ -389,11 +393,10 @@ class PanelBrigadista extends StatelessWidget {
             ),
           ),
           Cargador<List<Publicacion>>(
-            cargar: (st) => st.repo.publicaciones(emergencia: true),
-            builder: (c, lista) {
-              final alertas = lista
-                  .where((p) => p.categoria.startsWith('sos_'))
-                  .toList();
+            // Una sola fuente de alertas: los SOS del botón de pánico (origen 'sos',
+            // vigentes y sin atender), haya o no emergencia activa.
+            cargar: (st) => st.repo.alertasSos(),
+            builder: (c, alertas) {
               if (alertas.isEmpty) {
                 return const Padding(
                   padding: EdgeInsets.all(14),

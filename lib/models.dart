@@ -136,6 +136,12 @@ class Publicacion {
 
   bool get esColecta => categoria == 'colecta';
 
+  /// Urgencia de una petición del día a día (2 niveles: urgente / puede
+  /// esperar). Una petición urgente deja de serlo a las 24 h, para que no se
+  /// quede arriba para siempre.
+  bool get esUrgente =>
+      prioridad != 'normal' && DateTime.now().difference(creado) < const Duration(hours: 24);
+
   /// Colectas: entregadas en persona + vecinos que se comprometieron.
   int get aportes => avance + ayudantes;
   double get progreso => (meta == null || meta == 0) ? 0 : (aportes / meta!).clamp(0, 1).toDouble();
@@ -250,17 +256,26 @@ class Ayuda {
 
 /// Reconocimiento vecinal según ayudas CONFIRMADAS por quien fue ayudado.
 class Nivel {
-  const Nivel(this.nombre, this.emoji, this.minimo, this.descripcion);
-  final String nombre, emoji, descripcion;
+  const Nivel(this.nombre, this.corto, this.icono, this.color, this.minimo, this.descripcion);
+  final String nombre, corto, descripcion;
+  final IconData icono;
+  final Color color;
   final int minimo;
 
   static const todos = [
-    Nivel('Vecino nuevo', '🏠', 0, 'Tu primera ayuda confirmada te da tu primer reconocimiento.'),
-    Nivel('Buen vecino', '🌱', 1, 'Ya ayudaste a alguien del barrio.'),
-    Nivel('Vecino solidario', '🤝', 3, 'Tus vecinos saben que pueden contar contigo.'),
-    Nivel('Corazón del barrio', '💛', 7, 'Eres parte de lo que mantiene unido al barrio.'),
-    Nivel('Guardián del barrio', '🛡️', 15, 'Un ejemplo para toda la comunidad.'),
+    Nivel('Vecino nuevo', 'Nuevo', Icons.home_rounded, Color(0xFF64748B), 0,
+        'Tu primera ayuda confirmada te da tu primer reconocimiento.'),
+    Nivel('Buen vecino', 'Buen vecino', Icons.eco_rounded, Color(0xFF397158), 1, 'Ya ayudaste a alguien del barrio.'),
+    Nivel('Vecino solidario', 'Solidario', Icons.handshake_rounded, Color(0xFF334155), 3,
+        'Tus vecinos saben que pueden contar contigo.'),
+    Nivel('Corazón del barrio', 'Corazón', Icons.favorite_rounded, Color(0xFFA9532B), 7,
+        'Eres parte de lo que mantiene unido al barrio.'),
+    Nivel('Guardián del barrio', 'Guardián', Icons.verified_user_rounded, Color(0xFFA67C1F), 15,
+        'Un ejemplo para toda la comunidad.'),
   ];
+
+  /// Posición en la escala (0 = Vecino nuevo).
+  int get indice => todos.indexOf(this);
 
   static Nivel de(int ayudas) => todos.lastWhere((n) => ayudas >= n.minimo);
 

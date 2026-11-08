@@ -12,7 +12,9 @@ import 'auth_screen.dart';
 import 'confianza.dart';
 
 String traducirError(Object e) {
+  if (e is SinPermiso) return e.mensaje;
   if (e is PostgrestException) {
+    if (e.code == 'P0001') return e.message; // mensajes propios del servidor (anti-spam)
     if (e.code == '23505') return 'Esto ya estaba registrado.';
     if (e.code == '42501' || e.message.contains('row-level security')) {
       return 'No tienes permiso para hacer esto.';
@@ -580,7 +582,7 @@ class _PublicacionDetalleState extends State<PublicacionDetalle> {
         try {
           await st.repo.agradecer(p.id, elegidos.toList(), mensaje: mensaje.text);
           if (elegidos.isNotEmpty) {
-            avisar(elegidos.length == 1 ? 'Le enviaste tu agradecimiento 💛' : 'Les enviaste tu agradecimiento 💛');
+            avisar(elegidos.length == 1 ? 'Le enviaste tu agradecimiento.' : 'Les enviaste tu agradecimiento.');
           }
         } catch (e) {
           avisar(traducirError(e));
@@ -787,8 +789,14 @@ class _PublicacionDetalleState extends State<PublicacionDetalle> {
                 if (yaRespondi)
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 16),
-                    child: Text('✓ Ya respondiste. Ahora ponte de acuerdo por llamada o WhatsApp.',
-                        style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF2E7D32))),
+                    child: Row(children: [
+                      Icon(Icons.check_circle_rounded, size: 18, color: Color(0xFF2E7D32)),
+                      SizedBox(width: 6),
+                      Expanded(
+                        child: Text('Ya respondiste. Ahora ponte de acuerdo por llamada o WhatsApp.',
+                            style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF2E7D32))),
+                      ),
+                    ]),
                   ),
                 TituloSeccion('$tituloLista (${lista.length})'),
                 if (lista.isEmpty)
@@ -799,7 +807,7 @@ class _PublicacionDetalleState extends State<PublicacionDetalle> {
                 else
                   for (final a in lista)
                     ListTile(
-                      leading: CircleAvatar(child: Text(Nivel.de(a.ayudasConfirmadas).emoji)),
+                      leading: MedallaNivel(Nivel.de(a.ayudasConfirmadas)),
                       title: Text(a.vecinoId == st.uid ? 'Tú' : (a.vecinoNombre ?? 'Vecino')),
                       subtitle: Wrap(spacing: 6, crossAxisAlignment: WrapCrossAlignment.center, children: [
                         Text('Respondió ${haceCuanto(a.creado)}'),
