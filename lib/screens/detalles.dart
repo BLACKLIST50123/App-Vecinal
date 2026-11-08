@@ -1071,7 +1071,9 @@ class _MasDelVecino extends StatelessWidget {
                 borderRadius: BorderRadius.circular(14),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(14),
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ServicioDetalle(servicio: o))),
+                  // Reemplaza este detalle por el otro (no lo apila): así
+                  // "Atrás" vuelve de un toque a la lista, aunque explores varios.
+                  onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => ServicioDetalle(servicio: o))),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                     child: Row(children: [
