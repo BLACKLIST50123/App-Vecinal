@@ -78,7 +78,7 @@ Sin claves de Firebase la app funciona igual que antes (solo avisos locales).
 
 **Supabase**
 1. *Database → Extensions*: activar **pg_net**.
-2. *SQL Editor*: ejecutar `supabase/migrations/0010_notificaciones_push.sql`.
+2. *SQL Editor*: ejecutar `supabase/migrations/0012_notificaciones_push.sql`.
 3. Desplegar la función:
    `supabase functions deploy enviar-avisos --no-verify-jwt`
 4. *Edge Functions → Secrets*:

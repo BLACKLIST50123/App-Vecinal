@@ -383,7 +383,7 @@ class _AuthScreenState extends State<AuthScreen> {
   // ------------------------------------------------ paso 2: tu barrio
 
   Widget _pasoBarrio(bool dentro) {
-    final verde = const Color(0xFF2E7D32);
+    final verde = Paleta.verde;
     final (icono, color, titulo) = _buscando
         ? (Icons.location_searching, Paleta.gris, 'Buscando tu ubicación...')
         : _gps == null

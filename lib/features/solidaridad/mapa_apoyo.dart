@@ -9,6 +9,7 @@ import '../../state/app_state.dart';
 import '../../ui/widgets.dart';
 import '../../util.dart';
 import 'tarjeta_apoyo.dart';
+import '../../ui/tema.dart';
 
 /// Mapa SOLO de peticiones para apoyar (de la categoría elegida), con la
 /// más cercana resaltada.
@@ -17,8 +18,8 @@ class MapaApoyoScreen extends StatelessWidget {
   final List<Publicacion> peticiones; // ya filtradas y ordenadas por cercanía
   final String? categoria;
 
-  static const _naranja = Color(0xFFEF6C00);
-  static const _rojo = Color(0xFFE53935);
+  static const _naranja = Paleta.ambar;
+  static const _rojo = Paleta.rojo;
 
   void _ver(BuildContext context, Publicacion p) => showModalBottomSheet<void>(
         context: context,
@@ -64,7 +65,7 @@ class MapaApoyoScreen extends StatelessWidget {
                   label: 'Tu ubicación',
                   child: Container(
                     decoration: BoxDecoration(
-                      color: const Color(0xFF2962FF),
+                      color: Paleta.azulInfo,
                       shape: BoxShape.circle,
                       border: Border.all(color: Colors.white, width: 4),
                     ),
@@ -85,7 +86,7 @@ class MapaApoyoScreen extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: p.esUrgente ? _rojo : _naranja,
                           shape: BoxShape.circle,
-                          border: Border.all(color: p == masCercana ? const Color(0xFFFFD54F) : Colors.white, width: p == masCercana ? 5 : 3),
+                          border: Border.all(color: p == masCercana ? Paleta.oro : Colors.white, width: p == masCercana ? 5 : 3),
                           boxShadow: const [BoxShadow(blurRadius: 4, color: Colors.black38)],
                         ),
                         child: Icon(
@@ -125,8 +126,8 @@ class MapaApoyoScreen extends StatelessWidget {
                   )
                 : ListTile(
                     leading: const CircleAvatar(
-                      backgroundColor: Color(0xFFFFF8E1),
-                      child: Icon(Icons.star, color: Color(0xFFFFA000)),
+                      backgroundColor: Paleta.oroFondo,
+                      child: Icon(Icons.star, color: Paleta.oro),
                     ),
                     title: Text('Más cercana · ${formatoDistancia(distanciaKm(ref, masCercana.punto!))}',
                         style: const TextStyle(fontWeight: FontWeight.w700)),

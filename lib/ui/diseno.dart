@@ -75,9 +75,9 @@ class BotonCuadrado extends StatelessWidget {
                 height: 48,
                 child: Stack(alignment: Alignment.center, children: [
                   if (texto != null)
-                    Text(texto!, textScaler: TextScaler.noScaling, style: const TextStyle(color: Color(0xFF475569), fontSize: 19, fontWeight: FontWeight.w800, height: 1))
+                    Text(texto!, textScaler: TextScaler.noScaling, style: const TextStyle(color: Paleta.gris, fontSize: 19, fontWeight: FontWeight.w800, height: 1))
                   else
-                    Icon(icono, color: const Color(0xFF475569)),
+                    Icon(icono, color: Paleta.gris),
                   if (contador > 0)
                     Positioned(
                       top: 8,
@@ -121,7 +121,7 @@ class CajaBusqueda extends StatelessWidget {
             hintText: pista,
             labelText: etiqueta,
             floatingLabelBehavior: FloatingLabelBehavior.never,
-            prefixIcon: const Icon(Icons.search, color: Color(0xFF94A3B8)),
+            prefixIcon: const Icon(Icons.search, color: Paleta.grisClaro),
             contentPadding: const EdgeInsets.symmetric(vertical: 16),
           ),
         ),
@@ -173,7 +173,7 @@ class TituloDiseno extends StatelessWidget {
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               if (ceja != null)
                 Text(ceja!.toUpperCase(),
-                    style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 1)),
+                    style: const TextStyle(color: Paleta.grisClaro, fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 1)),
               Semantics(
                 header: true,
                 child: Text(titulo, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 19)),
@@ -219,7 +219,7 @@ class AccesoCategoria extends StatelessWidget {
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             IconoCategoria(icono: icono, colores: colores),
             const SizedBox(height: 8),
-            Text(texto, textAlign: TextAlign.center, style: const TextStyle(color: Color(0xFF475569), fontSize: 13, fontWeight: FontWeight.w600)),
+            Text(texto, textAlign: TextAlign.center, style: const TextStyle(color: Paleta.gris, fontSize: 13, fontWeight: FontWeight.w600)),
           ]),
         ),
       );
@@ -234,7 +234,7 @@ class BannerDegradado extends StatelessWidget {
     this.subtitulo,
     required this.colores,
     this.onTap,
-    this.colorIcono = const Color(0xFFFFE2CE),
+    this.colorIcono = Paleta.ambarSuave,
   });
   final IconData icono;
   final String titulo;
@@ -299,9 +299,9 @@ class _PieServicio extends StatelessWidget {
             label: '${s.vistosBuenos} Vistos Buenos',
             excludeSemantics: true,
             child: Row(mainAxisSize: MainAxisSize.min, children: [
-              const Icon(Icons.thumb_up_alt_rounded, size: 16, color: Color(0xFF2E7D32)),
+              const Icon(Icons.thumb_up_alt_rounded, size: 16, color: Paleta.verde),
               const SizedBox(width: 4),
-              Text('${s.vistosBuenos}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF2E7D32))),
+              Text('${s.vistosBuenos}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Paleta.verde)),
             ]),
           ),
         const SizedBox(width: 8),
@@ -402,7 +402,7 @@ class TarjetaMercado extends StatelessWidget {
                   if (s.autorRol == 'organizacion')
                     const Padding(
                       padding: EdgeInsets.only(left: 4),
-                      child: Icon(Icons.verified, color: Color(0xFF1565C0), size: 16),
+                      child: Icon(Icons.verified, color: Paleta.azulInfo, size: 16),
                     ),
                 ]),
                 const SizedBox(height: 3),
@@ -501,7 +501,7 @@ class FilaPildoras extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: seleccion == valor ? Colors.white : const Color(0xFF475569),
+                        color: seleccion == valor ? Colors.white : Paleta.gris,
                       )),
                   selected: seleccion == valor,
                   selectedColor: Theme.of(context).colorScheme.primary,
@@ -565,7 +565,7 @@ class FilaAjuste extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(child: Text(texto, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: color ?? Paleta.tinta))),
             if (valor != null) Text(valor!, style: const TextStyle(color: Paleta.gris, fontSize: 13)),
-            final_ ?? (onTap != null ? const Icon(Icons.chevron_right, color: Color(0xFF94A3B8)) : const SizedBox.shrink()),
+            final_ ?? (onTap != null ? const Icon(Icons.chevron_right, color: Paleta.grisClaro) : const SizedBox.shrink()),
           ]),
         ),
       ),

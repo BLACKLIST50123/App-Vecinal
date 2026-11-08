@@ -10,6 +10,7 @@ import '../state/app_state.dart';
 import '../ui/widgets.dart';
 import 'auth_screen.dart';
 import 'detalles.dart';
+import '../ui/tema.dart';
 
 // ================================================================ compartir
 
@@ -147,12 +148,12 @@ class AvisoAutoridades extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Card(
-        color: const Color(0xFFFFF3E0),
+        color: Paleta.ambarSuave,
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             const Row(children: [
-              Icon(Icons.info, color: Color(0xFFE65100)),
+              Icon(Icons.info, color: Paleta.ambar),
               SizedBox(width: 8),
               Expanded(
                 child: Text('Esta app coordina ayuda entre vecinos. No reemplaza a las autoridades.',
@@ -193,7 +194,7 @@ class BotonesNumeros extends StatelessWidget {
             label: Text('${n.numero} · ${n.nombre}'),
           )
         : FilledButton.icon(
-            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFE53935), foregroundColor: Colors.white),
+            style: FilledButton.styleFrom(backgroundColor: Paleta.rojo, foregroundColor: Colors.white),
             onPressed: () => llamar(n.numero),
             icon: Icon(n.icono),
             label: Text('${n.nombre} ${n.numero}'),
@@ -255,13 +256,13 @@ class _PanelCoordinacionScreenState extends State<PanelCoordinacionScreen> {
               return Padding(
                 padding: const EdgeInsets.all(12),
                 child: Wrap(spacing: 8, runSpacing: 8, children: [
-                  _Indicador('Pendientes', i['abierta']!, const Color(0xFFE65100), Icons.hourglass_top),
-                  _Indicador('En atención', i['en_curso']!, const Color(0xFF1565C0), Icons.directions_run),
-                  _Indicador('Atendidos', atendidos, const Color(0xFF2E7D32), Icons.check_circle),
-                  _Indicador('No verificados', i['no_verificado']!, const Color(0xFF616161), Icons.help),
-                  _Indicador('Verificados', i['verificadas']!, const Color(0xFF00695C), Icons.verified),
-                  _Indicador('Vecinos ayudando', i['ayudantes']!, const Color(0xFF6A1B9A), Icons.volunteer_activism),
-                  _Indicador('% resuelto', pct, const Color(0xFF2E7D32), Icons.trending_up, sufijo: '%'),
+                  _Indicador('Pendientes', i['abierta']!, Paleta.ambar, Icons.hourglass_top),
+                  _Indicador('En atención', i['en_curso']!, Paleta.azulInfo, Icons.directions_run),
+                  _Indicador('Atendidos', atendidos, Paleta.verde, Icons.check_circle),
+                  _Indicador('No verificados', i['no_verificado']!, Paleta.gris, Icons.help),
+                  _Indicador('Verificados', i['verificadas']!, Paleta.verde, Icons.verified),
+                  _Indicador('Vecinos ayudando', i['ayudantes']!, Paleta.violeta, Icons.volunteer_activism),
+                  _Indicador('% resuelto', pct, Paleta.verde, Icons.trending_up, sufijo: '%'),
                 ]),
               );
             },
@@ -311,7 +312,7 @@ class _PanelCoordinacionScreenState extends State<PanelCoordinacionScreen> {
                     Card(
                       child: ListTile(
                         leading: CircleAvatar(
-                          backgroundColor: e.value.length >= 3 ? const Color(0xFFE53935) : const Color(0xFFFFE0B2),
+                          backgroundColor: e.value.length >= 3 ? Paleta.rojo : Paleta.ambarSuave,
                           child: Text('${e.value.length}',
                               style: TextStyle(color: e.value.length >= 3 ? Colors.white : Colors.black, fontWeight: FontWeight.bold)),
                         ),

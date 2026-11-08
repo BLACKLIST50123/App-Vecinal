@@ -1,5 +1,5 @@
 -- =====================================================================
--- Migración 0010 · Notificaciones push (llegan con la app cerrada)
+-- Migración 0012 · Notificaciones push (llegan con la app cerrada)
 -- 1. dispositivos: token de cada celular y qué avisos quiere recibir.
 -- 2. registrar_dispositivo(): la app guarda su token (con o sin cuenta).
 -- 3. config_push: URL de la Edge Function y clave secreta (se llena a mano).
@@ -148,5 +148,5 @@ create trigger push_foro_temas after insert on public.foro_temas
 -- 5. REGISTRO DE MIGRACIÓN
 -- ---------------------------------------------------------------------
 insert into public.migraciones (version, nombre)
-values ('0010', 'notificaciones_push')
+values ('0012', 'notificaciones_push')
 on conflict (version) do nothing;

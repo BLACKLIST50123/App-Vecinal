@@ -1,5 +1,5 @@
 // Edge Function: enviar-avisos
-// La llaman los disparadores de la migración 0010 (emergencia, SOS, pedidos,
+// La llaman los disparadores de la migración 0012 (emergencia, SOS, pedidos,
 // pedidos a servicios y foro). Busca qué celulares tienen ese aviso
 // encendido y les manda un push con Firebase Cloud Messaging (FCM v1),
 // que llega aunque la app esté cerrada.
