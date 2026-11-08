@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -217,6 +218,7 @@ class _AuthScreenState extends State<AuthScreen> {
           key: ValueKey(_usarCorreo),
           controller: _correo,
           keyboardType: _usarCorreo ? TextInputType.emailAddress : TextInputType.phone,
+          inputFormatters: _usarCorreo ? null : formatoTelefono,
           autofillHints: [_usarCorreo ? AutofillHints.email : AutofillHints.telephoneNumberNational],
           style: const TextStyle(fontSize: 18),
           decoration: InputDecoration(

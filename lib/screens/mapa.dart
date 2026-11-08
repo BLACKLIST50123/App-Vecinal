@@ -10,16 +10,18 @@ import '../ui/widgets.dart';
 import '../util.dart';
 
 /// Geolocalización de servicios, recursos y necesidades de apoyo.
-/// Incluye vista de lista ordenada por distancia (accesible para lectores
-/// de pantalla y útil sin internet, cuando el mapa no carga).
+/// Permite explorar el mapa, agrandar/achicar con zoom (+/-),
+/// alternar a pantalla completa y ver como lista ordenada por distancia.
 class MapaScreen extends StatefulWidget {
-  const MapaScreen({super.key});
+  const MapaScreen({super.key, this.esPantallaCompleta = false});
+  final bool esPantallaCompleta;
 
   @override
   State<MapaScreen> createState() => _MapaScreenState();
 }
 
 class _MapaScreenState extends State<MapaScreen> {
+  final MapController _mapController = MapController();
   bool _servicios = true, _pedidos = true, _ofertas = true, _comoLista = false;
 
   static const _cServicio = Color(0xFF1565C0);
@@ -62,34 +64,49 @@ class _MapaScreenState extends State<MapaScreen> {
     return Column(children: [
       SizedBox(
         height: 56,
-        child: ListView(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), children: [
-          FilterChip(
-            avatar: const CircleAvatar(backgroundColor: _cServicio, radius: 8),
-            label: Text(emergencia ? 'Grupos de apoyo' : 'Servicios'),
-            selected: _servicios,
-            onSelected: (v) => setState(() => _servicios = v),
-          ),
-          const SizedBox(width: 8),
-          FilterChip(
-            avatar: const CircleAvatar(backgroundColor: _cPedido, radius: 8),
-            label: const Text('Necesitan ayuda'),
-            selected: _pedidos,
-            onSelected: (v) => setState(() => _pedidos = v),
-          ),
-          const SizedBox(width: 8),
-          FilterChip(
-            avatar: const CircleAvatar(backgroundColor: _cOferta, radius: 8),
-            label: Text(emergencia ? 'Para compartir' : 'Ofrecen'),
-            selected: _ofertas,
-            onSelected: (v) => setState(() => _ofertas = v),
-          ),
-          const SizedBox(width: 8),
-          ActionChip(
-            avatar: Icon(_comoLista ? Icons.map : Icons.list),
-            label: Text(_comoLista ? 'Ver mapa' : 'Ver como lista'),
-            onPressed: () => setState(() => _comoLista = !_comoLista),
-          ),
-        ]),
+        child: ListView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          children: [
+            FilterChip(
+              avatar: const CircleAvatar(backgroundColor: _cServicio, radius: 8),
+              label: Text(emergencia ? 'Grupos de apoyo' : 'Servicios'),
+              selected: _servicios,
+              onSelected: (v) => setState(() => _servicios = v),
+            ),
+            const SizedBox(width: 8),
+            FilterChip(
+              avatar: const CircleAvatar(backgroundColor: _cPedido, radius: 8),
+              label: const Text('Necesitan ayuda'),
+              selected: _pedidos,
+              onSelected: (v) => setState(() => _pedidos = v),
+            ),
+            const SizedBox(width: 8),
+            FilterChip(
+              avatar: const CircleAvatar(backgroundColor: _cOferta, radius: 8),
+              label: Text(emergencia ? 'Para compartir' : 'Ofrecen'),
+              selected: _ofertas,
+              onSelected: (v) => setState(() => _ofertas = v),
+            ),
+            const SizedBox(width: 8),
+            ActionChip(
+              avatar: Icon(_comoLista ? Icons.map : Icons.list),
+              label: Text(_comoLista ? 'Ver mapa' : 'Ver como lista'),
+              onPressed: () => setState(() => _comoLista = !_comoLista),
+            ),
+            if (!widget.esPantallaCompleta) ...[
+              const SizedBox(width: 8),
+              ActionChip(
+                avatar: const Icon(Icons.fullscreen, color: Color(0xFF1565C0)),
+                label: const Text('Pantalla completa'),
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const PantallaMapaCompleto()),
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
       Expanded(
         child: Cargador<(List<Servicio>, List<Publicacion>)>(
@@ -148,6 +165,7 @@ class _MapaScreenState extends State<MapaScreen> {
 
             return Stack(children: [
               FlutterMap(
+                mapController: _mapController,
                 options: MapOptions(
                   initialCenter: LatLng(ref.lat, ref.lng),
                   initialZoom: st.ubicacion != null ? 14.5 : 12.6,
@@ -185,14 +203,58 @@ class _MapaScreenState extends State<MapaScreen> {
                     ),
                   ),
                 ),
+
+              // Controles flotantes de exploración: Zoom (+ / -), Pantalla Completa y Ubicación GPS
               Positioned(
                 right: 12,
-                bottom: 96,
-                child: FloatingActionButton.small(
-                  heroTag: 'ubicarme',
-                  tooltip: 'Usar mi ubicación',
-                  onPressed: () => st.ubicar(),
-                  child: const Icon(Icons.my_location),
+                bottom: widget.esPantallaCompleta ? 24 : 96,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    FloatingActionButton.small(
+                      heroTag: 'map_zoomin_${widget.esPantallaCompleta}',
+                      tooltip: 'Agrandar mapa (Acercar)',
+                      onPressed: () {
+                        final z = _mapController.camera.zoom;
+                        _mapController.move(_mapController.camera.center, (z + 1).clamp(11.0, 18.0));
+                      },
+                      child: const Icon(Icons.add),
+                    ),
+                    const SizedBox(height: 6),
+                    FloatingActionButton.small(
+                      heroTag: 'map_zoomout_${widget.esPantallaCompleta}',
+                      tooltip: 'Achicar mapa (Alejar)',
+                      onPressed: () {
+                        final z = _mapController.camera.zoom;
+                        _mapController.move(_mapController.camera.center, (z - 1).clamp(11.0, 18.0));
+                      },
+                      child: const Icon(Icons.remove),
+                    ),
+                    if (!widget.esPantallaCompleta) ...[
+                      const SizedBox(height: 6),
+                      FloatingActionButton.small(
+                        heroTag: 'map_fullscreen_btn',
+                        tooltip: 'Mostrar pantalla completa',
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const PantallaMapaCompleto()),
+                        ),
+                        child: const Icon(Icons.fullscreen),
+                      ),
+                    ],
+                    const SizedBox(height: 6),
+                    FloatingActionButton.small(
+                      heroTag: 'map_ubicarme_${widget.esPantallaCompleta}',
+                      tooltip: 'Centrar en mi ubicación',
+                      onPressed: () async {
+                        await st.ubicar();
+                        if (st.ubicacion != null) {
+                          _mapController.move(LatLng(st.ubicacion!.lat, st.ubicacion!.lng), 15);
+                        }
+                      },
+                      child: const Icon(Icons.my_location),
+                    ),
+                  ],
                 ),
               ),
             ]);
@@ -200,5 +262,27 @@ class _MapaScreenState extends State<MapaScreen> {
         ),
       ),
     ]);
+  }
+}
+
+/// Vista dedicada para explorar el mapa del barrio a pantalla completa
+class PantallaMapaCompleto extends StatelessWidget {
+  const PantallaMapaCompleto({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Mapa del barrio'),
+        actions: [
+          IconButton(
+            tooltip: 'Salir de pantalla completa',
+            icon: const Icon(Icons.fullscreen_exit),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ],
+      ),
+      body: const SafeArea(child: MapaScreen(esPantallaCompleta: true)),
+    );
   }
 }

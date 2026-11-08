@@ -51,11 +51,7 @@ class AppVecinal extends StatelessWidget {
         final sistema = mq.textScaler.scale(1);
         return MediaQuery(
           data: mq.copyWith(textScaler: TextScaler.linear(sistema > st.escala ? sistema : st.escala)),
-          child: Stack(children: [
-            child!,
-            // Botón de pánico accesible desde cualquier pantalla.
-            if (st.entro && st.tutorialVisto && st.rolElegido) const BotonSOSFlotante(),
-          ]),
+          child: child!,
         );
       },
       // Bienvenida (iniciar sesión / crear cuenta / invitado) → tutorial y

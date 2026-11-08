@@ -9,6 +9,7 @@ import '../ui/tema.dart';
 import '../ui/widgets.dart';
 import '../util.dart';
 import 'confianza.dart';
+import 'mapa.dart';
 import 'publicar.dart';
 
 // ======================================= Módulo 1 · Servicios de Proximidad
@@ -84,8 +85,10 @@ class _ServiciosScreenState extends State<ServiciosScreen> {
                 Expanded(
                   child: Semantics(
                     header: true,
-                    child: Text('${lista.length} ${lista.length == 1 ? 'resultado' : 'resultados'}',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 19)),
+                    child: Text('${lista.length} ${lista.length == 1 ? 'opción' : 'opciones'}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 17)),
                   ),
                 ),
                 PopupMenuButton<bool>(
@@ -101,10 +104,19 @@ class _ServiciosScreenState extends State<ServiciosScreen> {
                     child: Row(mainAxisSize: MainAxisSize.min, children: [
                       Icon(Icons.swap_vert, color: Theme.of(context).colorScheme.primary),
                       const SizedBox(width: 4),
-                      Text(_porCercania ? 'Más cerca' : 'Más recomendados',
+                      Text(_porCercania ? 'Más cerca' : 'Recomendados',
                           style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w700, fontSize: 14)),
                     ]),
                   ),
+                ),
+                const SizedBox(width: 4),
+                FilledButton.tonalIcon(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const PantallaMapaCompleto()),
+                  ),
+                  icon: const Icon(Icons.map_outlined, size: 20),
+                  label: const Text('Mapa'),
                 ),
               ]),
             ),
@@ -116,7 +128,7 @@ class _ServiciosScreenState extends State<ServiciosScreen> {
                     : 'No encontramos eso en tu barrio todavía.\n¿Conoces a alguien bueno? Invítalo a publicarse.',
               )
             else
-              Cuadricula2(hijos: [for (final s in lista) TarjetaMercado(s)]),
+              Column(children: [for (final s in lista) TarjetaMercado(s)]),
           ]);
         },
       ),
@@ -166,8 +178,8 @@ class _FavoresScreenState extends State<FavoresScreen> {
             return _porCercania ? d(a).compareTo(d(b)) : b.creado.compareTo(a.creado);
           });
 
-          return ListView(padding: const EdgeInsets.only(bottom: 40), children: [
-            // 1 ─ Banner y dos caminos
+          return ListView(padding: const EdgeInsets.only(bottom: 110), children: [
+            // 1 ─ Banner (se publica desde el botón Publicar)
             BannerDegradado(
               icono: e ? Icons.volunteer_activism : Icons.favorite_border,
               titulo: e ? 'Cada ayuda cuenta' : 'Una pequeña ayuda cambia el día',
@@ -177,27 +189,29 @@ class _FavoresScreenState extends State<FavoresScreen> {
               colores: e ? const [Color(0xFFE53935), Color(0xFFEF5350)] : const [Paleta.acentoOscuro, Paleta.acento],
               colorIcono: Colors.white,
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-              child: Row(children: [
-                Expanded(
-                  child: FilledButton.icon(
-                    style: e ? FilledButton.styleFrom(backgroundColor: Paleta.rojo) : null,
-                    onPressed: () => abrirFormulario(context, e ? TipoForm.necesitoAyuda : TipoForm.pidoFavor),
-                    icon: const Icon(Icons.front_hand_outlined),
-                    label: Text(e ? 'Necesito ayuda' : 'Necesito una mano'),
+            // En el día a día se publica desde el botón "Publicar"; en emergencia quedan a la vista.
+            if (e)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                child: Row(children: [
+                  Expanded(
+                    child: FilledButton.icon(
+                      style: FilledButton.styleFrom(backgroundColor: Paleta.rojo),
+                      onPressed: () => abrirFormulario(context, TipoForm.necesitoAyuda),
+                      icon: const Icon(Icons.front_hand_outlined),
+                      label: const Text('Necesito ayuda'),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => abrirFormulario(context, e ? TipoForm.ofrezcoRecurso : TipoForm.ofrezcoFavor),
-                    icon: const Icon(Icons.volunteer_activism_outlined),
-                    label: Text(e ? 'Tengo algo' : 'Quiero dar algo'),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => abrirFormulario(context, TipoForm.ofrezcoRecurso),
+                      icon: const Icon(Icons.volunteer_activism_outlined),
+                      label: const Text('Tengo algo'),
+                    ),
                   ),
-                ),
-              ]),
-            ),
+                ]),
+              ),
             Center(
               child: TextButton.icon(
                 onPressed: () => mostrarConsejos(context),
@@ -208,9 +222,7 @@ class _FavoresScreenState extends State<FavoresScreen> {
 
             // 2 ─ Colectas
             if (colectas.isNotEmpty) ...[
-              TituloDiseno('Colectas del barrio',
-                  ceja: 'Responsabilidad social',
-                  accion: ('Organizar', () => abrirFormulario(context, TipoForm.colecta))),
+              const TituloDiseno('Eventos solidarios', ceja: 'Responsabilidad social'),
               SizedBox(
                 height: 206,
                 child: ListView(
@@ -245,7 +257,7 @@ class _FavoresScreenState extends State<FavoresScreen> {
             if (lista.isEmpty)
               EstadoVacio(
                 icono: e ? Icons.health_and_safety : Icons.diversity_3,
-                texto: e ? 'Por ahora no hay nada aquí.' : 'Todavía no hay solicitudes. ¿Te falta algo? Toca "Necesito una mano".',
+                texto: e ? 'Por ahora no hay nada aquí.' : 'Todavía no hay solicitudes. ¿Te falta algo? Toca Publicar → Pedir apoyo.',
               )
             else
               for (final p in lista) TarjetaPublicacion(p),

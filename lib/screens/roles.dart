@@ -25,14 +25,6 @@ const roles = <RolInfo>[
     Paleta.primario,
   ),
   RolInfo(
-    'prestador',
-    'Prestador de servicios',
-    'Oficios del barrio',
-    'Gasfitero, electricista, carpintero... Tu perfil muestra tu especialidad y suma reseñas del Visto Bueno Vecinal.',
-    Icons.handyman_outlined,
-    Paleta.acentoOscuro,
-  ),
-  RolInfo(
     'brigadista',
     'Brigadista / Líder comunitario',
     'Punto focal en emergencias',
@@ -43,8 +35,6 @@ const roles = <RolInfo>[
 ];
 
 RolInfo infoRol(String id) => roles.firstWhere((r) => r.id == id, orElse: () => roles.first);
-
-const _oficios = ['Gasfitero', 'Electricista', 'Carpintero', 'Albañil', 'Costurera', 'Mecánico'];
 
 /// Pantalla "¿Quién soy hoy?": se muestra al abrir la app y desde el perfil.
 class SelectorRolScreen extends StatefulWidget {
@@ -59,31 +49,21 @@ class SelectorRolScreen extends StatefulWidget {
 
 class _SelectorRolScreenState extends State<SelectorRolScreen> {
   late String _rol;
-  late final TextEditingController _oficio;
 
   @override
   void initState() {
     super.initState();
-    final st = context.read<AppState>();
-    _rol = st.rolSimulado;
-    _oficio = TextEditingController(text: st.especialidad ?? '');
-  }
-
-  @override
-  void dispose() {
-    _oficio.dispose();
-    super.dispose();
+    _rol = context.read<AppState>().rolSimulado;
   }
 
   void _entrar() {
-    context.read<AppState>().elegirRol(_rol, oficio: _rol == 'prestador' ? _oficio.text : null);
+    context.read<AppState>().elegirRol(_rol);
     if (!widget.inicial) Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
     final elegido = infoRol(_rol);
-    final falta = _rol == 'prestador' && _oficio.text.trim().isEmpty;
     return Scaffold(
       appBar: widget.inicial ? null : AppBar(title: const Text('Cambiar de rol')),
       body: SafeArea(
@@ -114,44 +94,18 @@ class _SelectorRolScreenState extends State<SelectorRolScreen> {
           const SizedBox(height: 22),
           for (final r in roles) ...[
             _TarjetaRol(info: r, seleccionado: r.id == _rol, onTap: () => setState(() => _rol = r.id)),
-            if (r.id == 'prestador' && _rol == 'prestador') _campoOficio(),
             const SizedBox(height: 12),
           ],
           const SizedBox(height: 8),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: elegido.color, minimumSize: const Size.fromHeight(56)),
-            onPressed: falta ? null : _entrar,
+            onPressed: _entrar,
             child: Text('Entrar como ${elegido.titulo.split(' /').first}'),
           ),
         ]),
       ),
     );
   }
-
-  Widget _campoOficio() => Container(
-        margin: const EdgeInsets.only(top: 8),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(color: Paleta.acentoSuave, borderRadius: BorderRadius.circular(16)),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text('¿Cuál es tu especialidad?', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
-          const SizedBox(height: 8),
-          Wrap(spacing: 8, runSpacing: 8, children: [
-            for (final o in _oficios)
-              ChoiceChip(
-                label: Text(o),
-                selected: _oficio.text == o,
-                showCheckmark: false,
-                onSelected: (_) => setState(() => _oficio.text = o),
-              ),
-          ]),
-          const SizedBox(height: 10),
-          TextField(
-            controller: _oficio,
-            onChanged: (_) => setState(() {}),
-            decoration: const InputDecoration(labelText: 'Otro oficio', hintText: 'Ej. Cerrajero'),
-          ),
-        ]),
-      );
 }
 
 class _TarjetaRol extends StatelessWidget {
@@ -210,7 +164,7 @@ class PildoraRol extends StatelessWidget {
   Widget build(BuildContext context) {
     final st = context.watch<AppState>();
     final r = infoRol(st.rolSimulado);
-    final texto = st.esPrestadorRol && st.especialidad != null ? st.especialidad! : r.titulo.split(' /').first;
+    final texto = r.titulo.split(' /').first;
     return Material(
       color: r.color.withValues(alpha: 0.1),
       borderRadius: BorderRadius.circular(10),

@@ -19,10 +19,10 @@ import 'qr_screens.dart';
 ///   1) botón "Publicar"  2) elegir qué publicar  3) "Publicar ahora".
 /// La categoría, la ubicación y el contacto ya vienen completados.
 enum TipoForm {
-  pidoFavor('Necesito una mano', 'Algo prestado, una ayuda o algo que te falte. Sin dinero', Icons.front_hand),
-  ofrezcoFavor('Quiero ayudar o regalar', 'Presta, regala o enseña algo a un vecino', Icons.volunteer_activism),
-  colecta('Organizar una colecta', 'Junta donaciones para una buena causa del barrio', Icons.diversity_1),
-  servicio('Ofrezco un servicio o producto', 'Gasfitería, clases, pan, bodega, artesanía...', Icons.storefront),
+  pidoFavor('Pedir apoyo', 'Algo prestado, una mano o algo que te falte. Sin dinero', Icons.front_hand),
+  ofrezcoFavor('Dar apoyo', 'Presta, regala o enseña algo a un vecino', Icons.volunteer_activism),
+  colecta('Organizar evento solidario', 'Junta donaciones o voluntarios para una buena causa del barrio', Icons.diversity_1),
+  servicio('Publicar servicio o producto', 'Gasfitería, clases, pan, bodega, artesanía...', Icons.storefront),
   necesitoAyuda('Necesito ayuda', 'Para mí o mi familia. Sin cuenta y sin internet', Icons.sos),
   reportarVulnerable('Avisar de un vecino que necesita ayuda', 'Adulto mayor, persona enferma o con discapacidad', Icons.elderly),
   ofrezcoRecurso('Tengo algo para compartir', 'Agua, comida, un lugar para dormir, medicinas...', Icons.inventory_2),
@@ -61,24 +61,39 @@ enum TipoForm {
   String get etiquetaTitulo => switch (this) {
         servicio || grupoApoyo => '¿Qué ofreces?',
         ofrezcoFavor || ofrezcoRecurso => '¿Qué puedes dar o hacer?',
-        colecta => '¿Para qué es la colecta?',
+        colecta => '¿Para qué es el evento?',
         reportarVulnerable => '¿Quién necesita ayuda y qué le hace falta?',
         _ => '¿Qué necesitas?',
       };
+
+  String get textoBoton => switch (this) {
+        servicio => 'Publicar servicio',
+        pidoFavor => 'Pedir apoyo',
+        ofrezcoFavor => 'Dar apoyo',
+        colecta => 'Crear evento',
+        necesitoAyuda || reportarVulnerable => 'Enviar pedido de ayuda',
+        _ => 'Publicar ahora',
+      };
 }
 
+/// Menú de la pestaña Solidaridad: las 3 formas de ayudar en un solo botón.
+Future<void> abrirMenuSolidaridad(BuildContext context) =>
+    _menuOpciones(context, '¿Cómo quieres ayudar?', const [TipoForm.pidoFavor, TipoForm.ofrezcoFavor, TipoForm.colecta]);
+
+/// Menú de publicar en modo emergencia.
 Future<void> abrirMenuPublicar(BuildContext context) {
   final st = context.read<AppState>();
-  final opciones = st.modoEmergencia
-      ? [
-          TipoForm.necesitoAyuda,
-          TipoForm.reportarVulnerable,
-          TipoForm.ofrezcoRecurso,
-          if (st.esOrganizacion || st.esModerador) TipoForm.grupoApoyo,
-          TipoForm.pidoFavor,
-          TipoForm.ofrezcoFavor,
-        ]
-      : [TipoForm.pidoFavor, TipoForm.ofrezcoFavor, TipoForm.colecta, TipoForm.servicio];
+  return _menuOpciones(context, '¿Qué quieres publicar?', [
+    TipoForm.necesitoAyuda,
+    TipoForm.reportarVulnerable,
+    TipoForm.ofrezcoRecurso,
+    if (st.esOrganizacion || st.esModerador) TipoForm.grupoApoyo,
+    TipoForm.pidoFavor,
+    TipoForm.ofrezcoFavor,
+  ]);
+}
+
+Future<void> _menuOpciones(BuildContext context, String titulo, List<TipoForm> opciones) {
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
@@ -89,7 +104,7 @@ Future<void> abrirMenuPublicar(BuildContext context) {
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Semantics(
             header: true,
-            child: Text('¿Qué quieres publicar?', style: Theme.of(c).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+            child: Text(titulo, style: Theme.of(c).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
           ),
           const SizedBox(height: 12),
           for (final o in opciones)
@@ -287,14 +302,17 @@ class _FormularioPublicarState extends State<FormularioPublicar> {
   Future<void> _publicar() async {
     final st = context.read<AppState>();
     final titulo = _titulo.text.trim();
-    if (titulo.length < 3) {
-      setState(() => _error = 'Escribe en pocas palabras ${t.tipoPub == 'pido' ? 'qué necesitas' : 'qué ofreces'}.');
-      return;
-    }
-    if (!st.logueado && _nombre.text.trim().isEmpty) {
-      setState(() => _error = 'Escribe tu nombre para que puedan ubicarte.');
-      return;
-    }
+    final pideNombre = _muestraNombre(st);
+    setState(() {
+      _errTitulo = titulo.length < 5 ? 'Escribe en pocas palabras ${t.tipoPub == 'pido' ? 'qué necesitas' : 'qué ofreces'}.' : null;
+      _errDetalle = validarTexto(_detalle.text);
+      _errNombre = pideNombre ? validarNombre(_nombre.text) : null;
+      _errTelefono = validarTelefono(_telefono.text);
+      _errPrecio = t == TipoForm.servicio ? validarPrecio(_precio.text) : null;
+      // Si el contacto precargado está mal, se abre para corregirlo.
+      if (_errNombre != null || _errTelefono != null) _editarContacto = true;
+    });
+    if ([_errTitulo, _errDetalle, _errNombre, _errTelefono, _errPrecio].any((e) => e != null)) return;
     setState(() {
       _enviando = true;
       _error = null;
@@ -312,7 +330,7 @@ class _FormularioPublicarState extends State<FormularioPublicar> {
         categoria: _categoria,
         titulo: titulo,
         descripcion: detalle,
-        precioRef: _precio.text.trim().isEmpty ? null : _precio.text.trim(),
+        precioRef: precioGuardado(_precio.text),
         telefono: tel,
         horario: _horario.text.trim().isEmpty ? null : _horario.text.trim(),
         sector: _sector,
@@ -347,6 +365,14 @@ class _FormularioPublicarState extends State<FormularioPublicar> {
       final enviado = await st.publicar(tabla, datos);
       if (!mounted) return;
       if (enviado) {
+        // Publicar un servicio te vuelve prestador (antes era un switch en Perfil).
+        if (t == TipoForm.servicio && st.logueado && !st.esPrestador) {
+          try {
+            await st.repo.actualizarPerfil({'es_prestador': true});
+            await st.cargarPerfil();
+          } catch (_) {} // no bloquea: el servicio ya quedó publicado
+        }
+        if (!mounted) return;
         Navigator.pop(context);
         avisar('¡Publicado! Tus vecinos ya pueden verlo.');
       } else {
@@ -387,15 +413,47 @@ class _FormularioPublicarState extends State<FormularioPublicar> {
     }
   }
 
+  /// Nombre visible solo cuando hace falta (sin cuenta o pedidos de emergencia).
+  bool _muestraNombre(AppState st) =>
+      !st.logueado || (t.esEmergencia && t.tipoPub == 'pido') || t == TipoForm.ofrezcoRecurso;
+
+  Widget _contador(String etiqueta, int valor, int paso, int minimo, ValueChanged<int> cambiar, String menos, String mas) {
+    return Row(children: [
+      Expanded(child: Text(etiqueta, style: const TextStyle(fontWeight: FontWeight.bold))),
+      IconButton.filledTonal(
+        tooltip: menos,
+        onPressed: valor > minimo ? () => cambiar(valor - paso) : null,
+        icon: const Icon(Icons.remove),
+      ),
+      Semantics(
+        liveRegion: true,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Text('$valor', style: Theme.of(context).textTheme.headlineSmall),
+        ),
+      ),
+      IconButton.filledTonal(tooltip: mas, onPressed: () => cambiar(valor + paso), icon: const Icon(Icons.add)),
+    ]);
+  }
+
   @override
   Widget build(BuildContext context) {
     final st = context.watch<AppState>();
     final emergenciaPedido = t.esEmergencia && t.tipoPub == 'pido';
+    final pideNombre = _muestraNombre(st);
     final ubicacionTexto = _buscandoGps && _gps == null
         ? 'Buscando tu ubicación...'
         : _gps != null
             ? 'Tu ubicación actual (GPS)'
             : 'Sector ${_sector ?? Zona.nombre} (aproximado)';
+    final tel = _telefono.text.trim();
+    // Contacto ya completado desde el perfil: se resume en una línea.
+    final contactoListo = st.logueado &&
+        !_editarContacto &&
+        tel.isNotEmpty &&
+        validarTelefono(tel) == null &&
+        (!pideNombre || validarNombre(_nombre.text) == null);
+    const espacio = SizedBox(height: 16);
 
     return Scaffold(
       appBar: AppBar(title: Text(t.titulo)),
@@ -484,37 +542,16 @@ class _FormularioPublicarState extends State<FormularioPublicar> {
                   }),
                 ),
             ]),
+            espacio,
           ],
           const SizedBox(height: 8),
           if (t == TipoForm.colecta) ...[
-            const SizedBox(height: 8),
-            Row(children: [
-              const Expanded(
-                child: Text('¿Cuántas donaciones quieren juntar?', style: TextStyle(fontWeight: FontWeight.bold)),
-              ),
-              IconButton.filledTonal(
-                tooltip: 'Cinco menos',
-                onPressed: _meta > 5 ? () => setState(() => _meta -= 5) : null,
-                icon: const Icon(Icons.remove),
-              ),
-              Semantics(
-                liveRegion: true,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Text('$_meta', style: Theme.of(context).textTheme.headlineSmall),
-                ),
-              ),
-              IconButton.filledTonal(
-                tooltip: 'Cinco más',
-                onPressed: () => setState(() => _meta += 5),
-                icon: const Icon(Icons.add),
-              ),
-            ]),
+            _contador('¿Cuántas donaciones quieren juntar?', _meta, 5, 5, (v) => setState(() => _meta = v), 'Cinco menos', 'Cinco más'),
             const Text('Los vecinos verán cuánto falta para llegar a la meta.'),
+            espacio,
           ],
           if (emergenciaPedido) ...[
             if (_prioridad == 'critica') const AvisoAutoridades(),
-            const SizedBox(height: 8),
             const Text('¿Qué tan urgente es?', style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             SegmentedButton<String>(
@@ -526,28 +563,76 @@ class _FormularioPublicarState extends State<FormularioPublicar> {
               onSelectionChanged: (s) => setState(() => _prioridad = s.first),
             ),
             const SizedBox(height: 12),
-            Row(children: [
-              const Expanded(child: Text('¿Cuántas personas?', style: TextStyle(fontWeight: FontWeight.bold))),
-              IconButton.filledTonal(
-                tooltip: 'Una persona menos',
-                onPressed: _personas > 1 ? () => setState(() => _personas--) : null,
-                icon: const Icon(Icons.remove),
-              ),
-              Semantics(
-                liveRegion: true,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Text('$_personas', style: Theme.of(context).textTheme.headlineSmall),
+            _contador('¿Cuántas personas?', _personas, 1, 1, (v) => setState(() => _personas = v), 'Una persona menos', 'Una persona más'),
+            espacio,
+          ],
+          if (t.esServicio) ...[
+            if (t == TipoForm.servicio) ...[
+              TextField(
+                controller: _precio,
+                keyboardType: TextInputType.number,
+                inputFormatters: [soloNumeros, LengthLimitingTextInputFormatter(6)],
+                onChanged: (_) => _errPrecio != null ? setState(() => _errPrecio = null) : null,
+                decoration: InputDecoration(
+                  labelText: 'Precio referencial (opcional)',
+                  hintText: '30',
+                  prefixText: 'S/ ',
+                  prefixIcon: const Icon(Icons.payments),
+                  errorText: _errPrecio,
                 ),
               ),
-              IconButton.filledTonal(
-                tooltip: 'Una persona más',
-                onPressed: () => setState(() => _personas++),
-                icon: const Icon(Icons.add),
+              const SizedBox(height: 12),
+            ],
+            TextField(
+              controller: _horario,
+              maxLength: 80,
+              decoration: const InputDecoration(
+                labelText: 'Horario de atención (opcional)',
+                hintText: 'Ej: Lun a Sáb, 8 am a 6 pm',
+                prefixIcon: Icon(Icons.schedule),
               ),
-            ]),
+            ),
+            const SizedBox(height: 4),
           ],
-          const SizedBox(height: 8),
+
+          // 4 ─ Contacto
+          if (contactoListo)
+            Card(
+              margin: EdgeInsets.zero,
+              child: ListTile(
+                leading: const Icon(Icons.phone),
+                title: Text('Te contactarán al $tel'),
+                subtitle: Text(pideNombre ? _nombre.text.trim() : 'Por llamada o WhatsApp'),
+                trailing: TextButton(onPressed: () => setState(() => _editarContacto = true), child: const Text('Cambiar')),
+              ),
+            )
+          else ...[
+            if (pideNombre) ...[
+              TextField(
+                controller: _nombre,
+                textCapitalization: TextCapitalization.words,
+                inputFormatters: [soloLetras, LengthLimitingTextInputFormatter(60)],
+                onChanged: (_) => _errNombre != null ? setState(() => _errNombre = null) : null,
+                decoration: InputDecoration(labelText: 'Tu nombre', prefixIcon: const Icon(Icons.person), errorText: _errNombre),
+              ),
+              const SizedBox(height: 12),
+            ],
+            TextField(
+              controller: _telefono,
+              keyboardType: TextInputType.phone,
+              inputFormatters: formatoTelefono,
+              onChanged: (_) => _errTelefono != null ? setState(() => _errTelefono = null) : null,
+              decoration: InputDecoration(
+                labelText: 'Celular o WhatsApp (opcional)',
+                hintText: '987654321',
+                prefixIcon: const Icon(Icons.phone),
+                errorText: _errTelefono,
+              ),
+            ),
+          ],
+          const SizedBox(height: 12),
+
+          // 5 ─ Ubicación
           Card(
             margin: EdgeInsets.zero,
             child: ListTile(
@@ -559,60 +644,25 @@ class _FormularioPublicarState extends State<FormularioPublicar> {
               trailing: TextButton(onPressed: _elegirSector, child: const Text('Cambiar')),
             ),
           ),
-          const SizedBox(height: 12),
-          ExpansionTile(
-            initiallyExpanded: t.esServicio || !st.logueado,
-            tilePadding: EdgeInsets.zero,
-            title: const Text('Más detalles (opcional)', style: TextStyle(fontWeight: FontWeight.bold)),
-            children: [
-              if (!st.logueado || emergenciaPedido || t == TipoForm.ofrezcoRecurso)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: TextField(
-                    controller: _nombre,
-                    textCapitalization: TextCapitalization.words,
-                    decoration: const InputDecoration(labelText: 'Nombre de contacto', prefixIcon: Icon(Icons.person)),
-                  ),
-                ),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: TextField(
-                  controller: _telefono,
-                  keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(labelText: 'Teléfono o WhatsApp', prefixIcon: Icon(Icons.phone)),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: TextField(
-                  controller: _detalle,
-                  maxLines: 3,
-                  maxLength: 500,
-                  textCapitalization: TextCapitalization.sentences,
-                  decoration: InputDecoration(
-                    labelText: 'Detalle',
-                    hintText: t.esServicio ? 'Qué ofreces, horario, cantidad...' : 'Qué necesitas, horario, cantidad...',
-                    helperText: t.esServicio ? null : 'No escribas tu dirección exacta: compártela por teléfono con quien te ayude.',
-                    helperMaxLines: 2,
-                  ),
-                ),
-              ),
-              if (t.esServicio) ...[
-                if (t == TipoForm.servicio)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: TextField(
-                      controller: _precio,
-                      decoration: const InputDecoration(labelText: 'Precio referencial', hintText: 'Ej: Desde S/ 30', prefixIcon: Icon(Icons.payments)),
-                    ),
-                  ),
-                TextField(
-                  controller: _horario,
-                  decoration: const InputDecoration(labelText: 'Horario de atención', hintText: 'Ej: Lun a Sáb, 8 am a 6 pm', prefixIcon: Icon(Icons.schedule)),
-                ),
-              ],
-            ],
+          espacio,
+
+          // 6 ─ Detalle libre
+          TextField(
+            controller: _detalle,
+            maxLines: 3,
+            maxLength: 500,
+            textCapitalization: TextCapitalization.sentences,
+            onChanged: (_) => _errDetalle != null ? setState(() => _errDetalle = null) : null,
+            decoration: InputDecoration(
+              labelText: 'Cuéntales más (opcional)',
+              hintText: t.esServicio ? 'Qué incluye, experiencia, zona que atiendes...' : 'Para cuándo, cantidad, cómo ayudar...',
+              helperText: t.esServicio ? null : 'No escribas tu dirección exacta: compártela por teléfono con quien te ayude.',
+              helperMaxLines: 2,
+              errorText: _errDetalle,
+              alignLabelWithHint: true,
+            ),
           ),
+
           if (_error != null)
             Padding(
               padding: const EdgeInsets.only(top: 12),
@@ -632,7 +682,7 @@ class _FormularioPublicarState extends State<FormularioPublicar> {
               icon: _enviando
                   ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 3))
                   : const Icon(Icons.send),
-              label: Text(_enviando ? 'Publicando...' : 'Publicar ahora', style: const TextStyle(fontSize: 20)),
+              label: Text(_enviando ? 'Publicando...' : t.textoBoton, style: const TextStyle(fontSize: 20)),
             ),
           ),
         ]),

@@ -3,6 +3,7 @@ import 'package:app_vecinal/data/qr_codec.dart';
 import 'package:app_vecinal/data/sugerencias.dart';
 import 'package:app_vecinal/main.dart';
 import 'package:app_vecinal/models.dart';
+import 'package:app_vecinal/screens/roles.dart';
 import 'package:app_vecinal/util.dart';
 import 'package:flutter_test/flutter_test.dart';
 

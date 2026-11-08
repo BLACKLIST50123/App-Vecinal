@@ -130,6 +130,15 @@ class AppState extends ChangeNotifier {
               _debounce = Timer(const Duration(milliseconds: 800), refrescar);
             },
           )
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'pedidos_servicio',
+            callback: (_) {
+              _debounce?.cancel();
+              _debounce = Timer(const Duration(milliseconds: 800), refrescar);
+            },
+          )
           .subscribe();
     } catch (_) {
       // Sin tiempo real la app sigue funcionando con la consulta cada 30 s.
@@ -284,10 +293,10 @@ class AppState extends ChangeNotifier {
   }
 
   bool get esBrigadista => rolSimulado == 'brigadista';
-  bool get esPrestadorRol => rolSimulado == 'prestador';
+  bool get esPrestador => perfil?['es_prestador'] == true;
 
-  void elegirRol(String rol, {String? oficio}) {
-    rolSimulado = rol;
+  void elegirRol(String rol) {
+    rolSimulado = (rol == 'brigadista') ? 'brigadista' : 'vecino';
     rolElegido = true;
     prefs.setString('rol_simulado', rol);
     prefs.setBool('rol_elegido', true);
