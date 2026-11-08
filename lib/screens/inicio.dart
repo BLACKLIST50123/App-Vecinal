@@ -2,17 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../config.dart';
-import '../features/inicio/mapa_inicio.dart';
+import '../features/inicio/que_necesitas.dart';
+import '../features/inicio/recomendados.dart';
 import '../features/junta/junta.dart';
 import '../features/inicio/pulso.dart';
 import '../models.dart';
 import '../state/app_state.dart';
-import '../ui/diseno.dart';
 import '../ui/tema.dart';
 import '../ui/widgets.dart';
 import '../util.dart';
+import 'confianza.dart';
 import 'detalles.dart';
-import 'publicar.dart';
+import '../features/inicio/mapa_inicio.dart';
 
 typedef IrA = void Function(int tab, {String? grupo, String? consulta});
 
@@ -26,8 +27,10 @@ class InicioScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final st = context.watch<AppState>();
 
-    // Estructura: 1) bienvenida y pulso del barrio  2) mapa con filtros
-    // 3) cerca de ti  4) ¿qué quieres hacer hoy?
+    // Estructura (de lo más útil a lo más general):
+    //   1) ¿Qué necesitas hoy? (con chips de acceso rápido integrados)
+    //   2) Lo más recomendado para ti  3) Buenas noticias del barrio
+    //   4) Mapa del barrio con filtros  5) Invitar vecinos
     return RefreshIndicator(
       onRefresh: () async => st.refrescar(),
       child: ListView(
@@ -37,75 +40,108 @@ class InicioScreen extends StatelessWidget {
           const TarjetaNombramiento(),
           // El brigadista ve primero las alertas SOS de su zona.
           if (st.esBrigadista) const PanelBrigadista(),
-          const _Bienvenida(),
+          QueNecesitas(irA: irA),
+          LoMasRecomendado(verTodos: () => irA(1)),
+          const SizedBox(height: 18),
           const PulsoBarrio(),
           const MapaYCercanos(),
-          const TituloDiseno('¿Qué quieres hacer hoy?'),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Expanded(
-                child: AccesoCategoria(
-                  texto: 'Pedir ayuda',
-                  icono: Icons.front_hand_outlined,
-                  colores: Paleta.morado,
-                  onTap: () => irA(2, grupo: 'pedir'),
-                ),
-              ),
-              Expanded(
-                child: AccesoCategoria(
-                  texto: 'Ofrecer servicio',
-                  icono: Icons.storefront_outlined,
-                  colores: Paleta.naranja,
-                  onTap: () => abrirFormulario(context, TipoForm.servicio),
-                ),
-              ),
-              Expanded(
-                child: AccesoCategoria(
-                  texto: 'Ver colectas',
-                  icono: Icons.diversity_1_outlined,
-                  colores: Paleta.verdeCat,
-                  onTap: () => irA(2),
-                ),
-              ),
-            ]),
-          ),
-          // Al final: invitar a más vecinos.
-          const BotonInvitarWhatsapp(),
+          const _InvitarVecinos(),
         ],
       ),
     );
   }
 }
 
-/// "Conecta Vecino · ¡La app que nos une!"
-class _Bienvenida extends StatelessWidget {
-  const _Bienvenida();
+/// Invitar vecinos: tarjeta mejorada con mensaje claro e impacto visual.
+class _InvitarVecinos extends StatelessWidget {
+  const _InvitarVecinos();
 
   @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.fromLTRB(18, 2, 18, 10),
-        child: Semantics(
-          header: true,
-          label: 'Conecta Vecino. ¡La app que nos une!',
-          excludeSemantics: true,
+  Widget build(BuildContext context) {
+    final online = context.select<AppState, bool>((s) => s.online);
+    final verde = Paleta.whatsapp;
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+      decoration: BoxDecoration(
+        color: verde.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: verde.withValues(alpha: 0.30)),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        // Cabecera con gradiente suave
+        Container(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+          decoration: BoxDecoration(
+            color: verde.withValues(alpha: 0.12),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
           child: Row(children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.asset('assets/images/logo_icono.png', width: 44, height: 44, fit: BoxFit.cover),
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(color: verde, shape: BoxShape.circle),
+              child: const Icon(Icons.group_add_rounded, color: Colors.white, size: 26),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Conecta Vecino',
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Paleta.tinta, letterSpacing: -0.3)),
-                Text('¡La app que nos une!',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Paleta.acentoOscuro)),
+                Text('Invita a tus vecinos',
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w900,
+                      color: Paleta.tinta,
+                    )),
+                const SizedBox(height: 2),
+                Text('Más vecinos = más ayuda para todos.',
+                    style: TextStyle(fontSize: 13, color: Paleta.gris)),
               ]),
             ),
           ]),
         ),
-      );
+        // Beneficio visual: 3 puntos rápidos
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+          child: Column(children: [
+            for (final item in [
+              (Icons.flash_on_rounded, 'Ayuda llega más rápido a tu cuadra'),
+              (Icons.verified_user_rounded, 'El barrio se vuelve más seguro'),
+              (Icons.storefront_rounded, 'Más servicios y ofertas cerca'),
+            ])
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Row(children: [
+                  Icon(item.$1, size: 18, color: verde),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(item.$2,
+                        style: TextStyle(fontSize: 13.5, color: Paleta.tinta, fontWeight: FontWeight.w600)),
+                  ),
+                ]),
+              ),
+          ]),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+          child: FilledButton.icon(
+            style: FilledButton.styleFrom(
+              backgroundColor: verde,
+              foregroundColor: Colors.white,
+              disabledBackgroundColor: Paleta.lineaFuerte,
+              disabledForegroundColor: Paleta.gris,
+              minimumSize: const Size.fromHeight(52),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+            onPressed: online ? () => compartirWhatsapp(textoInvitarVecino) : null,
+            icon: const Icon(Icons.send_rounded),
+            label: Text(
+              online ? 'Enviar invitación por WhatsApp' : 'Necesitas señal para invitar',
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+            ),
+          ),
+        ),
+      ]),
+    );
+  }
 }
 
 // ============================================================== roles

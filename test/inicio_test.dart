@@ -4,44 +4,51 @@ import 'package:app_vecinal/models.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  group('Pulso del barrio', () {
+  group('Buenas noticias del barrio (solo casos de éxito)', () {
     final hace = DateTime.now().toUtc().subtract(const Duration(minutes: 5)).toIso8601String();
+    final antes = DateTime.now().toUtc().subtract(const Duration(hours: 3)).toIso8601String();
 
-    test('arma mensajes sin nombres a partir de apoyos, pedidos y servicios', () {
+    test('textos cortos: compró un servicio o producto, recibió ayuda, SOS atendido por quién', () {
       final e = armarPulso(
-        apoyos: [
-          {'created_at': hace, 'publicaciones': {'categoria': 'movilidad', 'sector': 'Bellamar', 'es_emergencia': false}},
+        recomendaciones: [
+          {'created_at': hace, 'autor': {'sector': 'Miraflores Alto'}, 'servicios': {'categoria': 'gasfiteria'}},
+          {'created_at': antes, 'autor': {'sector': 'Bellamar'}, 'servicios': {'categoria': 'panaderia'}},
         ],
-        publicaciones: [
-          {'tipo': 'pido', 'categoria': 'herramientas', 'sector': 'Casco Urbano', 'created_at': hace},
-          {'tipo': 'pido', 'categoria': 'colecta', 'sector': 'Bellamar', 'created_at': hace},
+        agradecimientos: [
+          {'created_at': antes, 'publicaciones': {'categoria': 'herramientas', 'sector': 'Villa María', 'origen': 'app'}},
         ],
-        servicios: [
-          {'categoria': 'gasfiteria', 'sector': null, 'created_at': hace},
+        atendidos: [
+          {'origen': 'sos', 'categoria': 'inundacion', 'sector': 'Bellamar', 'created_at': antes, 'atendido_por': 'b1'},
+          {'origen': 'sos', 'categoria': 'salud', 'sector': 'La Florida', 'created_at': antes, 'atendio': {'rol': 'organizacion'}, 'atendido_por': 'o1'},
         ],
+        brigadistas: {'b1'},
       );
       final textos = e.map((x) => x.texto).toList();
-      expect(textos, contains(startsWith('un vecino de Bellamar recibió apoyo')));
-      expect(textos, contains(startsWith('alguien de Casco Urbano pidió ayuda')));
-      expect(textos, contains('comenzó una colecta solidaria en Bellamar'));
-      expect(textos, contains(startsWith('se publicó un nuevo servicio')));
+      expect(textos, contains(startsWith('Vecino de Miraflores Alto compró un servicio de')));
+      expect(textos, contains(startsWith('Vecino de Bellamar compró un producto de')));
+      expect(textos, contains(startsWith('Vecino de Villa María recibió ayuda:')));
+      expect(textos, contains('El SOS de un vecino de Bellamar fue atendido por un brigadista'));
+      expect(textos, contains('El SOS de un vecino de La Florida fue atendido por una organización'));
     });
 
-    test('lo tuyo pendiente (sin señal) va primero', () {
+    test('se intercalan: servicio, solidaridad, emergencia, servicio...', () {
       final e = armarPulso(
-        apoyos: const [],
-        publicaciones: [
-          {'tipo': 'pido', 'categoria': 'ayuda', 'created_at': hace},
+        recomendaciones: [
+          {'created_at': hace, 'servicios': {'categoria': 'gasfiteria'}},
+          {'created_at': antes, 'servicios': {'categoria': 'electricidad'}},
         ],
-        servicios: const [],
-        pendientes: ['Necesito una escalera'],
+        agradecimientos: [
+          {'created_at': hace, 'publicaciones': {'categoria': 'ayuda', 'origen': 'app'}},
+        ],
+        atendidos: [
+          {'origen': 'sos', 'categoria': 'salud', 'created_at': hace},
+        ],
       );
-      expect(e.first.propio, isTrue);
-      expect(e.first.texto, contains('se enviará cuando vuelva la señal'));
+      expect(e.map((x) => x.tipo).toList(), [TipoExito.servicio, TipoExito.solidaridad, TipoExito.sos, TipoExito.servicio]);
     });
 
-    test('sin movimientos no hay mensajes', () {
-      expect(armarPulso(apoyos: const [], publicaciones: const [], servicios: const []), isEmpty);
+    test('sin casos de éxito no hay mensajes', () {
+      expect(armarPulso(recomendaciones: const [], agradecimientos: const [], atendidos: const []), isEmpty);
     });
   });
 

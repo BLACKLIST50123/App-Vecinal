@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../config.dart';
+import '../features/inicio/guia.dart';
 import '../features/sos/sos_alertas.dart';
 import '../models.dart';
 import '../state/app_state.dart';
@@ -11,6 +12,7 @@ import '../ui/widgets.dart';
 import '../util.dart';
 import 'confianza.dart';
 import 'mapa.dart';
+import 'publicar.dart';
 
 // ======================================= Módulo 1 · Servicios de Proximidad
 
@@ -69,6 +71,15 @@ class _ServiciosScreenState extends State<ServiciosScreen> {
           lista.sort(_porCercania ? (a, b) => d(a).compareTo(d(b)) : (a, b) => b.vistosBuenos.compareTo(a.vistosBuenos));
 
           return ListView(padding: const EdgeInsets.only(bottom: 110), children: [
+            if (!e)
+              ConsejoPrimeraVez(
+                clave: 'servicios',
+                icono: Icons.storefront_rounded,
+                colores: Paleta.naranja,
+                texto: 'También puedes publicar tus servicios o productos.',
+                boton: 'Publicar',
+                alTocar: () => abrirFormulario(context, TipoForm.servicio),
+              ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
               child: CajaBusqueda(

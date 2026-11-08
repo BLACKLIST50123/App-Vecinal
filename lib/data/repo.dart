@@ -83,11 +83,13 @@ class Repo {
 
   // ------------------------------------------------------------ lecturas
 
-  /// Pulso del barrio: lo que pasó en las últimas [horas] (apoyos dados,
-  /// pedidos, colectas y servicios nuevos), sin nombres. Sin internet devuelve
-  /// la última copia y cuándo se actualizó.
-  Future<({List<Map<String, dynamic>> apoyos, List<Map<String, dynamic>> publicaciones, List<Map<String, dynamic>> servicios, DateTime? actualizado, bool enVivo})>
-      pulso({int horas = 2}) async {
+  /// Pulso del barrio: SOLO casos de éxito de las últimas [horas], sin nombres:
+  ///   - recomendaciones (Visto Bueno) a servicios y productos,
+  ///   - ayudas agradecidas (alguien recibió ayuda y lo confirmó),
+  ///   - pedidos y SOS atendidos.
+  /// Sin internet devuelve la última copia y cuándo se actualizó.
+  Future<({List<Map<String, dynamic>> recomendaciones, List<Map<String, dynamic>> agradecimientos, List<Map<String, dynamic>> atendidos, Set<String> brigadistas, DateTime? actualizado, bool enVivo})>
+      pulso({int horas = 48}) async {
     final desde = DateTime.now().toUtc().subtract(Duration(hours: horas)).toIso8601String();
     var enVivo = false;
     Future<List<Map<String, dynamic>>> q(String clave, Future<List<Map<String, dynamic>>> Function() c) async {
@@ -106,39 +108,47 @@ class Repo {
       return (jsonDecode(raw) as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
     }
 
-    final apoyos = await q(
-      'pulso_apoyos',
+    final recomendaciones = await q(
+      'pulso_recomendaciones',
       () => db
-          .from('ayudas')
-          .select('created_at, publicaciones(categoria, sector, es_emergencia)')
+          .from('vistos_buenos')
+          .select('created_at, autor:perfiles(sector), servicios(titulo, categoria, sector)')
           .gte('created_at', desde)
           .order('created_at', ascending: false)
-          .limit(20),
+          .limit(15),
     );
-    final pubs = await q(
-      'pulso_publicaciones',
+    final agradecimientos = await q(
+      'pulso_agradecimientos',
+      () => db
+          .from('agradecimientos')
+          .select('created_at, publicaciones(categoria, sector, origen, es_emergencia)')
+          .gte('created_at', desde)
+          .order('created_at', ascending: false)
+          .limit(15),
+    );
+    final atendidos = await q(
+      'pulso_atendidos',
       () => db
           .from('publicaciones')
-          .select('id, tipo, categoria, sector, es_emergencia, origen, meta, created_at')
+          .select('categoria, sector, origen, es_emergencia, tipo, created_at, atendido_por, atendio:perfiles!publicaciones_atendido_por_fkey(rol)')
+          .eq('estado', 'resuelta')
+          .eq('tipo', 'pido')
           .gte('created_at', desde)
           .order('created_at', ascending: false)
-          .limit(20),
+          .limit(15),
     );
-    final servs = await q(
-      'pulso_servicios',
-      () => db
-          .from('servicios')
-          .select('categoria, sector, es_emergencia, created_at')
-          .gte('created_at', desde)
-          .order('created_at', ascending: false)
-          .limit(10),
+    // Para decir quién atendió un SOS: "un brigadista".
+    final brigadistas = await q(
+      'pulso_brigadistas',
+      () => db.from('brigadistas').select('vecino_id').eq('estado', 'activo').limit(500),
     );
     if (enVivo) await prefs.setString('pulso_actualizado', DateTime.now().toIso8601String());
     final at = prefs.getString('pulso_actualizado');
     return (
-      apoyos: apoyos,
-      publicaciones: pubs,
-      servicios: servs,
+      recomendaciones: recomendaciones,
+      agradecimientos: agradecimientos,
+      atendidos: atendidos,
+      brigadistas: {for (final b in brigadistas) b['vecino_id'] as String},
       actualizado: at == null ? null : DateTime.tryParse(at),
       enVivo: enVivo,
     );

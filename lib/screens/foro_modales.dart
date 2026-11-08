@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../config.dart';
+import '../data/sugerencias.dart';
 import '../models.dart';
 import '../state/app_state.dart';
 import '../ui/tema.dart';
@@ -10,7 +11,10 @@ import '../util.dart';
 
 /// Modal para publicar una nueva consulta o tema en el foro vecinal.
 class ModalNuevoTema extends StatefulWidget {
-  const ModalNuevoTema({super.key});
+  const ModalNuevoTema({super.key, this.textoInicial});
+
+  /// Pregunta ya escrita desde "¿Qué necesitas hoy?" del Inicio.
+  final String? textoInicial;
 
   @override
   State<ModalNuevoTema> createState() => _ModalNuevoTemaState();
@@ -30,6 +34,11 @@ class _ModalNuevoTemaState extends State<ModalNuevoTema> {
     super.initState();
     final st = context.read<AppState>();
     _sector = st.sector ?? 'Bellamar';
+    final t = widget.textoInicial?.trim();
+    if (t != null && t.isNotEmpty) {
+      _tituloCtrl.text = t.length > 80 ? t.substring(0, 80) : t;
+      _categoriaServicio = sugerirCategoria(t, [for (final c in categoriasServicio) c.id]) ?? _categoriaServicio;
+    }
   }
 
   @override

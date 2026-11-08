@@ -16,6 +16,7 @@ import '../../ui/tema.dart';
 import '../../ui/widgets.dart';
 import '../../util.dart';
 import '../sos/sos_alertas.dart';
+import '../inicio/guia.dart';
 import 'clasificador.dart';
 import 'mapa_apoyo.dart';
 import 'tarjeta_apoyo.dart';
@@ -25,13 +26,16 @@ import 'tarjeta_apoyo.dart';
 ///   2. Colectas del barrio (carrusel horizontal)
 ///   3. Solidaridad vecinal → [Apoyar] [Pedir ayuda]
 class SolidaridadScreen extends StatefulWidget {
-  const SolidaridadScreen({super.key, this.irAPerfil, this.iniciarEnPedir = false});
+  const SolidaridadScreen({super.key, this.irAPerfil, this.iniciarEnPedir = false, this.textoInicial});
 
   /// "Ver más" del rango lleva al perfil.
   final VoidCallback? irAPerfil;
 
   /// Abre directo en "Pedir ayuda" (acceso rápido del Inicio).
   final bool iniciarEnPedir;
+
+  /// Pedido ya escrito desde "¿Qué necesitas hoy?" del Inicio.
+  final String? textoInicial;
 
   @override
   State<SolidaridadScreen> createState() => _SolidaridadScreenState();
@@ -49,6 +53,14 @@ class _SolidaridadScreenState extends State<SolidaridadScreen> {
       child: ListView(padding: const EdgeInsets.only(bottom: 110), children: [
         // Alertas SOS: solo ocupan espacio si hay una activa.
         const FranjaAlertasSos(),
+        ConsejoPrimeraVez(
+          clave: 'solidaridad',
+          icono: Icons.volunteer_activism_rounded,
+          colores: Paleta.verdeCat,
+          texto: 'Pide apoyo o ayuda a tus vecinos, sin dinero.',
+          boton: 'Pedir ayuda',
+          alTocar: () => setState(() => _pedir = true),
+        ),
 
         // ─────────────────────────────── 1. Tu rango en el barrio
         Padding(
@@ -105,7 +117,7 @@ class _SolidaridadScreenState extends State<SolidaridadScreen> {
         ),
         AnimatedSwitcher(
           duration: const Duration(milliseconds: 200),
-          child: _pedir ? const _PestanaPedir(key: ValueKey('pedir')) : const _PestanaApoyar(key: ValueKey('apoyar')),
+          child: _pedir ? _PestanaPedir(key: const ValueKey('pedir'), textoInicial: widget.textoInicial) : const _PestanaApoyar(key: ValueKey('apoyar')),
         ),
       ]),
     );
@@ -441,7 +453,8 @@ class _DesplegableCategoria extends StatelessWidget {
 // ============================================================== Pedir ayuda
 
 class _PestanaPedir extends StatefulWidget {
-  const _PestanaPedir({super.key});
+  const _PestanaPedir({super.key, this.textoInicial});
+  final String? textoInicial;
 
   @override
   State<_PestanaPedir> createState() => _PestanaPedirState();
@@ -461,6 +474,8 @@ class _PestanaPedirState extends State<_PestanaPedir> {
   void initState() {
     super.initState();
     _texto.addListener(_alEscribir);
+    final t = widget.textoInicial?.trim();
+    if (t != null && t.isNotEmpty) _texto.text = t[0].toUpperCase() + t.substring(1);
   }
 
   @override

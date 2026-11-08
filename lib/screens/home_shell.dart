@@ -84,12 +84,13 @@ class _HomeShellState extends State<HomeShell> {
               consultaInicial: _consulta,
             ),
             SolidaridadScreen(
-              key: ValueKey('sol-$_grupo'),
+              key: ValueKey('sol-$_grupo-$_consulta'),
               irAPerfil: () => _irA(4),
               iniciarEnPedir: _grupo == 'pedir',
+              textoInicial: _grupo == 'pedir' ? _consulta : null,
             ),
             // Mis aportes vive en Perfil.
-            const ForoScreen(),
+            ForoScreen(key: ValueKey('foro-$_consulta'), consultaInicial: _tab == 3 ? _consulta : null),
             const PerfilScreen(),
           ];
     if (_tab >= paginas.length) _tab = 0;
@@ -102,7 +103,8 @@ class _HomeShellState extends State<HomeShell> {
             ('Mi perfil', st.logueado ? null : 'Estás como visitante'),
           ]
         : <(String, String?)>[
-            ('Hola, ${st.logueado ? st.nombre.split(' ').first : 'vecino'}', fechaLarga(DateTime.now())),
+            ('Hola, ${st.logueado ? st.nombre.split(' ').first : 'vecino'}',
+                [if (st.sector != null) st.sector!, 'Conecta Vecino'].join(' · ')),
             ('Servicios y productos', 'Compra local en ${Zona.nombre}'),
             ('Solidaridad', 'Juntos hacemos más'),
             ('Foro Vecinal', 'Preguntas, servicios y diálogo de barrio'),
@@ -168,8 +170,8 @@ class _HomeShellState extends State<HomeShell> {
             resumenPerfil,
           ]
         : <String>[
-            'Inicio. Arriba ves lo último que pasó en tu barrio. Luego el mapa con servicios, productos, peticiones y emergencias: '
-                'usa los filtros o toca un punto. Para una emergencia, toca el botón rojo SOS arriba.',
+            'Inicio. Arriba, escribe o di lo que necesitas y te llevamos al lugar correcto. Luego ves lo más recomendado '
+                'cerca de ti, las buenas noticias del barrio y el mapa. Para una emergencia, toca el botón rojo SOS arriba.',
             'Servicios y productos de tu barrio. Usa el buscador o los filtros. Cada tarjeta muestra sus Vistos Buenos y el precio.',
             'Solidaridad. Aquí los vecinos se ayudan sin dinero. Puedes pedir una mano, dar algo o aportar a una colecta.',
             'Foro vecinal. Conversa con tus vecinos, pide recomendaciones o pregunta por servicios que necesitas en tu barrio.',

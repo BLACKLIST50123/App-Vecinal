@@ -392,7 +392,7 @@ class _MapaYCercanosState extends State<MapaYCercanos> {
               Text(
                   widget.emergencia
                       ? 'En rojo, vecinos que piden ayuda ahora. En celeste, puntos de ayuda (albergues, postas). Toca uno para actuar.'
-                      : 'Servicios, productos, vecinos que piden ayuda y emergencias cerca de ti. Toca un punto para ver más.',
+                      : 'Toca un punto para ver qué hay cerca de ti.',
                   style: TextStyle(fontSize: 14, color: Paleta.gris, height: 1.3)),
             ]),
           ),
@@ -570,7 +570,9 @@ class _MapaYCercanosState extends State<MapaYCercanos> {
             ]),
           ),
 
-          // ── Cerca de ti
+          // ── Cerca de ti (solo en emergencia; en el día a día lo reemplaza
+          // "Lo más recomendado para ti" del Inicio)
+          if (widget.emergencia) ...[
           TituloDiseno(
             'Cerca de ti',
             detalle: widget.emergencia || _filtro == null ? null : nombreTipo(_filtro!, emergencia: false, plural: true),
@@ -617,6 +619,7 @@ class _MapaYCercanosState extends State<MapaYCercanos> {
                   ),
                 ),
             ]),
+          ],
           ]),
         );
       },
