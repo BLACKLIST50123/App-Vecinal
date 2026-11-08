@@ -13,7 +13,6 @@ import '../features/sos/sos_navegacion.dart';
 import '../models.dart';
 import '../services/notificaciones.dart';
 import '../services/push.dart';
-import '../services/vigia.dart';
 import '../services/ubicacion.dart';
 import '../util.dart';
 
@@ -128,6 +127,8 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     _subAuth = repo.db.auth.onAuthStateChange.listen((_) => cargarPerfil());
     _escucharTiempoReal();
     unawaited(revisarPermisoAvisos());
+    unawaited(_ubicarEnSilencio());
+    Push.alRenovarToken = () => unawaited(registrarPush());
     unawaited(registrarPush()); // token del celular para avisos con la app cerrada
     unawaited(cargarPerfil());
     unawaited(actualizarEmergencia());
@@ -259,10 +260,21 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
 
   Future<void> ubicar() async {
     final p = await Ubicacion.gps();
-    if (p != null) {
-      ubicacion = p;
-      notifyListeners();
-    }
+    if (p != null) _nuevaUbicacion(p);
+  }
+
+  /// Al abrir la app: actualiza la ubicación solo si ya hay permiso (sin
+  /// diálogos), para que los SOS cercanos lleguen a quien de verdad está cerca.
+  Future<void> _ubicarEnSilencio() async {
+    final p = await Ubicacion.gpsSiHayPermiso();
+    if (p != null) _nuevaUbicacion(p);
+  }
+
+  void _nuevaUbicacion(Punto p) {
+    ubicacion = p;
+    notifyListeners();
+    // El servidor usa esta ubicación (aproximada) para los SOS a ≤ 2 km.
+    unawaited(registrarPush());
   }
 
   void _cambioRed(bool hay) {
@@ -310,12 +322,9 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
           e.titulo != emergencia.titulo ||
           e.mensaje != emergencia.mensaje ||
           e.clave != emergencia.clave) {
-        final cambioModo = e.activa != emergencia.activa;
         emergencia = e;
         version++;
         notifyListeners();
-        // En emergencia se enciende el modo alerta (y se apaga al terminar).
-        if (cambioModo) unawaited(actualizarVigia());
       }
       await _cargarMiEstado();
     } catch (_) {}
@@ -517,75 +526,27 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   /// push lleguen aunque la app esté cerrada. La ubicación va aproximada.
   Future<void> registrarPush() async {
     if (!avisosActivados) return;
-    unawaited(actualizarVigia());
     final p = aproximar(referencia);
     await Push.registrar(db: repo.db, avisos: avisos, sector: sector, lat: p.lat, lng: p.lng);
   }
 
-  // ------------------------------------------------- avisos con app cerrada
-
-  /// Modo alerta permanente elegido por el vecino (si no, solo en emergencias).
-  bool get modoAlerta => prefs.getBool('modo_alerta') ?? false;
-
-  /// El servicio de modo alerta está corriendo ahora.
-  bool modoAlertaActivo = false;
-
-  void setModoAlerta(bool v) {
-    prefs.setBool('modo_alerta', v);
-    notifyListeners();
-    unawaited(actualizarVigia());
-  }
-
-  /// Revisión periódica siempre (cada ~15 min, aun con la app cerrada) y
-  /// modo alerta (cada 30 s) durante una emergencia o si el vecino lo pidió.
-  Future<void> actualizarVigia() async {
-    if (!Vigia.soportado) return;
-    if (!avisosActivados) {
-      await Vigia.cancelar();
-      await Vigia.apagarModoAlerta();
-    } else {
-      await Vigia.guardarContexto(lat: referencia.lat, lng: referencia.lng, uid: uid);
-      await Vigia.programar();
-      final encender = modoAlerta || (emergencia.activa && avisos[TipoAviso.emergencia] == true);
-      if (encender) {
-        await Vigia.encenderModoAlerta(porEmergencia: emergencia.activa && !modoAlerta);
-      } else {
-        await Vigia.apagarModoAlerta();
-      }
-    }
-    final activo = await Vigia.modoAlertaEncendido;
-    if (activo != modoAlertaActivo) {
-      modoAlertaActivo = activo;
-      notifyListeners();
-    }
-  }
-
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused) {
-      // Lo que ya vio con la app abierta no se vuelve a avisar.
-      unawaited(Vigia.marcarVisto(emergenciaActiva: emergencia.activa));
-    } else if (state == AppLifecycleState.resumed) {
-      unawaited(revisarPermisoAvisos());
-    }
+    if (state == AppLifecycleState.resumed) unawaited(revisarPermisoAvisos());
   }
 
-  /// Muestra un aviso si el vecino lo tiene encendido. Con la app abierta
-  /// basta el mensaje interno; en segundo plano va a la barra del celular.
+  /// Muestra un aviso si el vecino lo tiene encendido.
+  /// * App abierta: mensaje en pantalla.
+  /// * App cerrada o en segundo plano: lo envía el servidor por Firebase
+  ///   (Edge Function `enviar-avisos`). Si Firebase no está configurado
+  ///   (p. ej. sin claves), se muestra un aviso local mientras la app viva.
   void notificar(TipoAviso t, String titulo, String cuerpo, {bool mensajeInterno = true}) {
     if (avisos[t] != true) return;
     final enPantalla = WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
     if (enPantalla) {
       if (mensajeInterno) avisar('$titulo: $cuerpo');
     } else if (avisosActivados && !Push.activo) {
-      // Con push activo, el servidor ya manda el aviso: no se duplica.
-      // Pedidos a mis servicios necesitan la sesión: se avisan directo.
-      // Lo demás pasa por el vigía, que no repite lo ya avisado.
-      if (t == TipoAviso.misServicios) {
-        Notificaciones.mostrar(t, titulo, cuerpo);
-      } else {
-        unawaited(Vigia.revisar());
-      }
+      Notificaciones.mostrar(t, titulo, cuerpo);
     }
   }
 

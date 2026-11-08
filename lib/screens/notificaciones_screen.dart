@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../services/notificaciones.dart';
-import '../services/vigia.dart';
+import '../services/push.dart';
 import '../state/app_state.dart';
 import '../ui/diseno.dart';
 import '../ui/tema.dart';
@@ -84,30 +84,12 @@ class _NotificacionesScreenState extends State<NotificacionesScreen> with Widget
         _lista(st, TipoAviso.values.where((t) => t.critico)),
         const TituloDiseno('Mi barrio', ceja: 'Elige lo que te interesa'),
         _lista(st, TipoAviso.values.where((t) => !t.critico)),
-        if (Vigia.soportado && st.avisosActivados) ...[
-          const TituloDiseno('Con la app cerrada', ceja: 'Para no perderte nada'),
-          ListaAjustes(filas: [
-            SwitchListTile(
-              value: st.modoAlerta,
-              onChanged: st.setModoAlerta,
-              secondary: const Icon(Icons.shield_moon_outlined, color: Paleta.rojo),
-              title: const Text('Modo alerta permanente', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-              subtitle: Text(
-                st.modoAlertaActivo
-                    ? 'Encendido: revisa cada 30 s. Verás un aviso fijo de Conecta Vecino en la barra.'
-                    : 'Avisos al instante aunque cierres la app. Usa un poco más de batería.',
-                style: const TextStyle(fontSize: 13, color: Paleta.gris),
-              ),
-              activeThumbColor: Paleta.rojo,
-            ),
-          ]),
-        ],
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
           child: Text(
-            Vigia.soportado
-                ? 'Con la app cerrada, Conecta Vecino revisa tu barrio cada 15 minutos. '
-                    'Durante una emergencia se enciende solo el modo alerta para avisarte al instante.'
+            Push.configurado
+                ? 'Los avisos llegan al instante aunque la app esté cerrada. '
+                    'Con la app abierta los verás como un mensaje en pantalla.'
                 : 'Con la app abierta verás los avisos como un mensaje en pantalla.',
             style: const TextStyle(color: Paleta.gris, fontSize: 13, height: 1.4),
           ),
