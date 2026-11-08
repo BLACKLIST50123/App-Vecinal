@@ -152,7 +152,7 @@ class AvisoAutoridades extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Row(children: [
+            Row(children: [
               Icon(Icons.info, color: Paleta.ambar),
               SizedBox(width: 8),
               Expanded(
@@ -240,7 +240,7 @@ class _PanelCoordinacionScreenState extends State<PanelCoordinacionScreen> {
         },
         child: ListView(padding: const EdgeInsets.only(bottom: 32), children: [
           // Los SOS se atienden siempre, haya o no emergencia activa.
-          if (!emergencia) const FranjaAlertasSos(maximo: 5),
+          if (!emergencia) const FranjaAlertasSos(),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
             child: Text(emergencia ? 'Emergencia en curso' : 'Cadena de favores (día a día)',

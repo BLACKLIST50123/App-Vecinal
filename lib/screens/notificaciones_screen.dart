@@ -53,7 +53,7 @@ class _NotificacionesScreenState extends State<NotificacionesScreen> with Widget
       final seguro = await showDialog<bool>(
         context: context,
         builder: (c) => AlertDialog(
-          icon: const Icon(Icons.warning_amber_rounded, color: Paleta.rojo, size: 40),
+          icon: Icon(Icons.warning_amber_rounded, color: Paleta.rojo, size: 40),
           title: const Text('¿Apagar este aviso?'),
           content: Text('"${t.titulo}" te avisa cuando tú o un vecino están en peligro. '
               'Te recomendamos dejarlo encendido.'),
@@ -90,13 +90,13 @@ class _NotificacionesScreenState extends State<NotificacionesScreen> with Widget
             SwitchListTile(
               value: st.modoAlerta,
               onChanged: st.setModoAlerta,
-              secondary: const Icon(Icons.shield_moon_outlined, color: Paleta.rojo),
+              secondary: Icon(Icons.shield_moon_outlined, color: Paleta.rojo),
               title: const Text('Modo alerta permanente', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
               subtitle: Text(
                 st.modoAlertaActivo
                     ? 'Encendido: revisa cada 30 s. Verás un aviso fijo de Conecta Vecino en la barra.'
                     : 'Avisos al instante aunque cierres la app. Usa un poco más de batería.',
-                style: const TextStyle(fontSize: 13, color: Paleta.gris),
+                style: TextStyle(fontSize: 13, color: Paleta.gris),
               ),
               activeThumbColor: Paleta.rojo,
             ),
@@ -109,7 +109,7 @@ class _NotificacionesScreenState extends State<NotificacionesScreen> with Widget
                 ? 'Con la app cerrada, Conecta Vecino revisa tu barrio cada 15 minutos. '
                     'Durante una emergencia se enciende solo el modo alerta para avisarte al instante.'
                 : 'Con la app abierta verás los avisos como un mensaje en pantalla.',
-            style: const TextStyle(color: Paleta.gris, fontSize: 13, height: 1.4),
+            style: TextStyle(color: Paleta.gris, fontSize: 13, height: 1.4),
           ),
         ),
       ]),
@@ -118,8 +118,8 @@ class _NotificacionesScreenState extends State<NotificacionesScreen> with Widget
 
   Widget _estado(AppState st, bool bloqueadas) {
     final falta = st.faltaActivarAvisos;
-    final color = falta ? Paleta.rojo : const Color(0xFF2E7D32);
-    final fondo = falta ? Paleta.rojoSuave : const Color(0xFFE8F5E9);
+    final color = falta ? Paleta.rojo : Paleta.verde;
+    final fondo = falta ? Paleta.rojoSuave : Paleta.verdeSuave;
     final (titulo, texto) = bloqueadas
         ? ('El celular bloquea los avisos', 'Actívalos en Ajustes > Apps > Conecta Vecino > Notificaciones para no perderte una emergencia.')
         : !st.avisosActivados
@@ -139,7 +139,7 @@ class _NotificacionesScreenState extends State<NotificacionesScreen> with Widget
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(titulo, style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: color)),
               const SizedBox(height: 4),
-              Text(texto, style: const TextStyle(fontSize: 14, color: Paleta.tinta, height: 1.35)),
+              Text(texto, style: TextStyle(fontSize: 14, color: Paleta.tinta, height: 1.35)),
             ]),
           ),
         ]),
@@ -165,7 +165,7 @@ class _NotificacionesScreenState extends State<NotificacionesScreen> with Widget
             onChanged: (v) => _cambiar(st, t, v),
             secondary: Icon(t.icono, color: t.critico ? Paleta.rojo : Paleta.primario),
             title: Text(t.titulo, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-            subtitle: Text(t.descripcion, style: const TextStyle(fontSize: 13, color: Paleta.gris)),
+            subtitle: Text(t.descripcion, style: TextStyle(fontSize: 13, color: Paleta.gris)),
             activeThumbColor: t.critico ? Paleta.rojo : null,
           ),
       ]);

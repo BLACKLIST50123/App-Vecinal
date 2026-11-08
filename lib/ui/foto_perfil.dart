@@ -56,7 +56,7 @@ Future<void> cambiarFotoPerfil(BuildContext context) async {
   final opcion = await showModalBottomSheet<String>(
     context: context,
     showDragHandle: true,
-    backgroundColor: Colors.white,
+    backgroundColor: Paleta.superficie,
     builder: (c) => SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -66,7 +66,7 @@ Future<void> cambiarFotoPerfil(BuildContext context) async {
             child: const Text('Tu foto de perfil', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
           ),
           const SizedBox(height: 4),
-          const Text('Así tus vecinos te reconocen cuando publicas o ayudas.',
+          Text('Así tus vecinos te reconocen cuando publicas o ayudas.',
               style: TextStyle(color: Paleta.gris, fontSize: 15)),
           const SizedBox(height: 16),
           _OpcionFoto(icono: Icons.photo_camera, texto: 'Tomar una foto', onTap: () => Navigator.pop(c, 'camara')),

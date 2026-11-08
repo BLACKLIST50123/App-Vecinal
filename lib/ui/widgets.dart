@@ -416,7 +416,7 @@ class _TarjetaPublicacionState extends State<TarjetaPublicacion> {
 
     return Card(
       shape: critica
-          ? RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: const BorderSide(color: Paleta.rojo, width: 2))
+          ? RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: BorderSide(color: Paleta.rojo.withValues(alpha: 0.35)))
           : null,
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
@@ -435,14 +435,14 @@ class _TarjetaPublicacionState extends State<TarjetaPublicacion> {
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Wrap(spacing: 6, runSpacing: 4, children: [
-                  if (p.esColecta) const _Etiqueta('COLECTA', Paleta.violeta),
-                  if (!p.esPedido) const _Etiqueta('OFRECE', Paleta.azulInfo),
-                  if (critica) const _Etiqueta('MUY URGENTE', Paleta.rojo),
-                  if (p.esEmergencia && p.prioridad == 'alta') const _Etiqueta('URGENTE', Paleta.rojoTexto),
-                  if (p.verificada) const _Etiqueta('VERIFICADO', Paleta.verde),
-                  if (p.estado == 'no_verificado') const _Etiqueta('SIN CONFIRMAR', Paleta.gris),
-                  if (p.origen == 'qr') const _Etiqueta('LLEGÓ POR QR', Paleta.violeta),
-                  if (p.pendiente) const _Etiqueta('POR ENVIAR', Paleta.gris),
+                  if (p.esColecta) _Etiqueta('COLECTA', Paleta.violeta),
+                  if (!p.esPedido) _Etiqueta('OFRECE', Paleta.azulInfo),
+                  if (critica) _Etiqueta('MUY URGENTE', Paleta.rojo),
+                  if (p.esEmergencia && p.prioridad == 'alta') _Etiqueta('URGENTE', Paleta.rojoTexto),
+                  if (p.verificada) _Etiqueta('VERIFICADO', Paleta.verde),
+                  if (p.estado == 'no_verificado') _Etiqueta('SIN CONFIRMAR', Paleta.gris),
+                  if (p.origen == 'qr') _Etiqueta('LLEGÓ POR QR', Paleta.violeta),
+                  if (p.pendiente) _Etiqueta('POR ENVIAR', Paleta.gris),
                 ]),
                 const SizedBox(height: 2),
                 Text(p.titulo, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, height: 1.25)),
@@ -454,7 +454,7 @@ class _TarjetaPublicacionState extends State<TarjetaPublicacion> {
                     if (dist != null) formatoDistancia(dist),
                     haceCuanto(p.creado),
                   ].join(' · '),
-                  style: const TextStyle(color: Paleta.gris, fontSize: 13),
+                  style: TextStyle(color: Paleta.gris, fontSize: 13),
                 ),
                 if (p.esColecta && p.meta != null)
                   Padding(padding: const EdgeInsets.only(top: 8), child: BarraColecta(p)),
@@ -501,7 +501,7 @@ class _TarjetaPublicacionState extends State<TarjetaPublicacion> {
                             child: Text(p.esColecta ? 'Yo aporto' : (p.esPedido ? 'Quiero ayudar' : 'Me interesa')),
                           )
                   else if (p.estado == 'resuelta')
-                    Text(p.estadoTexto, style: const TextStyle(color: Paleta.verde, fontWeight: FontWeight.w700)),
+                    Text(p.estadoTexto, style: TextStyle(color: Paleta.verde, fontWeight: FontWeight.w700)),
                 ]),
               ]),
             ),
@@ -580,7 +580,7 @@ class BarraColecta extends StatelessWidget {
   Widget build(BuildContext context) {
     final meta = p.meta ?? 0;
     final faltan = (meta - p.aportes).clamp(0, meta);
-    const color = Paleta.violeta;
+    final color = Paleta.violeta;
     final texto = faltan == 0
         ? '¡Meta cumplida! ${p.aportes} de $meta'
         : '${p.aportes} de $meta donaciones · faltan $faltan';
@@ -621,14 +621,14 @@ class TarjetaColecta extends StatelessWidget {
               padding: const EdgeInsets.all(14),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Row(children: [
-                  const Icon(Icons.diversity_1, color: Paleta.violeta),
+                  Icon(Icons.diversity_1, color: Paleta.violeta),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(p.autorVisible,
                         maxLines: 1, overflow: TextOverflow.ellipsis,
                         style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.black87)),
                   ),
-                  if (p.autorRol == 'organizacion') const Icon(Icons.verified, size: 18, color: Paleta.azulInfo),
+                  if (p.autorRol == 'organizacion') Icon(Icons.verified, size: 18, color: Paleta.azulInfo),
                 ]),
                 const SizedBox(height: 6),
                 Expanded(
@@ -638,7 +638,7 @@ class TarjetaColecta extends StatelessWidget {
                 ),
                 BarraColecta(p),
                 const SizedBox(height: 6),
-                const Text('Toca para aportar →', style: TextStyle(color: Paleta.violeta, fontWeight: FontWeight.w600)),
+                Text('Toca para aportar →', style: TextStyle(color: Paleta.violeta, fontWeight: FontWeight.w600)),
               ]),
             ),
           ),

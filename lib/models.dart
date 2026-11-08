@@ -259,21 +259,28 @@ class Ayuda {
 
 /// Reconocimiento vecinal según ayudas CONFIRMADAS por quien fue ayudado.
 class Nivel {
-  const Nivel(this.nombre, this.corto, this.icono, this.color, this.minimo, this.descripcion);
+  const Nivel(this.nombre, this.corto, this.icono, this.minimo, this.descripcion);
   final String nombre, corto, descripcion;
   final IconData icono;
-  final Color color;
+  // Getter para que siga el tema claro/oscuro.
+  Color get color => switch (minimo) {
+        0 => Paleta.gris,
+        1 => Paleta.verde,
+        3 => Paleta.primarioClaro,
+        7 => Paleta.acentoOscuro,
+        _ => Paleta.ambar,
+      };
   final int minimo;
 
   static const todos = [
-    Nivel('Vecino nuevo', 'Nuevo', Icons.home_rounded, Paleta.gris, 0,
+    Nivel('Vecino nuevo', 'Nuevo', Icons.home_rounded, 0,
         'Tu primera ayuda confirmada te da tu primer reconocimiento.'),
-    Nivel('Buen vecino', 'Buen vecino', Icons.eco_rounded, Paleta.verde, 1, 'Ya ayudaste a alguien del barrio.'),
-    Nivel('Vecino solidario', 'Solidario', Icons.handshake_rounded, Paleta.primarioClaro, 3,
+    Nivel('Buen vecino', 'Buen vecino', Icons.eco_rounded, 1, 'Ya ayudaste a alguien del barrio.'),
+    Nivel('Vecino solidario', 'Solidario', Icons.handshake_rounded, 3,
         'Tus vecinos saben que pueden contar contigo.'),
-    Nivel('Corazón del barrio', 'Corazón', Icons.favorite_rounded, Paleta.acentoOscuro, 7,
+    Nivel('Corazón del barrio', 'Corazón', Icons.favorite_rounded, 7,
         'Eres parte de lo que mantiene unido al barrio.'),
-    Nivel('Guardián del barrio', 'Guardián', Icons.verified_user_rounded, Paleta.ambar, 15,
+    Nivel('Guardián del barrio', 'Guardián', Icons.verified_user_rounded, 15,
         'Un ejemplo para toda la comunidad.'),
   ];
 

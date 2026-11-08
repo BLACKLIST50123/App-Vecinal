@@ -423,7 +423,7 @@ class _AuthScreenState extends State<AuthScreen> {
                 child: Text(titulo, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
               ),
               const SizedBox(height: 2),
-              const Text('Usamos tu GPS una sola vez. No mostramos tu ubicación exacta a nadie.',
+              Text('Usamos tu GPS una sola vez. No mostramos tu ubicación exacta a nadie.',
                   style: TextStyle(color: Paleta.gris, fontSize: 13, height: 1.3)),
             ]),
           ),
@@ -435,7 +435,7 @@ class _AuthScreenState extends State<AuthScreen> {
       Row(children: [
         const Expanded(child: Text('Tu sector', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
         if (_sectorSugerido && _sector != null)
-          const Row(children: [
+          Row(children: [
             Icon(Icons.auto_awesome, size: 16, color: Paleta.acentoOscuro),
             SizedBox(width: 4),
             Text('Sugerido por tu GPS', style: TextStyle(color: Paleta.acentoOscuro, fontSize: 13, fontWeight: FontWeight.w600)),
@@ -519,7 +519,7 @@ class _IndicadorPasos extends StatelessWidget {
       excludeSemantics: true,
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('PASO ${paso + 1} DE 2 · ${_nombres[paso].toUpperCase()}',
-            style: const TextStyle(color: Paleta.acentoOscuro, fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 0.6)),
+            style: TextStyle(color: Paleta.acentoOscuro, fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 0.6)),
         const SizedBox(height: 8),
         Row(children: [
           for (var i = 0; i < 2; i++) ...[
@@ -552,7 +552,7 @@ class _TituloPaso extends StatelessWidget {
           child: Text(titulo, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, letterSpacing: -0.4, height: 1.15)),
         ),
         const SizedBox(height: 6),
-        Text(texto, style: const TextStyle(color: Paleta.gris, fontSize: 15, height: 1.35)),
+        Text(texto, style: TextStyle(color: Paleta.gris, fontSize: 15, height: 1.35)),
       ]);
 }
 
@@ -566,12 +566,12 @@ class _EnlaceCambio extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Row(children: [
-          const Expanded(child: Divider(color: Paleta.linea)),
+          Expanded(child: Divider(color: Paleta.linea)),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Text(pregunta, style: const TextStyle(color: Paleta.gris, fontSize: 15)),
+            child: Text(pregunta, style: TextStyle(color: Paleta.gris, fontSize: 15)),
           ),
-          const Expanded(child: Divider(color: Paleta.linea)),
+          Expanded(child: Divider(color: Paleta.linea)),
         ]),
         const SizedBox(height: 12),
         SizedBox(
@@ -580,8 +580,8 @@ class _EnlaceCambio extends StatelessWidget {
               ? OutlinedButton.icon(
                   onPressed: onTap,
                   style: OutlinedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    side: const BorderSide(color: Paleta.primario, width: 1.5),
+                    backgroundColor: Paleta.superficie,
+                    side: BorderSide(color: Paleta.primario, width: 1.5),
                   ),
                   icon: const Icon(Icons.person_add_alt_1),
                   label: Text(accion, style: const TextStyle(fontSize: 17)),

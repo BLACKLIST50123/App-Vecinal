@@ -277,7 +277,7 @@ class _AvisoEmergenciaNuevaState extends State<AvisoEmergenciaNueva> {
             ),
             child: Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.campaign_rounded,
                   color: Paleta.rojo,
                   size: 22,
@@ -289,17 +289,17 @@ class _AvisoEmergenciaNuevaState extends State<AvisoEmergenciaNueva> {
                     children: [
                       Text(
                         'Emergencia nueva ${formatoDistancia(km)}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w900,
-                          color: Color(0xFFB71C1C),
+                          color: Paleta.rojoTexto,
                         ),
                       ),
                       Text(
                         p.titulo,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
                           color: Paleta.tinta,
                         ),
@@ -307,7 +307,7 @@ class _AvisoEmergenciaNuevaState extends State<AvisoEmergenciaNueva> {
                     ],
                   ),
                 ),
-                const Text(
+                Text(
                   'Ver',
                   style: TextStyle(
                     fontWeight: FontWeight.w800,
@@ -318,7 +318,7 @@ class _AvisoEmergenciaNuevaState extends State<AvisoEmergenciaNueva> {
                   tooltip: 'Cerrar aviso',
                   visualDensity: VisualDensity.compact,
                   onPressed: _cerrar,
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.close_rounded,
                     size: 20,
                     color: Paleta.gris,

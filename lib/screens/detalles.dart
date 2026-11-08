@@ -189,7 +189,7 @@ class _ServicioDetalleState extends State<ServicioDetalle> {
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: Paleta.acentoOscuro.withValues(alpha: 0.3)),
             ),
-            child: const Row(
+            child: Row(
               children: [
                 Icon(Icons.info_outline, color: Paleta.acentoOscuro),
                 SizedBox(width: 10),
@@ -248,7 +248,7 @@ class _ServicioDetalleState extends State<ServicioDetalle> {
             return Column(children: [
               if (verificados > 0)
                 ListTile(
-                  leading: const Icon(Icons.verified_user, color: Paleta.verde, size: 32),
+                  leading: Icon(Icons.verified_user, color: Paleta.verde, size: 32),
                   title: Text('$verificados de ${lista.length} son vecinos verificados de ${Zona.nombre}',
                       style: const TextStyle(fontWeight: FontWeight.bold)),
                   subtitle: const Text('Confirmaron con GPS que viven en la zona'),
@@ -363,7 +363,7 @@ class _ModalSolicitarPedidoState extends State<ModalSolicitarPedido> {
           final wsp = await showDialog<bool>(
             context: context,
             builder: (c) => AlertDialog(
-              icon: const Icon(Icons.chat, color: Paleta.whatsapp, size: 36),
+              icon: Icon(Icons.chat, color: Paleta.whatsapp, size: 36),
               title: const Text('¿Avisarle también por WhatsApp?'),
               content: const Text(
                   'Le hemos guardado el pedido en la app. ¿Deseas abrir WhatsApp para escribirle de una vez?'),
@@ -414,7 +414,7 @@ class _ModalSolicitarPedidoState extends State<ModalSolicitarPedido> {
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(color: Paleta.acentoSuave, borderRadius: BorderRadius.circular(14)),
-                    child: const Icon(Icons.send_outlined, color: Paleta.acentoOscuro),
+                    child: Icon(Icons.send_outlined, color: Paleta.acentoOscuro),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -426,7 +426,7 @@ class _ModalSolicitarPedidoState extends State<ModalSolicitarPedido> {
                         Text(widget.servicio.titulo,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(color: Paleta.gris, fontSize: 13)),
+                            style: TextStyle(color: Paleta.gris, fontSize: 13)),
                       ],
                     ),
                   ),
@@ -545,7 +545,7 @@ class _PublicacionDetalleState extends State<PublicacionDetalle> {
           context: context,
           builder: (c) => StatefulBuilder(
             builder: (c, setD) => AlertDialog(
-              icon: const Icon(Icons.favorite, color: Paleta.rosa, size: 40),
+              icon: Icon(Icons.favorite, color: Paleta.rosa, size: 40),
               title: Text(p.esColecta ? '¿Quiénes aportaron?' : '¿Quién te ayudó?'),
               content: SingleChildScrollView(
                 child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -647,7 +647,7 @@ class _PublicacionDetalleState extends State<PublicacionDetalle> {
     return showDialog<void>(
       context: context,
       builder: (c) => AlertDialog(
-        icon: const Icon(Icons.favorite, color: Paleta.rosa, size: 44),
+        icon: Icon(Icons.favorite, color: Paleta.rosa, size: 44),
         title: Text(titulo),
         content: Text(texto, style: const TextStyle(fontSize: 16)),
         actions: [
@@ -787,7 +787,7 @@ class _PublicacionDetalleState extends State<PublicacionDetalle> {
                     ),
                   ),
                 if (yaRespondi)
-                  const Padding(
+                  Padding(
                     padding: EdgeInsets.symmetric(horizontal: 16),
                     child: Row(children: [
                       Icon(Icons.check_circle_rounded, size: 18, color: Paleta.verde),

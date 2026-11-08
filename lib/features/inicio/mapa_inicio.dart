@@ -17,15 +17,22 @@ import '../emergencia/pedidos_emergencia.dart';
 
 /// Tipos de punto del mapa del Inicio.
 enum TipoPunto {
-  servicio('Servicios', 'Servicio', Paleta.ambar, Icons.handyman_rounded),
-  producto('Productos', 'Producto', Paleta.azulInfo, Icons.shopping_basket_rounded),
-  peticion('Peticiones', 'Petición de ayuda', Paleta.violeta, Icons.front_hand_rounded),
-  emergencia('Emergencias', 'Emergencia', Paleta.rojo, Icons.sos_rounded),
-  grupo('Grupos de apoyo', 'Grupo de apoyo', Color(0xFF0E7490), Icons.health_and_safety_rounded);
+  servicio('Servicios', 'Servicio', Icons.handyman_rounded),
+  producto('Productos', 'Producto', Icons.shopping_basket_rounded),
+  peticion('Peticiones', 'Petición de ayuda', Icons.front_hand_rounded),
+  emergencia('Emergencias', 'Emergencia', Icons.sos_rounded),
+  grupo('Grupos de apoyo', 'Grupo de apoyo', Icons.health_and_safety_rounded);
 
-  const TipoPunto(this.plural, this.singular, this.color, this.icono);
+  const TipoPunto(this.plural, this.singular, this.icono);
   final String plural, singular;
-  final Color color;
+  // Getter (no campo) para que siga el tema claro/oscuro.
+  Color get color => switch (this) {
+        servicio => Paleta.ambar,
+        producto => Paleta.azulInfo,
+        peticion => Paleta.violeta,
+        emergencia => Paleta.rojo,
+        grupo => const Color(0xFF0E7490),
+      };
   final IconData icono;
 }
 
@@ -194,22 +201,22 @@ class _HojaPuntoDeAyuda extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(g.titulo, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Paleta.tinta)),
+                Text(g.titulo, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Paleta.tinta)),
                 Text([cat.nombre, if (km != null) formatoDistancia(km)].join(' · '),
-                    style: const TextStyle(fontSize: 14, color: Paleta.gris)),
+                    style: TextStyle(fontSize: 14, color: Paleta.gris)),
               ]),
             ),
           ]),
           if (g.descripcion != null && g.descripcion!.trim().isNotEmpty) ...[
             const SizedBox(height: 10),
-            Text(g.descripcion!, style: const TextStyle(fontSize: 14, color: Paleta.tinta)),
+            Text(g.descripcion!, style: TextStyle(fontSize: 14, color: Paleta.tinta)),
           ],
           if (g.horario != null && g.horario!.trim().isNotEmpty) ...[
             const SizedBox(height: 6),
             Row(children: [
-              const Icon(Icons.schedule_rounded, size: 16, color: Paleta.gris),
+              Icon(Icons.schedule_rounded, size: 16, color: Paleta.gris),
               const SizedBox(width: 4),
-              Expanded(child: Text(g.horario!, style: const TextStyle(fontSize: 13, color: Paleta.gris))),
+              Expanded(child: Text(g.horario!, style: TextStyle(fontSize: 13, color: Paleta.gris))),
             ]),
           ],
           const SizedBox(height: 16),
@@ -371,7 +378,7 @@ class _MapaYCercanosState extends State<MapaYCercanos> {
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               // En emergencia el título ya está en la cabecera: solo la explicación.
               if (!widget.emergencia) ...[
-                const Text('Explora tu barrio',
+                Text('Explora tu barrio',
                     style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: Paleta.tinta)),
                 const SizedBox(height: 2),
               ],
@@ -379,7 +386,7 @@ class _MapaYCercanosState extends State<MapaYCercanos> {
                   widget.emergencia
                       ? 'En rojo, vecinos que piden ayuda ahora. En celeste, puntos de ayuda (albergues, postas). Toca uno para actuar.'
                       : 'Servicios, productos, vecinos que piden ayuda y emergencias cerca de ti. Toca un punto para ver más.',
-                  style: const TextStyle(fontSize: 14, color: Paleta.gris, height: 1.3)),
+                  style: TextStyle(fontSize: 14, color: Paleta.gris, height: 1.3)),
             ]),
           ),
           // ── Filtros
@@ -533,18 +540,18 @@ class _MapaYCercanosState extends State<MapaYCercanos> {
                   bottom: 22,
                   child: Container(
                     padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
+                    decoration: BoxDecoration(color: Paleta.superficie, borderRadius: BorderRadius.circular(14)),
                     child: Text(
                       _filtro == null ? (widget.emergencia ? 'Aún no hay pedidos ni puntos de ayuda en esta emergencia.' : 'Todavía no hay nada publicado en el mapa.') : (widget.emergencia ? 'Nada por ahora en esta emergencia.' : 'No hay ${_filtro!.plural.toLowerCase()} por ahora.'),
                       textAlign: TextAlign.center,
-                      style: const TextStyle(color: Paleta.gris),
+                      style: TextStyle(color: Paleta.gris),
                     ),
                   ),
                 ),
             ]),
           ),
 
-          const Padding(
+          Padding(
             padding: EdgeInsets.fromLTRB(20, 8, 20, 0),
             child: Row(children: [
               Icon(Icons.pinch_outlined, size: 15, color: Paleta.gris),
@@ -569,7 +576,7 @@ class _MapaYCercanosState extends State<MapaYCercanos> {
                 : null,
           ),
           if (cercanos.isEmpty)
-            const Padding(
+            Padding(
               padding: EdgeInsets.symmetric(horizontal: 20),
               child: Text('No hay nada cerca con este filtro.', style: TextStyle(color: Paleta.gris)),
             )
@@ -593,12 +600,12 @@ class _MapaYCercanosState extends State<MapaYCercanos> {
                           Text(p.titulo,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: Paleta.tinta)),
+                              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: Paleta.tinta)),
                           Text(['${nombreTipo(p.tipo, emergencia: widget.emergencia)} · ${formatoDistancia(distanciaKm(ref, p.punto))}', if (p.publicacion?.sector != null) p.publicacion!.sector!].join(' · '),
-                              style: const TextStyle(fontSize: 13, color: Paleta.gris)),
+                              style: TextStyle(fontSize: 13, color: Paleta.gris)),
                         ]),
                       ),
-                      const Icon(Icons.chevron_right_rounded, color: Paleta.grisClaro),
+                      Icon(Icons.chevron_right_rounded, color: Paleta.grisClaro),
                     ]),
                   ),
                 ),
@@ -634,7 +641,7 @@ class _Filtro extends StatelessWidget {
               duration: const Duration(milliseconds: 160),
               padding: const EdgeInsets.symmetric(horizontal: 12),
               decoration: BoxDecoration(
-                color: elegido ? color : Colors.white,
+                color: elegido ? color : Paleta.superficie,
                 borderRadius: BorderRadius.circular(999),
                 border: Border.all(color: elegido ? color : Paleta.linea),
               ),
@@ -693,7 +700,7 @@ class _BotonMapa extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Material(
-        color: Colors.white,
+        color: Paleta.superficie,
         elevation: 2,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: IconButton(tooltip: tooltip, onPressed: onTap, icon: Icon(icono, color: Paleta.primario)),
@@ -713,7 +720,7 @@ class _TarjetaPunto extends StatelessWidget {
         ? (p.servicio!.vistosBuenos > 0 ? ' · ${p.servicio!.vistosBuenos} Vistos Buenos' : '')
         : (p.publicacion!.ayudantes > 0 ? ' · ${p.publicacion!.ayudantes} apoyan' : '');
     return Material(
-      color: Colors.white,
+      color: Paleta.superficie,
       elevation: 6,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
@@ -734,9 +741,9 @@ class _TarjetaPunto extends StatelessWidget {
                 Text(p.titulo,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Paleta.tinta)),
+                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Paleta.tinta)),
                 Text('${nombreTipo(p.tipo, emergencia: emergencia)} · ${formatoDistancia(km)}$extra',
-                    maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: Paleta.gris)),
+                    maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, color: Paleta.gris)),
               ]),
             ),
             FilledButton(onPressed: () => abrirPunto(context, p), child: const Text('Ver')),

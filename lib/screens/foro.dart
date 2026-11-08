@@ -89,7 +89,7 @@ class _ForoScreenState extends State<ForoScreen> {
   Widget build(BuildContext context) {
     final st = context.watch<AppState>();
 
-    const opcionesTipo = [
+    final opcionesTipo = [
       ('todos', 'Todos', Icons.grid_view_rounded, Paleta.primario),
       ('servicio', 'Consultas de oficios', Icons.handyman_rounded, Paleta.azulInfo),
       ('dialogo', 'Comunidad', Icons.forum_rounded, Paleta.verde),
@@ -147,8 +147,8 @@ class _ForoScreenState extends State<ForoScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
                 child: Container(
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Paleta.tinta, Paleta.primarioClaro],
+                    gradient: LinearGradient(
+                      colors: const [Color(0xFF1E293B), Color(0xFF334155)], // banda marino en ambos temas
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -180,14 +180,14 @@ class _ForoScreenState extends State<ForoScreen> {
                                   color: Paleta.acento.withValues(alpha: 0.4),
                                 ),
                               ),
-                              child: const Icon(
+                              child: Icon(
                                 Icons.forum_rounded,
                                 color: Paleta.acento,
                                 size: 24,
                               ),
                             ),
                             const SizedBox(width: 13),
-                            const Expanded(
+                            Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -258,7 +258,7 @@ class _ForoScreenState extends State<ForoScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 2, 16, 10),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Paleta.superficie,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(color: Paleta.linea),
                     boxShadow: const [
@@ -275,7 +275,7 @@ class _ForoScreenState extends State<ForoScreen> {
                     onChanged: (v) =>
                         setState(() => _busqueda = v.trim().toLowerCase()),
                     style: const TextStyle(fontSize: 15),
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       hintText: 'Buscar consultas o servicios...',
                       hintStyle: TextStyle(
                         color: Paleta.grisClaro,
@@ -325,7 +325,7 @@ class _ForoScreenState extends State<ForoScreen> {
                           ),
                           selected: _filtroTipo == valor,
                           selectedColor: colorActivo,
-                          backgroundColor: Colors.white,
+                          backgroundColor: Paleta.superficie,
                           side: BorderSide(
                             color: _filtroTipo == valor
                                 ? colorActivo
@@ -348,7 +348,7 @@ class _ForoScreenState extends State<ForoScreen> {
                     Expanded(
                       child: Text(
                         '${temasFiltrados.length} ${temasFiltrados.length == 1 ? 'publicación' : 'publicaciones'}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
                           color: Paleta.tinta,
@@ -374,14 +374,14 @@ class _ForoScreenState extends State<ForoScreen> {
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: Paleta.superficie,
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(color: Paleta.linea),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.location_on_outlined,
                               size: 14,
                               color: Paleta.gris,
@@ -391,13 +391,13 @@ class _ForoScreenState extends State<ForoScreen> {
                               _filtroSector == 'todos'
                                   ? 'Sector: Todos'
                                   : _filtroSector,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
                                 color: Paleta.tinta,
                               ),
                             ),
-                            const Icon(
+                            Icon(
                               Icons.arrow_drop_down,
                               size: 18,
                               color: Paleta.gris,
@@ -427,14 +427,14 @@ class _ForoScreenState extends State<ForoScreen> {
                             color: Paleta.primarioSuave,
                             borderRadius: BorderRadius.circular(20),
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.forum_outlined,
                             size: 30,
                             color: Paleta.primario,
                           ),
                         ),
                         const SizedBox(height: 16),
-                        const Text(
+                        Text(
                           'Aún no hay publicaciones en el foro',
                           style: TextStyle(
                             fontSize: 17,
@@ -443,7 +443,7 @@ class _ForoScreenState extends State<ForoScreen> {
                           ),
                         ),
                         const SizedBox(height: 6),
-                        const Text(
+                        Text(
                           'Sé el primer vecino en consultar por un servicio, pedir una recomendación o iniciar una conversación en el barrio.',
                           textAlign: TextAlign.center,
                           style: TextStyle(
@@ -488,14 +488,14 @@ class _ForoScreenState extends State<ForoScreen> {
                             color: Paleta.primarioSuave,
                             borderRadius: BorderRadius.circular(18),
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.search_off_outlined,
                             size: 28,
                             color: Paleta.primario,
                           ),
                         ),
                         const SizedBox(height: 14),
-                        const Text(
+                        Text(
                           'No se encontraron publicaciones',
                           style: TextStyle(
                             fontSize: 16,
@@ -504,7 +504,7 @@ class _ForoScreenState extends State<ForoScreen> {
                           ),
                         ),
                         const SizedBox(height: 6),
-                        const Text(
+                        Text(
                           'Prueba cambiando el sector o la categoría de búsqueda.',
                           textAlign: TextAlign.center,
                           style: TextStyle(fontSize: 13, color: Paleta.gris),

@@ -18,8 +18,8 @@ class MapaApoyoScreen extends StatelessWidget {
   final List<Publicacion> peticiones; // ya filtradas y ordenadas por cercanía
   final String? categoria;
 
-  static const _naranja = Paleta.ambar;
-  static const _rojo = Paleta.rojo;
+  static Color get _naranja => Paleta.ambar;
+  static Color get _rojo => Paleta.rojo;
 
   void _ver(BuildContext context, Publicacion p) => showModalBottomSheet<void>(
         context: context,
@@ -125,7 +125,7 @@ class MapaApoyoScreen extends StatelessWidget {
                     child: Text('No hay peticiones con ubicación en esta categoría.'),
                   )
                 : ListTile(
-                    leading: const CircleAvatar(
+                    leading: CircleAvatar(
                       backgroundColor: Paleta.oroFondo,
                       child: Icon(Icons.star, color: Paleta.oro),
                     ),

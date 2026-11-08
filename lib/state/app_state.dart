@@ -15,6 +15,7 @@ import '../services/notificaciones.dart';
 import '../services/push.dart';
 import '../services/vigia.dart';
 import '../services/ubicacion.dart';
+import '../ui/tema.dart';
 import '../util.dart';
 
 final mensajero = GlobalKey<ScaffoldMessengerState>();
@@ -40,6 +41,8 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     escala = prefs.getDouble('escala') ?? 1.0;
     altoContraste = prefs.getBool('alto_contraste') ?? false;
+    temaOscuro = prefs.getBool('tema_oscuro') ?? false;
+    Paleta.oscuro = temaOscuro && !altoContraste;
     voz = prefs.getBool('voz') ?? true;
     tutorialVisto = prefs.getBool('tutorial_visto') ?? false;
     final b = prefs.getString('brigadista');
@@ -66,6 +69,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
 
   late double escala;
   late bool altoContraste;
+  late bool temaOscuro;
   late bool voz;
   late bool tutorialVisto;
 
@@ -475,7 +479,26 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   void setAltoContraste(bool v) {
     altoContraste = v;
     prefs.setBool('alto_contraste', v);
+    _aplicarTema();
+  }
+
+  void setTemaOscuro(bool v) {
+    temaOscuro = v;
+    prefs.setBool('tema_oscuro', v);
+    _aplicarTema();
+  }
+
+  /// El alto contraste siempre es claro. Como muchos widgets leen [Paleta]
+  /// directo (no el tema), se reconstruye todo el árbol sin perder la pantalla.
+  void _aplicarTema() {
+    Paleta.oscuro = temaOscuro && !altoContraste;
     notifyListeners();
+    void marcar(Element e) {
+      e.markNeedsBuild();
+      e.visitChildren(marcar);
+    }
+
+    WidgetsBinding.instance.rootElement?.visitChildren(marcar);
   }
 
   // ------------------------------------------------------- notificaciones

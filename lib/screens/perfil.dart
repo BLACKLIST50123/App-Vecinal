@@ -192,6 +192,12 @@ class PerfilScreen extends StatelessWidget {
 
       const SizedBox(height: 12),
       ListaAjustes(filas: [
+        FilaAjuste(
+          icono: st.temaOscuro ? Icons.dark_mode_outlined : Icons.light_mode_outlined,
+          texto: 'Modo oscuro',
+          valor: st.altoContraste ? 'Usa alto contraste' : (st.temaOscuro ? 'Oscuro' : 'Claro'),
+          final_: Switch(value: st.temaOscuro, onChanged: st.altoContraste ? null : st.setTemaOscuro),
+        ),
         // Avisos de emergencia y del barrio (con puntito si faltan activar).
         FilaAjuste(
           icono: Icons.notifications_outlined,
@@ -200,7 +206,7 @@ class PerfilScreen extends StatelessWidget {
           onTap: () => _ir(context, const NotificacionesScreen()),
           final_: Row(mainAxisSize: MainAxisSize.min, children: [
             if (st.faltaActivarAvisos) const Padding(padding: EdgeInsets.only(left: 8), child: PuntoAviso()),
-            const Icon(Icons.chevron_right, color: Color(0xFF94A3B8)),
+            Icon(Icons.chevron_right, color: Paleta.grisClaro),
           ]),
         ),
         FilaAjuste(
@@ -220,15 +226,15 @@ class PerfilScreen extends StatelessWidget {
               onPressed: () => _confirmarCierre(context, st),
               style: OutlinedButton.styleFrom(
                 foregroundColor: Paleta.rojo,
-                backgroundColor: Colors.white,
-                side: const BorderSide(color: Paleta.rojo, width: 1.5),
+                backgroundColor: Paleta.superficie,
+                side: BorderSide(color: Paleta.rojo, width: 1.5),
               ),
               icon: const Icon(Icons.logout),
               label: const Text('Cerrar sesión', style: TextStyle(fontSize: 17)),
             ),
           ),
         ),
-      const Padding(
+      Padding(
         padding: EdgeInsets.all(20),
         child: Text('Conecta Vecino · Equipo AlphaCoders · Hackathon UTP 2026',
             textAlign: TextAlign.center, style: TextStyle(color: Paleta.gris)),
@@ -254,7 +260,7 @@ class _CabeceraPerfil extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 4, 16, 0),
       padding: const EdgeInsets.fromLTRB(16, 22, 16, 18),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), border: Border.all(color: Paleta.linea)),
+      decoration: BoxDecoration(color: Paleta.superficie, borderRadius: BorderRadius.circular(24), border: Border.all(color: Paleta.linea)),
       child: Column(children: [
         Semantics(
           button: true,
@@ -288,7 +294,7 @@ class _CabeceraPerfil extends StatelessWidget {
         Text(st.nombre,
             textAlign: TextAlign.center, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, letterSpacing: -0.3)),
         const SizedBox(height: 2),
-        Text(rolTexto, textAlign: TextAlign.center, style: const TextStyle(color: Paleta.gris, fontSize: 16)),
+        Text(rolTexto, textAlign: TextAlign.center, style: TextStyle(color: Paleta.gris, fontSize: 16)),
         const SizedBox(height: 10),
         Wrap(alignment: WrapAlignment.center, spacing: 8, runSpacing: 8, children: [
           _Distintivo(
@@ -302,7 +308,7 @@ class _CabeceraPerfil extends StatelessWidget {
               texto: 'Brigadista · ${st.brigadista!.especialidadNombre}',
               color: Paleta.rojo,
             ),
-          if (st.esPrestador) const _Distintivo(icono: Icons.handyman, texto: 'Ofrece servicios', color: Paleta.acentoOscuro),
+          if (st.esPrestador) _Distintivo(icono: Icons.handyman, texto: 'Ofrece servicios', color: Paleta.acentoOscuro),
         ]),
         if (sinFoto) ...[
           const SizedBox(height: 14),
@@ -352,8 +358,8 @@ class _AccesoGrande extends StatelessWidget {
         label: texto,
         excludeSemantics: true,
         child: Material(
-          color: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: const BorderSide(color: Paleta.linea)),
+          color: Paleta.superficie,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide(color: Paleta.linea)),
           child: InkWell(
             borderRadius: BorderRadius.circular(20),
             onTap: onTap,
@@ -386,14 +392,14 @@ class _TarjetaInvitado extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         margin: const EdgeInsets.fromLTRB(16, 4, 16, 0),
         padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), border: Border.all(color: Paleta.linea)),
+        decoration: BoxDecoration(color: Paleta.superficie, borderRadius: BorderRadius.circular(24), border: Border.all(color: Paleta.linea)),
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          const Center(child: Icon(Icons.account_circle, size: 84, color: Paleta.primarioSuave)),
+          Center(child: Icon(Icons.account_circle, size: 84, color: Paleta.primarioSuave)),
           const SizedBox(height: 8),
           const Text('Estás como invitado',
               textAlign: TextAlign.center, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
           const SizedBox(height: 6),
-          const Text('Crea tu cuenta gratis para publicar, ayudar, poner tu foto y ganar reconocimiento.',
+          Text('Crea tu cuenta gratis para publicar, ayudar, poner tu foto y ganar reconocimiento.',
               textAlign: TextAlign.center, style: TextStyle(color: Paleta.gris, fontSize: 16, height: 1.35)),
           const SizedBox(height: 16),
           SizedBox(
@@ -461,7 +467,7 @@ class VecinosDestacadosScreen extends StatelessWidget {
           cargar: (st) => st.repo.vecinosDestacados(),
           builder: (c, destacados) => ListView(padding: const EdgeInsets.only(top: 8, bottom: 120), children: [
             if (destacados.isEmpty)
-              const Padding(
+              Padding(
                 padding: EdgeInsets.all(24),
                 child: Text('Todavía no hay ayudas confirmadas en el barrio.',
                     textAlign: TextAlign.center, style: TextStyle(color: Paleta.gris, fontSize: 16)),
@@ -492,14 +498,14 @@ class AccesibilidadScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Accesibilidad')),
       body: ListView(padding: const EdgeInsets.only(bottom: 32), children: [
-        const Padding(
+        Padding(
           padding: EdgeInsets.fromLTRB(20, 4, 20, 12),
           child: Text('Ajusta la app para leerla y usarla con comodidad.', style: TextStyle(color: Paleta.gris, fontSize: 15)),
         ),
         Container(
           margin: const EdgeInsets.symmetric(horizontal: 16),
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(19), border: Border.all(color: Paleta.linea)),
+          decoration: BoxDecoration(color: Paleta.superficie, borderRadius: BorderRadius.circular(19), border: Border.all(color: Paleta.linea)),
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             const Text('Tamaño de letra', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
             const SizedBox(height: 10),
@@ -521,6 +527,11 @@ class AccesibilidadScreen extends StatelessWidget {
             icono: Icons.contrast,
             texto: 'Alto contraste',
             final_: Switch(value: st.altoContraste, onChanged: st.setAltoContraste),
+          ),
+          FilaAjuste(
+            icono: Icons.dark_mode_outlined,
+            texto: 'Modo oscuro',
+            final_: Switch(value: st.temaOscuro, onChanged: st.altoContraste ? null : st.setTemaOscuro),
           ),
           FilaAjuste(
             icono: Icons.record_voice_over_outlined,
@@ -547,7 +558,7 @@ class ConexionScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Conexión y mensajes QR')),
       body: ListView(padding: const EdgeInsets.only(bottom: 32), children: [
-        const Padding(
+        Padding(
           padding: EdgeInsets.fromLTRB(20, 4, 20, 12),
           child: Text('Sin internet, lo que publiques se guarda y puedes compartirlo por QR para que otro vecino lo envíe.',
               style: TextStyle(color: Paleta.gris, fontSize: 15)),
@@ -581,7 +592,7 @@ class JuntaVecinalScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Scaffold(
         appBar: AppBar(title: const Text('Junta vecinal')),
-        body: ListView(padding: const EdgeInsets.only(bottom: 32), children: const [
+        body: ListView(padding: const EdgeInsets.only(bottom: 32), children: [
           Padding(
             padding: EdgeInsets.fromLTRB(20, 4, 20, 8),
             child: Text('Activa el modo emergencia cuando el barrio lo necesite. Todos los vecinos lo verán al instante.',
@@ -702,13 +713,15 @@ class HistorialScreen extends StatelessWidget {
               ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                child: Row(children: [
-                  _Dato(Icons.volunteer_activism, 'Ayudas', respondi.length),
-                  const SizedBox(width: 8),
-                  _Dato(Icons.favorite, 'Gracias', gracias),
-                  const SizedBox(width: 8),
-                  _Dato(Icons.thumb_up, 'Vistos Buenos', vbs),
-                ]),
+                child: IntrinsicHeight(
+                  child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                    _Dato(Icons.volunteer_activism, 'Ayudas', respondi.length),
+                    const SizedBox(width: 8),
+                    _Dato(Icons.favorite, 'Gracias', gracias),
+                    const SizedBox(width: 8),
+                    _Dato(Icons.thumb_up, 'Vistos Buenos', vbs),
+                  ]),
+                ),
               ),
               if (emergencias > 0 || cuidado > 0 || colectas > 0) ...[
                 const TituloSeccion('Tus distintivos'),
@@ -736,7 +749,7 @@ class HistorialScreen extends StatelessWidget {
                     trailing: e.publicacion == null
                         ? null
                         : e.publicacion!.estado == 'resuelta'
-                            ? const Icon(Icons.check_circle, color: Paleta.verde)
+                            ? Icon(Icons.check_circle, color: Paleta.verde)
                             : const Icon(Icons.chevron_right),
                     onTap: e.publicacion == null
                         ? null
@@ -766,7 +779,7 @@ class _Dato extends StatelessWidget {
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Icon(icono),
             Text('$valor', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900)),
-            Text(texto, style: const TextStyle(fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
+            Text(texto, style: const TextStyle(fontWeight: FontWeight.w600), maxLines: 2, overflow: TextOverflow.ellipsis),
           ]),
         ),
       );
@@ -891,7 +904,7 @@ class _RecordatorioAvisos extends StatelessWidget {
             padding: const EdgeInsets.all(14),
             child: Row(children: [
               Stack(clipBehavior: Clip.none, children: [
-                const Icon(Icons.notifications_active_outlined, color: Paleta.rojo, size: 30),
+                Icon(Icons.notifications_active_outlined, color: Paleta.rojo, size: 30),
                 const Positioned(right: -2, top: -2, child: PuntoAviso()),
               ]),
               const SizedBox(width: 12),
@@ -899,14 +912,14 @@ class _RecordatorioAvisos extends StatelessWidget {
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(
                     bloqueadas ? 'Tu celular bloquea los avisos' : 'Activa los avisos de emergencia',
-                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Paleta.rojoOscuro),
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Paleta.rojoOscuro),
                   ),
                   const SizedBox(height: 2),
-                  const Text('Entérate al instante de sismos, inundaciones y vecinos que piden ayuda.',
+                  Text('Entérate al instante de sismos, inundaciones y vecinos que piden ayuda.',
                       style: TextStyle(fontSize: 13, color: Paleta.tinta, height: 1.3)),
                 ]),
               ),
-              const Icon(Icons.chevron_right, color: Paleta.rojo),
+              Icon(Icons.chevron_right, color: Paleta.rojo),
             ]),
           ),
         ),

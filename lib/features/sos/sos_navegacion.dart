@@ -69,12 +69,19 @@ final observadorSos = ObservadorSos();
 
 void abrirSos() {
   if (sosAbierto.value) return;
-  navegador.currentState?.push(
-    PageRouteBuilder<void>(
-      opaque: true,
-      transitionDuration: const Duration(milliseconds: 180),
-      pageBuilder: (_, _, _) => const SosScreen(),
-      transitionsBuilder: (_, animacion, _, hijo) => FadeTransition(opacity: animacion, child: hijo),
-    ),
-  );
+  final nav = navegador.currentState;
+  if (nav == null) return;
+  // Se marca aquí (no en initState/dispose de la pantalla) para no notificar
+  // mientras Flutter construye o desmonta widgets.
+  sosAbierto.value = true;
+  nav
+      .push(
+        PageRouteBuilder<void>(
+          opaque: true,
+          transitionDuration: const Duration(milliseconds: 180),
+          pageBuilder: (_, _, _) => const SosScreen(),
+          transitionsBuilder: (_, animacion, _, hijo) => FadeTransition(opacity: animacion, child: hijo),
+        ),
+      )
+      .whenComplete(() => sosAbierto.value = false);
 }

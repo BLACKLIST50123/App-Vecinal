@@ -180,11 +180,11 @@ class _FavoresScreenState extends State<FavoresScreen> {
 
           return ListView(padding: const EdgeInsets.only(bottom: 110), children: [
             // 0 ─ Alertas SOS (día a día; en emergencia ya están en el tablero)
-            if (!e) const FranjaAlertasSos(maximo: 3),
+            if (!e) const FranjaAlertasSos(),
             // 1 ─ Banner (día a día). En emergencia la lista va directo: pedir
             // ayuda y compartir ya están en la pestaña Emergencia.
             if (!e)
-              const BannerDegradado(
+              BannerDegradado(
                 icono: Icons.favorite_border,
                 titulo: 'Una pequeña ayuda cambia el día',
                 subtitulo: 'Entre vecinos, sin dinero de por medio.',
@@ -192,7 +192,7 @@ class _FavoresScreenState extends State<FavoresScreen> {
                 colorIcono: Colors.white,
               ),
             if (e)
-              const Padding(
+              Padding(
                 padding: EdgeInsets.fromLTRB(20, 10, 20, 0),
                 child: Text('Los más urgentes aparecen primero. Toca uno para ayudar o ver cómo contactar.',
                     style: TextStyle(fontSize: 14, color: Paleta.gris)),

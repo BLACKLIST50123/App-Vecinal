@@ -41,7 +41,7 @@ class _MisAportesScreenState extends State<MisAportesScreen> {
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Paleta.superficie,
               borderRadius: BorderRadius.circular(24),
               border: Border.all(color: Paleta.linea),
             ),
@@ -56,7 +56,7 @@ class _MisAportesScreenState extends State<MisAportesScreen> {
                     color: Paleta.acentoSuave,
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.storefront,
                     size: 36,
                     color: Paleta.acentoOscuro,
@@ -72,7 +72,7 @@ class _MisAportesScreenState extends State<MisAportesScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
+                Text(
                   'Gasfitería, repostería, clases, costura o tu bodega. Con una cuenta gratis tus vecinos podrán encontrarte y pedirte directamente.',
                   style: TextStyle(
                     color: Paleta.gris,
@@ -123,8 +123,8 @@ class _MisAportesScreenState extends State<MisAportesScreen> {
                 margin: const EdgeInsets.fromLTRB(16, 8, 16, 12),
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Paleta.acentoSuave, Colors.white],
+                  gradient: LinearGradient(
+                    colors: [Paleta.acentoSuave, Paleta.superficie],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -272,7 +272,7 @@ class _MetricaAporte extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Paleta.superficie,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: Paleta.linea),
         ),
@@ -285,7 +285,7 @@ class _MetricaAporte extends StatelessWidget {
             ),
             Text(
               etiqueta,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 11,
                 color: Paleta.gris,
                 fontWeight: FontWeight.w600,
@@ -315,7 +315,7 @@ class _BienvenidaSinAportes extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(22),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Paleta.superficie,
             borderRadius: BorderRadius.circular(24),
             border: Border.all(color: Paleta.linea),
           ),
@@ -331,14 +331,14 @@ class _BienvenidaSinAportes extends StatelessWidget {
                       color: Paleta.acentoSuave,
                       borderRadius: BorderRadius.circular(18),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.storefront,
                       color: Paleta.acentoOscuro,
                       size: 28,
                     ),
                   ),
                   const SizedBox(width: 14),
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -359,7 +359,7 @@ class _BienvenidaSinAportes extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 16),
-              const Text(
+              Text(
                 'Aún no ofreces nada. Publica tu servicio o producto desde la pestaña Servicios: aparecerás en el catálogo del barrio y aquí podrás ver los pedidos que te hagan y administrar lo que publicaste.',
                 style: TextStyle(
                   color: Paleta.tinta,
@@ -388,7 +388,7 @@ class _BienvenidaSinAportes extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Row(
+              Row(
                 children: [
                   Icon(Icons.verified, color: Paleta.acentoOscuro, size: 20),
                   SizedBox(width: 8),
@@ -399,7 +399,7 @@ class _BienvenidaSinAportes extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 6),
-              const Text(
+              Text(
                 'Cada vecino satisfecho puede darte su "Visto Bueno". Mientras más recomendaciones tengas, más arriba aparecerás para todo el barrio.',
                 style: TextStyle(
                   fontSize: 13,
@@ -500,7 +500,7 @@ class _TarjetaPedido extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Paleta.superficie,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: pedido.esPendiente
@@ -543,7 +543,7 @@ class _TarjetaPedido extends StatelessWidget {
           const SizedBox(height: 6),
           Row(
             children: [
-              const Icon(Icons.person, size: 16, color: Paleta.gris),
+              Icon(Icons.person, size: 16, color: Paleta.gris),
               const SizedBox(width: 4),
               Text(
                 [
@@ -558,7 +558,7 @@ class _TarjetaPedido extends StatelessWidget {
               const Spacer(),
               Text(
                 haceCuanto(pedido.creado),
-                style: const TextStyle(color: Paleta.gris, fontSize: 12),
+                style: TextStyle(color: Paleta.gris, fontSize: 12),
               ),
             ],
           ),
@@ -582,7 +582,7 @@ class _TarjetaPedido extends StatelessWidget {
                   const SizedBox(height: 6),
                   Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.event,
                         size: 14,
                         color: Paleta.acentoOscuro,
@@ -590,7 +590,7 @@ class _TarjetaPedido extends StatelessWidget {
                       const SizedBox(width: 4),
                       Text(
                         'Para: ${pedido.fechaDeseada}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
                           color: Paleta.acentoOscuro,
@@ -606,7 +606,7 @@ class _TarjetaPedido extends StatelessWidget {
             const SizedBox(height: 10),
             Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.lightbulb_outline,
                   size: 16,
                   color: Paleta.acentoOscuro,
@@ -615,7 +615,7 @@ class _TarjetaPedido extends StatelessWidget {
                 Expanded(
                   child: Text(
                     paso,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                       color: Paleta.acentoOscuro,
@@ -699,7 +699,7 @@ class _TarjetaPedido extends StatelessWidget {
                     color: Paleta.acentoSuave,
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
@@ -824,7 +824,7 @@ class _TarjetaMiPublicacion extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Paleta.superficie,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Paleta.linea),
       ),
@@ -880,7 +880,7 @@ class _TarjetaMiPublicacion extends StatelessWidget {
               s.descripcion!,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: Paleta.tinta, fontSize: 13),
+              style: TextStyle(color: Paleta.tinta, fontSize: 13),
             ),
           ],
           const SizedBox(height: 10),
@@ -892,7 +892,7 @@ class _TarjetaMiPublicacion extends StatelessWidget {
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.payments,
                       size: 16,
                       color: Paleta.primario,
@@ -910,7 +910,7 @@ class _TarjetaMiPublicacion extends StatelessWidget {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.thumb_up,
                     size: 15,
                     color: Paleta.verde,
@@ -918,7 +918,7 @@ class _TarjetaMiPublicacion extends StatelessWidget {
                   const SizedBox(width: 4),
                   Text(
                     '${s.vistosBuenos} Vistos Buenos',
-                    style: const TextStyle(fontSize: 13, color: Paleta.gris),
+                    style: TextStyle(fontSize: 13, color: Paleta.gris),
                   ),
                 ],
               ),
@@ -926,11 +926,11 @@ class _TarjetaMiPublicacion extends StatelessWidget {
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.place, size: 15, color: Paleta.gris),
+                    Icon(Icons.place, size: 15, color: Paleta.gris),
                     const SizedBox(width: 4),
                     Text(
                       s.sector!,
-                      style: const TextStyle(fontSize: 13, color: Paleta.gris),
+                      style: TextStyle(fontSize: 13, color: Paleta.gris),
                     ),
                   ],
                 ),
@@ -968,7 +968,7 @@ class _TarjetaMiPublicacion extends StatelessWidget {
               IconButton(
                 tooltip: 'Eliminar publicación',
                 onPressed: () => _eliminar(context),
-                icon: const Icon(Icons.delete_outline, color: Paleta.rojo),
+                icon: Icon(Icons.delete_outline, color: Paleta.rojo),
               ),
             ],
           ),

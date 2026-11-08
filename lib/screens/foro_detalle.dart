@@ -156,7 +156,7 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
           ),
           if (esMiTema)
             PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert, color: Paleta.tinta),
+              icon: Icon(Icons.more_vert, color: Paleta.tinta),
               tooltip: 'Opciones de mi publicación',
               onSelected: (accion) async {
                 if (accion == 'eliminar') {
@@ -227,7 +227,7 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                     ],
                   ),
                 ),
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'eliminar',
                   child: Row(
                     children: [
@@ -253,7 +253,7 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                 // Publicación principal con borde seguro y franja lateral
                 Container(
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Paleta.superficie,
                     borderRadius: BorderRadius.circular(18),
                     border: Border.all(color: Paleta.linea),
                     boxShadow: [
@@ -301,7 +301,7 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                                               Flexible(
                                                 child: Text(
                                                   t.autorNombre,
-                                                  style: const TextStyle(
+                                                  style: TextStyle(
                                                     fontWeight: FontWeight.w700,
                                                     fontSize: 15,
                                                     color: Paleta.tinta,
@@ -318,7 +318,7 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                                           const SizedBox(height: 2),
                                           Text(
                                             '${t.sector} · ${t.tiempoRelativo}',
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                               color: Paleta.gris,
                                               fontSize: 12,
                                             ),
@@ -337,19 +337,19 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                                               vertical: 3,
                                             ),
                                             decoration: BoxDecoration(
-                                              color: const Color(0xFFDCFCE7),
+                                              color: Paleta.verdeSuave,
                                               borderRadius: BorderRadius.circular(6),
                                               border: Border.all(color: const Color(0xFF86EFAC)),
                                             ),
-                                            child: const Row(
+                                            child: Row(
                                               mainAxisSize: MainAxisSize.min,
                                               children: [
-                                                Icon(Icons.check_circle, size: 10, color: Color(0xFF16A34A)),
+                                                Icon(Icons.check_circle, size: 10, color: Paleta.verde),
                                                 SizedBox(width: 2.5),
                                                 Text(
                                                   'Resuelto',
                                                   style: TextStyle(
-                                                    color: Color(0xFF166534),
+                                                    color: Paleta.verde,
                                                     fontSize: 9.5,
                                                     fontWeight: FontWeight.w700,
                                                   ),
@@ -394,7 +394,7 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                                 const SizedBox(height: 16),
                                 Text(
                                   t.titulo,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.w700,
                                     letterSpacing: -0.3,
@@ -405,7 +405,7 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                                 const SizedBox(height: 8),
                                 Text(
                                   t.contenido,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 15,
                                     color: Paleta.primarioClaro,
                                     height: 1.45,
@@ -427,7 +427,7 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                                     ),
                                     child: Row(
                                       children: [
-                                        const Icon(
+                                        Icon(
                                           Icons.handyman_outlined,
                                           size: 16,
                                           color: Paleta.acentoOscuro,
@@ -436,7 +436,7 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                                         Expanded(
                                           child: Text(
                                             'Oficio requerido: ${buscarCategoria(t.categoriaServicio!).nombre}',
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                               fontWeight: FontWeight.w700,
                                               color: Paleta.acentoOscuro,
                                               fontSize: 13,
@@ -458,7 +458,7 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                                     const SizedBox(width: 4),
                                     Text(
                                       '${t.apoyos} vecinos interesados en esta consulta',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 12,
                                         color: Paleta.gris,
                                       ),
@@ -477,7 +477,7 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                 const SizedBox(height: 20),
 
                 // Subtítulo de respuestas
-                const Text(
+                Text(
                   'Respuestas y recomendaciones',
                   style: TextStyle(
                     fontSize: 16,
@@ -500,8 +500,8 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                       return Container(
                         padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Paleta.ambarSuave, Colors.white],
+                          gradient: LinearGradient(
+                            colors: [Paleta.ambarSuave, Paleta.superficie],
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
                           ),
@@ -525,14 +525,14 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                                   color: Paleta.ambarSuave,
                                   borderRadius: BorderRadius.circular(16),
                                 ),
-                                child: const Icon(
+                                child: Icon(
                                   Icons.handyman_rounded,
                                   size: 26,
                                   color: Paleta.ambar,
                                 ),
                               ),
                               const SizedBox(height: 12),
-                              const Text(
+                              Text(
                                 '¿Conoces a un especialista para este caso?',
                                 style: TextStyle(
                                   fontWeight: FontWeight.w700,
@@ -542,7 +542,7 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                                 textAlign: TextAlign.center,
                               ),
                               const SizedBox(height: 4),
-                              const Text(
+                              Text(
                                 'Recomienda a un prestador de confianza o deja su contacto para ayudar al vecino.',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
@@ -638,20 +638,20 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: const Color(0xFFEFF6FF),
+                color: Paleta.azulSuave,
                 border: Border(top: BorderSide(color: Colors.blue.shade100)),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.reply_rounded, size: 16, color: Color(0xFF1D4ED8)),
+                  Icon(Icons.reply_rounded, size: 16, color: Paleta.azulInfo),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Respondiendo a @$_respondiendoA',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12.5,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF1D4ED8),
+                        color: Paleta.azulInfo,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -659,7 +659,7 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                   InkWell(
                     onTap: () => setState(() => _respondiendoA = null),
                     borderRadius: BorderRadius.circular(12),
-                    child: const Padding(
+                    child: Padding(
                       padding: EdgeInsets.all(4),
                       child: Icon(Icons.close_rounded, size: 18, color: Paleta.gris),
                     ),
@@ -671,8 +671,8 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
           // Caja fija inferior para responder
           Container(
             padding: const EdgeInsets.fromLTRB(12, 10, 16, 24),
-            decoration: const BoxDecoration(
-              color: Colors.white,
+            decoration: BoxDecoration(
+              color: Paleta.superficie,
               border: Border(top: BorderSide(color: Paleta.linea)),
             ),
             child: Row(
@@ -706,7 +706,7 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                       ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(24),
-                        borderSide: const BorderSide(color: Paleta.linea),
+                        borderSide: BorderSide(color: Paleta.linea),
                       ),
                       filled: true,
                       fillColor: Paleta.crema,

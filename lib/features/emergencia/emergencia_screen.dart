@@ -113,7 +113,7 @@ class _AyudaCerca extends StatelessWidget {
         return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           const TituloDiseno('Tu punto de ayuda más cercano'),
           if (cercano == null)
-            const Padding(
+            Padding(
               padding: EdgeInsets.symmetric(horizontal: 20),
               child: Text('La junta aún no ha publicado puntos de ayuda para esta emergencia.',
                   style: TextStyle(color: Paleta.gris)),
@@ -122,7 +122,7 @@ class _AyudaCerca extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Material(
-                color: Colors.white,
+                color: Paleta.superficie,
                 borderRadius: BorderRadius.circular(18),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(18),
@@ -146,14 +146,14 @@ class _AyudaCerca extends StatelessWidget {
                           Text(cercano.titulo,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Paleta.tinta)),
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Paleta.tinta)),
                           Text(formatoDistancia(distanciaKm(ref, cercano.punto)),
                               style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: TipoPunto.grupo.color)),
-                          const Text('Toca para llamar, ver cómo llegar o pedirles ayuda',
+                          Text('Toca para llamar, ver cómo llegar o pedirles ayuda',
                               style: TextStyle(fontSize: 12, color: Paleta.gris)),
                         ]),
                       ),
-                      const Icon(Icons.chevron_right_rounded, color: Paleta.grisClaro),
+                      Icon(Icons.chevron_right_rounded, color: Paleta.grisClaro),
                     ]),
                   ),
                 ),
@@ -263,7 +263,7 @@ class _AvisoJunta extends StatelessWidget {
 class _ComoEstas extends StatelessWidget {
   const _ComoEstas();
 
-  static const _verde = Color(0xFF15803D);
+  static Color get _verde => Paleta.verde;
 
   Future<void> _bien(BuildContext context) async {
     final st = context.read<AppState>();
@@ -285,13 +285,13 @@ class _ComoEstas extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 14, 16, 0),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: Paleta.linea)),
+      decoration: BoxDecoration(color: Paleta.superficie, borderRadius: BorderRadius.circular(20), border: Border.all(color: Paleta.linea)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Semantics(
           header: true,
           child: Text(
             estado == null ? '¿Cómo estás?' : 'Tu estado',
-            style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: Paleta.tinta),
+            style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: Paleta.tinta),
           ),
         ),
         if (estado != null) ...[
@@ -308,12 +308,12 @@ class _ComoEstas extends StatelessWidget {
             ),
           ]),
           const SizedBox(height: 4),
-          const Text('Puedes cambiarlo si tu situación cambia.', style: TextStyle(fontSize: 13, color: Paleta.gris)),
+          Text('Puedes cambiarlo si tu situación cambia.', style: TextStyle(fontSize: 13, color: Paleta.gris)),
         ] else ...[
           const SizedBox(height: 2),
           Text(
             st.logueado ? 'Avisa con un toque. Tu junta sabrá quién está a salvo.' : 'Si necesitas ayuda, pídela aquí. Funciona sin cuenta y sin internet.',
-            style: const TextStyle(fontSize: 14, color: Paleta.gris),
+            style: TextStyle(fontSize: 14, color: Paleta.gris),
           ),
         ],
         const SizedBox(height: 14),
@@ -420,7 +420,7 @@ class _Numeros extends StatelessWidget {
   Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         BotonesNumeros(numeros: DatosIniciales.actual.numeros),
         const SizedBox(height: 6),
-        const Text(
+        Text(
           'Esta app coordina ayuda entre vecinos. Si hay riesgo de vida, llama primero.',
           style: TextStyle(fontSize: 12, color: Paleta.gris),
         ),
@@ -465,9 +465,9 @@ class _VecinosASalvo extends StatelessWidget {
       builder: (context, r) => Container(
         margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: Paleta.linea)),
+        decoration: BoxDecoration(color: Paleta.superficie, borderRadius: BorderRadius.circular(18), border: Border.all(color: Paleta.linea)),
         child: Column(children: [
-          const Text('Vecinos en esta emergencia',
+          Text('Vecinos en esta emergencia',
               style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Paleta.gris, letterSpacing: 0.3)),
           const SizedBox(height: 8),
           IntrinsicHeight(
@@ -500,7 +500,7 @@ class _Cifra extends StatelessWidget {
             const SizedBox(width: 6),
             Text('$valor', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: color)),
           ]),
-          Text(texto, style: const TextStyle(fontSize: 13, color: Paleta.tinta)),
+          Text(texto, style: TextStyle(fontSize: 13, color: Paleta.tinta)),
         ]),
       );
 }

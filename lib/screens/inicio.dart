@@ -96,7 +96,7 @@ class _Bienvenida extends StatelessWidget {
               child: Image.asset('assets/images/logo_icono.png', width: 44, height: 44, fit: BoxFit.cover),
             ),
             const SizedBox(width: 12),
-            const Expanded(
+            Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text('Conecta Vecino',
                     style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Paleta.tinta, letterSpacing: -0.3)),
@@ -118,15 +118,12 @@ class PanelBrigadista extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final st = context.watch<AppState>();
-    return Container(
+    // Card (un Material) para que los ListTile de adentro pinten su toque.
+    return Card(
       margin: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-      decoration: BoxDecoration(
-        color: Colors.white,
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: Paleta.rojo.withValues(alpha: 0.35),
-          width: 1.5,
-        ),
+        side: BorderSide(color: Paleta.rojo.withValues(alpha: 0.35), width: 1.5),
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -137,7 +134,7 @@ class PanelBrigadista extends StatelessWidget {
             padding: const EdgeInsets.all(14),
             child: Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.health_and_safety,
                   color: Paleta.rojo,
                   size: 28,
@@ -147,7 +144,7 @@ class PanelBrigadista extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Eres punto focal de tu brigada',
                         style: TextStyle(
                           fontSize: 16,
@@ -159,7 +156,7 @@ class PanelBrigadista extends StatelessWidget {
                         st.modoEmergencia
                             ? 'Modo crítico activo: coordina la ayuda y el reparto de recursos.'
                             : 'Aquí llegan las alertas SOS de tus vecinos.',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
                           color: Paleta.tinta,
                         ),
@@ -176,7 +173,7 @@ class PanelBrigadista extends StatelessWidget {
             cargar: (st) => st.repo.alertasSos(),
             builder: (c, alertas) {
               if (alertas.isEmpty) {
-                return const Padding(
+                return Padding(
                   padding: EdgeInsets.all(14),
                   child: Text(
                     'Sin alertas SOS abiertas. Todo tranquilo por ahora.',

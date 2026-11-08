@@ -3,11 +3,11 @@ import '../../ui/tema.dart';
 
 /// Colores del modo SOS.
 class ColoresSos {
-  static const rojo = Paleta.rojo; // Rojo Alerta Crítica
-  static const rojoOscuro = Paleta.rojoTexto;
-  static const rojoSuave = Paleta.rojoSuave;
-  static const ambar = Paleta.ambar; // advertencia (desastres naturales)
-  static const ambarSuave = Paleta.ambarSuave;
+  static Color get rojo => Paleta.rojo; // Rojo Alerta Crítica
+  static Color get rojoOscuro => Paleta.rojoTexto;
+  static Color get rojoSuave => Paleta.rojoSuave;
+  static Color get ambar => Paleta.ambar; // advertencia (desastres naturales)
+  static Color get ambarSuave => Paleta.ambarSuave;
 }
 
 /// Reportes de un toque ("One-Tap Reporting"). Elegidos según las

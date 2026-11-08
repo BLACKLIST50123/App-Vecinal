@@ -62,7 +62,7 @@ class _ModalNuevoTemaState extends State<ModalNuevoTema> {
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text('Tu consulta se ha publicado en el foro.'),
             behavior: SnackBarBehavior.floating,
             backgroundColor: Paleta.primario,
@@ -92,8 +92,8 @@ class _ModalNuevoTemaState extends State<ModalNuevoTema> {
         right: 20,
         bottom: MediaQuery.of(context).viewInsets.bottom + 20,
       ),
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: Paleta.superficie,
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       child: Form(
@@ -390,7 +390,7 @@ class _ModalRecomendarPrestadorState extends State<ModalRecomendarPrestador> {
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text('¡Recomendación compartida con éxito!'),
             behavior: SnackBarBehavior.floating,
             backgroundColor: Paleta.verde,
@@ -420,8 +420,8 @@ class _ModalRecomendarPrestadorState extends State<ModalRecomendarPrestador> {
         right: 20,
         bottom: MediaQuery.of(context).viewInsets.bottom + 20,
       ),
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: Paleta.superficie,
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       child: Form(
@@ -450,14 +450,14 @@ class _ModalRecomendarPrestadorState extends State<ModalRecomendarPrestador> {
                       color: Paleta.ambarSuave,
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.recommend_rounded,
                       color: Paleta.ambar,
                       size: 22,
                     ),
                   ),
                   const SizedBox(width: 10),
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
