@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../config.dart';
-import '../features/sos/sos_alertas.dart';
+import '../features/inicio/mapa_inicio.dart';
+import '../features/inicio/pulso.dart';
 import '../models.dart';
 import '../state/app_state.dart';
 import '../ui/diseno.dart';
@@ -27,130 +28,83 @@ class InicioScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final st = context.watch<AppState>();
 
-    // Estructura: 1) qué busco  2) categorías  3) lo más cercano  4) resumen de solidaridad.
+    // Estructura: 1) bienvenida y pulso del barrio  2) mapa con filtros
+    // 3) cerca de ti  4) ¿qué quieres hacer hoy?
     return RefreshIndicator(
       onRefresh: () async => st.refrescar(),
       child: ListView(
         padding: const EdgeInsets.only(bottom: 110),
         children: [
-          // Lo más urgente primero: alertas SOS de vecinos (si las hay).
-          // El brigadista ya las ve en su panel, así que no se repiten.
-          if (!st.esBrigadista) const FranjaAlertasSos(),
+          // El brigadista ve primero las alertas SOS de su zona.
           if (st.esBrigadista) const PanelBrigadista(),
-          if (st.esPrestador) TarjetaMisAportes(irA: irA),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-            child: CajaBusqueda(
-              pista: '¿Qué necesitas hoy?',
-              etiqueta: 'Buscar en tu barrio',
-              onSubmitted: (v) =>
-                  irA(1, consulta: v.trim().isEmpty ? null : v.trim()),
-            ),
-          ),
-
-          const TituloDiseno('Encuentra lo que necesitas', ceja: 'Categorías'),
+          const _Bienvenida(),
+          const PulsoBarrio(),
+          const SizedBox(height: 10),
+          const MapaYCercanos(),
+          const TituloDiseno('¿Qué quieres hacer hoy?'),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Row(
-              children: [
-                Expanded(
-                  child: AccesoCategoria(
-                    texto: 'Servicios',
-                    icono: Icons.handyman_outlined,
-                    colores: Paleta.naranja,
-                    onTap: () => irA(1, grupo: 'servicios'),
-                  ),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Expanded(
+                child: AccesoCategoria(
+                  texto: 'Pedir ayuda',
+                  icono: Icons.front_hand_outlined,
+                  colores: Paleta.morado,
+                  onTap: () => irA(2, grupo: 'pedir'),
                 ),
-                Expanded(
-                  child: AccesoCategoria(
-                    texto: 'Productos',
-                    icono: Icons.shopping_basket_outlined,
-                    colores: Paleta.azul,
-                    onTap: () => irA(1, grupo: 'productos'),
-                  ),
+              ),
+              Expanded(
+                child: AccesoCategoria(
+                  texto: 'Ofrecer servicio',
+                  icono: Icons.storefront_outlined,
+                  colores: Paleta.naranja,
+                  onTap: () => abrirFormulario(context, TipoForm.servicio),
                 ),
-                Expanded(
-                  child: AccesoCategoria(
-                    texto: 'Clases',
-                    icono: Icons.menu_book_outlined,
-                    colores: Paleta.verdeCat,
-                    onTap: () => irA(1, grupo: 'clases'),
-                  ),
+              ),
+              Expanded(
+                child: AccesoCategoria(
+                  texto: 'Ver colectas',
+                  icono: Icons.diversity_1_outlined,
+                  colores: Paleta.verdeCat,
+                  onTap: () => irA(2),
                 ),
-                Expanded(
-                  child: AccesoCategoria(
-                    texto: 'Ver más',
-                    icono: Icons.more_horiz,
-                    colores: Paleta.morado,
-                    onTap: () => irA(1),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          TituloDiseno(
-            'Cerca de ti',
-            ceja: 'Los servicios más recomendado',
-            accion: ('Ver todo', () => irA(1)),
-          ),
-          Cargador<List<Servicio>>(
-            cargar: (st) => st.repo.servicios(emergencia: false),
-            builder: (c, lista) {
-              if (lista.isEmpty) {
-                return const EstadoVacio(
-                  icono: Icons.storefront,
-                  texto: 'Todavía no hay servicios ni productos publicados.',
-                );
-              }
-              final ref = st.referencia;
-              // Cerca y bien recomendados: ordena por distancia y desempata por Visto Bueno.
-              final orden = [...lista]
-                ..sort((a, b) {
-                  final da = a.punto == null
-                      ? 99.0
-                      : distanciaKmRedondeada(ref, a.punto!);
-                  final db = b.punto == null
-                      ? 99.0
-                      : distanciaKmRedondeada(ref, b.punto!);
-                  final x = da.compareTo(db);
-                  return x != 0 ? x : b.vistosBuenos.compareTo(a.vistosBuenos);
-                });
-              return Column(
-                children: [for (final s in orden.take(3)) TarjetaCerca(s)],
-              );
-            },
-          ),
-
-          const TituloDiseno(
-            'Solidaridad',
-            ceja: 'Vecinos que necesitan una mano',
-          ),
-          Cargador<List<Publicacion>>(
-            cargar: (st) => st.repo.publicaciones(emergencia: false),
-            builder: (c, lista) {
-              final n = lista
-                  .where(
-                    (p) => p.esPedido && !p.esColecta && p.estado != 'resuelta',
-                  )
-                  .length;
-              return BannerDegradado(
-                icono: Icons.volunteer_activism,
-                titulo: n == 0
-                    ? 'Nadie ha pedido ayuda. ¡Buena señal!'
-                    : '$n ${n == 1 ? 'vecino necesita' : 'vecinos necesitan'} una mano',
-                subtitulo: n == 0
-                    ? 'Entra a Solidaridad para dar apoyo u organizar un evento'
-                    : 'Toca para ver cómo puedes ayudar',
-                colores: const [Paleta.primario, Paleta.primarioClaro],
-                onTap: () => irA(2),
-              );
-            },
+              ),
+            ]),
           ),
         ],
       ),
     );
   }
+}
+
+/// "Conecta Vecino · ¡La app que nos une!"
+class _Bienvenida extends StatelessWidget {
+  const _Bienvenida();
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.fromLTRB(18, 2, 18, 10),
+        child: Semantics(
+          header: true,
+          label: 'Conecta Vecino. ¡La app que nos une!',
+          excludeSemantics: true,
+          child: Row(children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.asset('assets/images/logo_icono.png', width: 44, height: 44, fit: BoxFit.cover),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('Conecta Vecino',
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Paleta.tinta, letterSpacing: -0.3)),
+                Text('¡La app que nos une!',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Paleta.acentoOscuro)),
+              ]),
+            ),
+          ]),
+        ),
+      );
 }
 
 // ============================================================= emergencia

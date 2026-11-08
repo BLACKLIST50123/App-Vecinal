@@ -12,7 +12,8 @@ supabase/
     0005_reconocimiento.sql  agradecimientos, ayudas confirmadas, niveles
     0006_sos.sql             modo SOS: reportes de un toque, con o sin cuenta
     0007_sos_seguro.sql      avisos reservados (secuestro, extorsión, violencia) y límite por cuenta
-    0008_aportes_y_pedidos.sql  pedidos de servicio y pestaña "Mis aportes"
+    0008_aportes_y_pedidos.sql  pedidos de servicio y "Mis aportes"
+    0009_foro.sql            foro vecinal: temas, respuestas y reacciones
   seed.sql                   datos de demostración (se puede repetir)
 ```
 

@@ -1,5 +1,5 @@
 -- =====================================================================
--- Migración 0007 · Foro Vecinal
+-- Migración 0009 · Foro Vecinal
 -- Tablas, índices optimizados, triggers automáticos y políticas RLS
 -- Idempotente: Es segura de ejecutar múltiples veces en Supabase.
 -- =====================================================================

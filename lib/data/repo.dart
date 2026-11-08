@@ -81,6 +81,67 @@ class Repo {
 
   // ------------------------------------------------------------ lecturas
 
+  /// Pulso del barrio: lo que pasó en las últimas [horas] (apoyos dados,
+  /// pedidos, colectas y servicios nuevos), sin nombres. Sin internet devuelve
+  /// la última copia y cuándo se actualizó.
+  Future<({List<Map<String, dynamic>> apoyos, List<Map<String, dynamic>> publicaciones, List<Map<String, dynamic>> servicios, DateTime? actualizado, bool enVivo})>
+      pulso({int horas = 2}) async {
+    final desde = DateTime.now().toUtc().subtract(Duration(hours: horas)).toIso8601String();
+    var enVivo = false;
+    Future<List<Map<String, dynamic>>> q(String clave, Future<List<Map<String, dynamic>>> Function() c) async {
+      if (!forzarOffline) {
+        try {
+          final r = await c().timeout(const Duration(seconds: 10));
+          await prefs.setString('cache_$clave', jsonEncode(r));
+          enVivo = true;
+          return r;
+        } catch (e) {
+          if (!esErrorDeRed(e)) rethrow;
+        }
+      }
+      final raw = prefs.getString('cache_$clave');
+      if (raw == null) return [];
+      return (jsonDecode(raw) as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    }
+
+    final apoyos = await q(
+      'pulso_apoyos',
+      () => db
+          .from('ayudas')
+          .select('created_at, publicaciones(categoria, sector, es_emergencia)')
+          .gte('created_at', desde)
+          .order('created_at', ascending: false)
+          .limit(20),
+    );
+    final pubs = await q(
+      'pulso_publicaciones',
+      () => db
+          .from('publicaciones')
+          .select('id, tipo, categoria, sector, es_emergencia, origen, meta, created_at')
+          .gte('created_at', desde)
+          .order('created_at', ascending: false)
+          .limit(20),
+    );
+    final servs = await q(
+      'pulso_servicios',
+      () => db
+          .from('servicios')
+          .select('categoria, sector, es_emergencia, created_at')
+          .gte('created_at', desde)
+          .order('created_at', ascending: false)
+          .limit(10),
+    );
+    if (enVivo) await prefs.setString('pulso_actualizado', DateTime.now().toIso8601String());
+    final at = prefs.getString('pulso_actualizado');
+    return (
+      apoyos: apoyos,
+      publicaciones: pubs,
+      servicios: servs,
+      actualizado: at == null ? null : DateTime.tryParse(at),
+      enVivo: enVivo,
+    );
+  }
+
   Future<List<Servicio>> servicios({required bool emergencia}) async {
     final filas = await _consultar(
       'servicios_$emergencia',
