@@ -999,7 +999,7 @@ class _ModalEditarServicioState extends State<ModalEditarServicio> {
   late String _categoria;
   String? _sector;
   bool _guardando = false;
-  String? _errTitulo, _errDescripcion, _errPrecio, _errTelefono;
+  String? _errTitulo, _errDescripcion, _errPrecio, _errTelefono, _errHorario;
 
   @override
   void initState() {
@@ -1027,18 +1027,18 @@ class _ModalEditarServicioState extends State<ModalEditarServicio> {
   Future<void> _guardar() async {
     final t = _titulo.text.trim();
     setState(() {
-      _errTitulo = t.length < 5
-          ? 'Escribe en pocas palabras qué ofreces.'
-          : null;
+      _errTitulo = validarTitulo(t, vacio: 'Escribe en pocas palabras qué ofreces.');
       _errDescripcion = validarTexto(_descripcion.text);
       _errPrecio = validarPrecio(_precio.text);
       _errTelefono = validarTelefono(_telefono.text);
+      _errHorario = validarHorario(_horario.text);
     });
     if ([
       _errTitulo,
       _errDescripcion,
       _errPrecio,
       _errTelefono,
+      _errHorario,
     ].any((e) => e != null)) {
       return;
     }
@@ -1160,10 +1160,12 @@ class _ModalEditarServicioState extends State<ModalEditarServicio> {
               const SizedBox(height: 12),
               TextField(
                 controller: _horario,
-                maxLength: 80,
-                decoration: const InputDecoration(
+                maxLength: Limites.horario,
+                onChanged: (_) => _errHorario != null ? setState(() => _errHorario = null) : null,
+                decoration: InputDecoration(
                   labelText: 'Horario de atención',
                   hintText: 'Ej. Lunes a Sábado de 8am a 6pm',
+                  errorText: _errHorario,
                 ),
               ),
               const SizedBox(height: 12),

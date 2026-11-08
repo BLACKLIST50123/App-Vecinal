@@ -550,8 +550,12 @@ class _PestanaPedirState extends State<_PestanaPedir> {
   Future<void> _pedir() async {
     final st = context.read<AppState>();
     final texto = _texto.text.trim();
-    if (texto.length < 3) {
-      avisar('Escribe en pocas palabras qué necesitas.');
+    final problema = texto.isEmpty
+        ? 'Escribe en pocas palabras qué necesitas.'
+        : validarTitulo(texto.length > Limites.titulo ? texto.substring(0, Limites.titulo) : texto) ??
+            validarTexto(texto, min: 5, max: 300);
+    if (problema != null) {
+      avisar(problema);
       return;
     }
     if (!st.logueado) {
@@ -567,8 +571,8 @@ class _PestanaPedirState extends State<_PestanaPedir> {
       'id': nuevoId(),
       'tipo': 'pido',
       'categoria': _categoria,
-      'titulo': texto.length > 140 ? '${texto.substring(0, 137)}...' : texto,
-      'descripcion': texto.length > 140 ? texto : null,
+      'titulo': texto.length > Limites.titulo ? '${texto.substring(0, Limites.titulo - 3)}...' : texto,
+      'descripcion': texto.length > Limites.titulo ? texto : null,
       'contacto_nombre': st.nombre,
       'contacto_telefono': st.perfil?['telefono'],
       'prioridad': _urgente ? 'alta' : 'normal',

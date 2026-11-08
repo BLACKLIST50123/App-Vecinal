@@ -1,12 +1,12 @@
-import 'package:flutter/services.dart';
-import '../util.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../config.dart';
 import '../models.dart';
 import '../state/app_state.dart';
 import '../ui/tema.dart';
+import '../util.dart';
 
 /// Modal para publicar una nueva consulta o tema en el foro vecinal.
 class ModalNuevoTema extends StatefulWidget {
@@ -261,6 +261,7 @@ class _ModalNuevoTemaState extends State<ModalNuevoTema> {
               const SizedBox(height: 6),
               TextFormField(
                 controller: _tituloCtrl,
+                maxLength: Limites.titulo,
                 textCapitalization: TextCapitalization.sentences,
                 decoration: InputDecoration(
                   hintText: 'Ej: ¿Alguien conoce un buen gasfitero para tubería rota?',
@@ -272,9 +273,7 @@ class _ModalNuevoTemaState extends State<ModalNuevoTema> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                validator: (v) => (v == null || v.trim().isEmpty)
-                    ? 'Ingresa un título claro'
-                    : null,
+                validator: (v) => validarTitulo(v ?? '', min: 8, vacio: 'Ingresa un título claro'),
               ),
 
               const SizedBox(height: 14),
@@ -286,6 +285,7 @@ class _ModalNuevoTemaState extends State<ModalNuevoTema> {
               TextFormField(
                 controller: _contenidoCtrl,
                 maxLines: 3,
+                maxLength: Limites.texto,
                 textCapitalization: TextCapitalization.sentences,
                 decoration: InputDecoration(
                   hintText: 'Describe el problema, urgencia o lo que buscas consultar con los vecinos...',
@@ -297,9 +297,7 @@ class _ModalNuevoTemaState extends State<ModalNuevoTema> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                validator: (v) => (v == null || v.trim().isEmpty)
-                    ? 'Describe tu consulta'
-                    : null,
+                validator: (v) => validarTexto(v ?? '', obligatorio: true),
               ),
 
               const SizedBox(height: 20),
@@ -487,6 +485,7 @@ class _ModalRecomendarPrestadorState extends State<ModalRecomendarPrestador> {
               const SizedBox(height: 6),
               TextFormField(
                 controller: _nombreCtrl,
+                maxLength: Limites.nombre,
                 textCapitalization: TextCapitalization.words,
                 decoration: InputDecoration(
                   hintText: 'Ej: Maestro Carlos Gasfitería',
@@ -499,9 +498,7 @@ class _ModalRecomendarPrestadorState extends State<ModalRecomendarPrestador> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                validator: (v) => (v == null || v.trim().isEmpty)
-                    ? 'Ingresa el nombre'
-                    : null,
+                validator: (v) => validarTitulo(v ?? '', min: 3, max: Limites.nombre, vacio: 'Ingresa el nombre'),
               ),
               const SizedBox(height: 14),
               const Text(
@@ -512,6 +509,7 @@ class _ModalRecomendarPrestadorState extends State<ModalRecomendarPrestador> {
               TextFormField(
                 controller: _telefonoCtrl,
                 keyboardType: TextInputType.phone,
+                inputFormatters: formatoTelefono,
                 decoration: InputDecoration(
                   hintText: 'Ej: 943123456',
                   prefixIcon: const Icon(Icons.phone_outlined, size: 20),
@@ -523,9 +521,7 @@ class _ModalRecomendarPrestadorState extends State<ModalRecomendarPrestador> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                validator: (v) => (v == null || v.trim().length < 6)
-                    ? 'Ingresa un número válido'
-                    : null,
+                validator: (v) => validarTelefono(v ?? '', obligatorio: true),
               ),
               const SizedBox(height: 14),
               const Text(
@@ -536,6 +532,7 @@ class _ModalRecomendarPrestadorState extends State<ModalRecomendarPrestador> {
               TextFormField(
                 controller: _comentarioCtrl,
                 maxLines: 2,
+                maxLength: Limites.comentario,
                 textCapitalization: TextCapitalization.sentences,
                 decoration: InputDecoration(
                   hintText: 'Ej: Muy puntual, me reparó una fuga en 30 minutos y cobra justo.',
@@ -547,9 +544,7 @@ class _ModalRecomendarPrestadorState extends State<ModalRecomendarPrestador> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                validator: (v) => (v == null || v.trim().isEmpty)
-                    ? 'Escribe tu recomendación'
-                    : null,
+                validator: (v) => validarTexto(v ?? '', min: 10, max: Limites.comentario, obligatorio: true),
               ),
               const SizedBox(height: 20),
               SizedBox(
