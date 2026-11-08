@@ -71,6 +71,14 @@ Deno.serve(async (req) => {
       const time = new Date(f.properties.time).toISOString();
       const [lng, lat, profundidad] = f.geometry.coordinates;
 
+      // Filtro de país: asegurar que sea de Perú o su costa, descartando fronteras de vecinos
+      const lugar = place.toLowerCase();
+      const esPeru = lugar.includes("peru") || lugar.includes("perú");
+      const esVecino = lugar.includes("chile") || lugar.includes("ecuador") || lugar.includes("bolivia") || lugar.includes("colombia") || lugar.includes("brazil") || lugar.includes("brasil");
+      if (!esPeru && esVecino) {
+        continue; // Ignorar sismos de países limítrofes
+      }
+
       const radio = calcularRadioAlerta(mag);
 
       // Verificamos si ya existe para no duplicar

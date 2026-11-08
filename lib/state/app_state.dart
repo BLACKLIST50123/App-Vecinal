@@ -113,7 +113,12 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     // Si la emergencia tiene coordenadas y radio (ej. por sismo o evento geolocalizado):
     if (emergencia.lat != null && emergencia.lng != null && emergencia.radioKm != null) {
       final puntoEmergencia = Punto(emergencia.lat!, emergencia.lng!);
-      return distanciaKm(referencia, puntoEmergencia) <= emergencia.radioKm!;
+      // Si es un sismo, el Modo Emergencia rojo solo se activa para la zona de impacto fuerte
+      // (la zona más cercana al epicentro). Quienes estén más lejos solo reciben el aviso informativo.
+      final radioImpacto = (emergencia.origen == 'sismo')
+          ? emergencia.radioKm! * 0.45
+          : emergencia.radioKm!;
+      return distanciaKm(referencia, puntoEmergencia) <= radioImpacto;
     }
     // Si no tiene radio definido (activación general de la junta vecinal), aplica para todos:
     return true;
@@ -300,16 +305,22 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       notifyListeners();
 
       HapticFeedback.vibrate();
-      final esCritico = s.magnitud >= 4.5;
       final dKm = km.toStringAsFixed(0);
-      final titulo = esCritico ? '🚨 ALERTA SÍSMICA: M ${s.magnitud}' : '⚠️ Sismo detectado: M ${s.magnitud}';
+      final radioCritico = s.radioAlertaKm * 0.45;
+      final esZonaCritica = km <= radioCritico && s.magnitud >= 4.5;
+
+      final titulo = esZonaCritica ? '🚨 ALERTA SÍSMICA: M ${s.magnitud}' : '⚠️ Sismo detectado: M ${s.magnitud}';
       final cuerpo = 'A $dKm km de ti (${s.ubicacion}). Prof: ${s.profundidadKm} km. Mantén la calma.';
 
       avisar(titulo);
       notificar(TipoAviso.emergencia, titulo, cuerpo, mensajeInterno: true);
 
-      // Voz de aviso automático
-      Voz.hablar('Alerta sísmica. Sismo de magnitud ${s.magnitud} a $dKm kilómetros de tu posición. Mantén la calma y ve a zona segura.');
+      // Voz de aviso automático: urgente si estás cerca, informativa si estás lejos
+      if (esZonaCritica) {
+        Voz.hablar('Alerta sísmica. Sismo fuerte de magnitud ${s.magnitud} a $dKm kilómetros de tu posición. Mantén la calma y ve a zona segura.');
+      } else {
+        Voz.hablar('Sismo de magnitud ${s.magnitud} registrado a $dKm kilómetros de tu posición.');
+      }
     } catch (_) {}
   }
 

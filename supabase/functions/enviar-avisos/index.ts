@@ -48,9 +48,10 @@ async function armarAviso(tipo: string, r: Fila) {
     const lat = r.lat as number | null;
     const lng = r.lng as number | null;
     const radioKm = r.radio_km as number | null;
-    // Si la emergencia tiene coordenadas y radio (ej. por sismo), solo a los que estén dentro del radio
+    // Si la emergencia tiene coordenadas y radio (ej. por sismo), solo a los que estén dentro del radio crítico
     if (r.activa && lat != null && lng != null && radioKm != null) {
-      destinos = destinos.filter((d) => d.lat != null && d.lng != null && distanciaKm(lat, lng, d.lat, d.lng) <= radioKm);
+      const radioCritico = r.origen === "sismo" ? radioKm * 0.45 : radioKm;
+      destinos = destinos.filter((d) => d.lat != null && d.lng != null && distanciaKm(lat, lng, d.lat, d.lng) <= radioCritico);
     }
     return r.activa
       ? { destinos, critico: true, titulo: "🚨 EMERGENCIA en tu zona", cuerpo: String(r.titulo ?? "Se activó el modo emergencia.") }
