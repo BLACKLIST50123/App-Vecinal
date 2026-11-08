@@ -28,7 +28,12 @@ class _ServiciosScreenState extends State<ServiciosScreen> {
   late final TextEditingController _buscar = TextEditingController(text: widget.consultaInicial ?? '');
   late String _busqueda = (widget.consultaInicial ?? '').toLowerCase();
   late String _filtro = widget.grupoInicial ?? 'todos';
-  bool _porCercania = false;
+  /// Por defecto, lo más cerca de tu casa (y entre lo cercano, lo más
+  /// recomendado). "Más recomendados" ordena solo por Visto Bueno.
+  bool _porCercania = true;
+
+  /// Hasta esta distancia se considera "cerca de ti" (se llega a pie).
+  static const _radioCercaKm = 2.0;
 
   @override
   void dispose() {
@@ -66,57 +71,63 @@ class _ServiciosScreenState extends State<ServiciosScreen> {
             return texto.contains(_busqueda);
           }).toList();
           double d(Servicio s) => s.punto == null ? 999 : distanciaKm(ref, s.punto!);
-          lista.sort(_porCercania ? (a, b) => d(a).compareTo(d(b)) : (a, b) => b.vistosBuenos.compareTo(a.vistosBuenos));
+          double dr(Servicio s) => s.punto == null ? 999 : distanciaKmRedondeada(ref, s.punto!);
+          // Pesa más la recomendación de vecinos verificados de TU zona.
+          int deTuZona(Servicio s) => s.recomendacionesDeZona(st.sector);
+          int masRecomendado(Servicio a, Servicio b) {
+            final z = deTuZona(b).compareTo(deTuZona(a));
+            return z != 0 ? z : b.vistosBuenos.compareTo(a.vistosBuenos);
+          }
+          lista.sort(_porCercania
+              // Cerca primero; a distancia parecida, el más recomendado.
+              ? (a, b) {
+                  final c = dr(a).compareTo(dr(b));
+                  return c != 0 ? c : masRecomendado(a, b);
+                }
+              : (a, b) {
+                  final c = masRecomendado(a, b);
+                  return c != 0 ? c : d(a).compareTo(d(b));
+                });
+          final cerca = _porCercania ? lista.where((s) => d(s) <= _radioCercaKm).toList() : lista;
+          final lejos = _porCercania ? lista.where((s) => d(s) > _radioCercaKm).toList() : const <Servicio>[];
+          final zona = st.ubicacion != null ? 'tu ubicación' : (st.sector ?? Zona.nombre);
 
           return ListView(padding: const EdgeInsets.only(bottom: 110), children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
               child: CajaBusqueda(
                 controller: _buscar,
-                pista: e ? 'Ej: albergue, primeros auxilios' : 'Buscar servicios o productos',
+                pista: e ? 'Ej: albergue, primeros auxilios' : 'Ej: gasfitero, pan, clases',
                 etiqueta: e ? 'Buscar grupo de apoyo' : 'Buscar servicios o productos',
                 onChanged: (v) => setState(() => _busqueda = v.trim().toLowerCase()),
               ),
             ),
             FilaPildoras(opciones: opciones, seleccion: _filtro, onCambio: (v) => setState(() => _filtro = v)),
+            // Una sola fila de controles: cómo ordenar y ver en el mapa.
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 14, 12, 10),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
               child: Row(children: [
                 Expanded(
-                  child: Semantics(
-                    header: true,
-                    child: Text('${lista.length} ${lista.length == 1 ? 'opción' : 'opciones'}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 17)),
+                  child: SegmentedButton<bool>(
+                    showSelectedIcon: false,
+                    // Sin íconos: así el texto cabe en una línea aun con letra grande.
+                    segments: const [
+                      ButtonSegment(value: true, label: Text('Cerca de mí', maxLines: 1, overflow: TextOverflow.ellipsis)),
+                      ButtonSegment(value: false, label: Text('Recomendados', maxLines: 1, overflow: TextOverflow.ellipsis)),
+                    ],
+                    selected: {_porCercania},
+                    onSelectionChanged: (v) => setState(() => _porCercania = v.first),
                   ),
                 ),
-                PopupMenuButton<bool>(
-                  tooltip: 'Ordenar',
-                  initialValue: _porCercania,
-                  onSelected: (v) => setState(() => _porCercania = v),
-                  itemBuilder: (_) => const [
-                    PopupMenuItem(value: false, child: Text('Más recomendados')),
-                    PopupMenuItem(value: true, child: Text('Más cerca de mí')),
-                  ],
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-                    child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      Icon(Icons.swap_vert, color: Theme.of(context).colorScheme.primary),
-                      const SizedBox(width: 4),
-                      Text(_porCercania ? 'Más cerca' : 'Recomendados',
-                          style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w700, fontSize: 14)),
-                    ]),
-                  ),
-                ),
-                const SizedBox(width: 4),
-                FilledButton.tonalIcon(
+                const SizedBox(width: 8),
+                IconButton.filledTonal(
+                  tooltip: 'Ver en el mapa',
+                  style: IconButton.styleFrom(minimumSize: const Size(52, 52)),
                   onPressed: () => Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => const PantallaMapaCompleto()),
                   ),
-                  icon: const Icon(Icons.map_outlined, size: 20),
-                  label: const Text('Mapa'),
+                  icon: const Icon(Icons.map_outlined),
                 ),
               ]),
             ),
@@ -127,8 +138,22 @@ class _ServiciosScreenState extends State<ServiciosScreen> {
                     ? 'No hay grupos de apoyo con ese filtro.'
                     : 'No encontramos eso en tu barrio todavía.\n¿Conoces a alguien bueno? Invítalo a publicarse.',
               )
-            else
-              Column(children: [for (final s in lista) TarjetaMercado(s)]),
+            else if (_porCercania) ...[
+              _TituloGrupo(
+                cerca.isEmpty ? 'Nada a menos de 2 km' : 'Cerca de ti',
+                cerca.isEmpty
+                    ? 'Te mostramos lo más cercano a $zona.'
+                    : 'A menos de 2 km de $zona · ${cerca.length} ${cerca.length == 1 ? 'opción' : 'opciones'}',
+              ),
+              for (final s in cerca) TarjetaMercado(s),
+              if (lejos.isNotEmpty) ...[
+                if (cerca.isNotEmpty) const _TituloGrupo('Un poco más lejos', 'Más de 2 km, por si no encuentras cerca.'),
+                for (final s in lejos) TarjetaMercado(s),
+              ],
+            ] else ...[
+              _TituloGrupo('Los más recomendados', 'Por el Visto Bueno de tus vecinos · ${lista.length} ${lista.length == 1 ? 'opción' : 'opciones'}'),
+              for (final s in lista) TarjetaMercado(s),
+            ],
           ]);
         },
       ),
@@ -275,4 +300,23 @@ class _FavoresScreenState extends State<FavoresScreen> {
       ),
     );
   }
+}
+
+/// Título de un grupo de la lista: "Cerca de ti", "Un poco más lejos"...
+class _TituloGrupo extends StatelessWidget {
+  const _TituloGrupo(this.titulo, this.detalle);
+  final String titulo, detalle;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 16, 16, 8),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Semantics(
+            header: true,
+            child: Text(titulo, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 19)),
+          ),
+          const SizedBox(height: 2),
+          Text(detalle, style: const TextStyle(color: Paleta.gris, fontSize: 14)),
+        ]),
+      );
 }

@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../config.dart';
 import '../features/emergencia/emergencia_screen.dart';
 import '../features/inicio/mapa_inicio.dart';
+import '../features/recomendar/contactos_pendientes.dart';
 import '../features/solidaridad/solidaridad_screen.dart';
 import '../services/voz.dart';
 import '../state/app_state.dart';
@@ -30,8 +31,35 @@ class HomeShell extends StatefulWidget {
   State<HomeShell> createState() => _HomeShellState();
 }
 
-class _HomeShellState extends State<HomeShell> {
+class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   int _tab = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    // Al abrir la app: ¿hay algún servicio que contactó y puede recomendar?
+    WidgetsBinding.instance.addPostFrameCallback((_) => _preguntarRecomendacion());
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  /// Al volver a la app (por ejemplo, después de llamar al gasfitero).
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState estado) {
+    if (estado == AppLifecycleState.resumed) _preguntarRecomendacion();
+  }
+
+  void _preguntarRecomendacion() {
+    if (!mounted) return;
+    final st = context.read<AppState>();
+    if (st.modoEmergencia) return; // en emergencia no se interrumpe
+    ContactosPendientes.revisar(context, st.prefs, logueado: st.logueado);
+  }
   bool? _modoAnterior;
   bool _fabVisible = true;
   String? _grupo; // filtro inicial para Servicios (desde Inicio)

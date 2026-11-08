@@ -143,17 +143,28 @@ class Repo {
     );
   }
 
+  /// Si falta una columna nueva (migración aún no aplicada), Postgres
+  /// responde 42703: se usa la consulta anterior y la app sigue andando.
+  static bool _faltaColumna(Object e) => e is PostgrestException && (e.code == '42703' || e.code == 'PGRST100');
+
   Future<List<Servicio>> servicios({required bool emergencia}) async {
-    final filas = await _consultar(
-      'servicios_$emergencia',
-      () => db
-          .from('servicios')
-          .select('*, vistos_buenos(count)')
-          .eq('activo', true)
-          .eq('es_emergencia', emergencia)
-          .order('created_at', ascending: false)
-          .limit(300),
-    );
+    Future<List<Map<String, dynamic>>> consulta(String vistos) => db
+        .from('servicios')
+        .select('*, $vistos')
+        .eq('activo', true)
+        .eq('es_emergencia', emergencia)
+        .order('created_at', ascending: false)
+        .limit(300);
+    final filas = await _consultar('servicios_$emergencia', () async {
+      try {
+        // Sector, verificación y motivos de cada Visto Bueno (migración 0016):
+        // permiten el sello "Recomendado en tu barrio".
+        return await consulta('vistos_buenos(autor_sector, autor_verificado, motivos)');
+      } catch (e) {
+        if (_faltaColumna(e)) return await consulta('vistos_buenos(count)');
+        rethrow;
+      }
+    });
     final enviados = filas.map(Servicio.fromMap).toList();
     final ids = enviados.map((s) => s.id).toSet();
     return [
@@ -240,11 +251,20 @@ class Repo {
   Future<List<VistoBueno>> vistosBuenos(String servicioId) async {
     final filas = await _consultar(
       'vb_$servicioId',
-      () => db
-          .from('vistos_buenos')
-          .select('id, autor_id, autor_nombre, autor_verificado, comentario, created_at')
-          .eq('servicio_id', servicioId)
-          .order('created_at', ascending: false),
+      () async {
+        Future<List<Map<String, dynamic>>> consulta(String campos) => db
+            .from('vistos_buenos')
+            .select(campos)
+            .eq('servicio_id', servicioId)
+            .order('created_at', ascending: false);
+        const base = 'id, autor_id, autor_nombre, autor_verificado, comentario, created_at';
+        try {
+          return await consulta('$base, autor_sector, motivos');
+        } catch (e) {
+          if (_faltaColumna(e)) return await consulta(base);
+          rethrow;
+        }
+      },
     );
     return filas.map(VistoBueno.fromMap).toList();
   }
@@ -744,10 +764,19 @@ class Repo {
     await _guardarCola();
   }
 
-  Future<void> darVistoBueno(String servicioId, String? comentario) => db.from('vistos_buenos').insert({
-        'servicio_id': servicioId,
-        if (comentario != null && comentario.trim().isNotEmpty) 'comentario': comentario.trim(),
-      });
+  Future<void> darVistoBueno(String servicioId, String? comentario, {List<String> motivos = const []}) async {
+    final datos = {
+      'servicio_id': servicioId,
+      if (comentario != null && comentario.trim().isNotEmpty) 'comentario': comentario.trim(),
+    };
+    try {
+      await db.from('vistos_buenos').insert({...datos, if (motivos.isNotEmpty) 'motivos': motivos});
+    } catch (e) {
+      // Sin la migración 0016 se guarda sin motivos.
+      if (motivos.isNotEmpty && _faltaColumna(e)) return db.from('vistos_buenos').insert(datos);
+      rethrow;
+    }
+  }
 
   Future<void> cambiarEstado(String id, String estado, {bool atender = false}) =>
       db.from('publicaciones').update({

@@ -29,6 +29,8 @@ class Servicio {
     this.esEmergencia = false,
     this.activo = true,
     this.vistosBuenos = 0,
+    this.verificadosPorSector = const {},
+    this.motivos = const {},
     this.respondiendoA,
     this.pendiente = false,
     DateTime? creado,
@@ -42,17 +44,49 @@ class Servicio {
   final bool esEmergencia;
   final bool activo;
   final int vistosBuenos;
+
+  /// Vistos Buenos de vecinos VERIFICADOS, contados por su sector.
+  final Map<String, int> verificadosPorSector;
+
+  /// Cuántas veces se eligió cada motivo ("puntual", "precio_justo"...).
+  final Map<String, int> motivos;
   final String? respondiendoA;
   final bool pendiente;
   final DateTime creado;
 
   Punto? get punto => lat != null && lng != null ? Punto(lat!, lng!) : null;
 
+  /// Recomendaciones de vecinos verificados de [sector] (si no se sabe el
+  /// sector de quien mira, se usa el del propio servicio).
+  int recomendacionesDeZona(String? sector) => verificadosPorSector[sector ?? this.sector] ?? 0;
+
+  /// Sello "Recomendado en tu barrio": 3 o más vecinos verificados de la zona.
+  static const minimoSello = 3;
+  bool tieneSello(String? sector) => recomendacionesDeZona(sector) >= minimoSello;
+
+  /// Los [n] motivos más elegidos (al menos 1 vez), del más al menos.
+  List<String> motivosPrincipales([int n = 2]) {
+    final l = motivos.entries.where((e) => e.value > 0).toList()..sort((a, b) => b.value.compareTo(a.value));
+    return [for (final e in l.take(n)) e.key];
+  }
+
   factory Servicio.fromMap(Map<String, dynamic> m, {bool pendiente = false}) {
     var vb = 0;
+    final porSector = <String, int>{};
+    final motivos = <String, int>{};
     final x = m['vistos_buenos'];
-    if (x is List && x.isNotEmpty && x.first is Map) {
+    if (x is List && x.isNotEmpty && x.first is Map && (x.first as Map).containsKey('count')) {
       vb = ((x.first as Map)['count'] as num?)?.toInt() ?? 0;
+    } else if (x is List) {
+      // Lista de Vistos Buenos con sector, verificación y motivos (0016).
+      vb = x.length;
+      for (final f in x.whereType<Map>()) {
+        final sec = f['autor_sector'] as String?;
+        if (f['autor_verificado'] == true && sec != null) porSector[sec] = (porSector[sec] ?? 0) + 1;
+        for (final mo in (f['motivos'] as List?) ?? const []) {
+          motivos['$mo'] = (motivos['$mo'] ?? 0) + 1;
+        }
+      }
     }
     return Servicio(
       id: m['id'] as String,
@@ -71,6 +105,8 @@ class Servicio {
       esEmergencia: m['es_emergencia'] == true,
       activo: m['activo'] != false,
       vistosBuenos: vb,
+      verificadosPorSector: porSector,
+      motivos: motivos,
       pendiente: pendiente,
       creado: _fecha(m['created_at']),
     );
@@ -224,11 +260,32 @@ class Publicacion {
       ].join('. ');
 }
 
+/// Motivos de un toque al dar el Visto Bueno: (id, texto, ícono).
+const motivosVistoBueno = <(String, String, IconData)>[
+  ('puntual', 'Puntual', Icons.schedule),
+  ('precio_justo', 'Precio justo', Icons.payments_outlined),
+  ('buen_trabajo', 'Buen trabajo', Icons.handyman_outlined),
+  ('amable', 'Amable', Icons.sentiment_satisfied_alt),
+  ('confiable', 'De confianza', Icons.verified_user_outlined),
+];
+
+String textoMotivo(String id) => motivosVistoBueno.firstWhere((m) => m.$1 == id, orElse: () => (id, id, Icons.check)).$2;
+
 class VistoBueno {
-  VistoBueno({required this.id, this.autorId, this.autorNombre, this.comentario, this.verificado = false, required this.creado});
+  VistoBueno({
+    required this.id,
+    this.autorId,
+    this.autorNombre,
+    this.comentario,
+    this.verificado = false,
+    this.sector,
+    this.motivos = const [],
+    required this.creado,
+  });
   final String id;
-  final String? autorId, autorNombre, comentario;
+  final String? autorId, autorNombre, comentario, sector;
   final bool verificado;
+  final List<String> motivos;
   final DateTime creado;
 
   factory VistoBueno.fromMap(Map<String, dynamic> m) => VistoBueno(
@@ -237,6 +294,8 @@ class VistoBueno {
         autorNombre: m['autor_nombre'] as String?,
         comentario: m['comentario'] as String?,
         verificado: m['autor_verificado'] == true,
+        sector: m['autor_sector'] as String?,
+        motivos: [for (final x in (m['motivos'] as List?) ?? const []) '$x'],
         creado: _fecha(m['created_at']),
       );
 }
