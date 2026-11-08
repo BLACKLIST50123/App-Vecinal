@@ -11,6 +11,7 @@
 //
 // Desplegar:  supabase functions deploy enviar-avisos --no-verify-jwt
 
+
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 
 type Fila = Record<string, unknown>;
