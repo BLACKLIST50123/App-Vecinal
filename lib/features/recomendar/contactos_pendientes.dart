@@ -8,6 +8,7 @@ import '../../screens/detalles.dart';
 import '../../ui/tema.dart';
 import 'package:provider/provider.dart';
 import '../../state/app_state.dart';
+import '../sos/sos_navegacion.dart';
 
 /// "¿Te atendió bien?": cuando un vecino llama o escribe a un servicio, se
 /// recuerda en el celular. Al volver a la app se le pregunta si lo
@@ -16,8 +17,8 @@ import '../../state/app_state.dart';
 class ContactosPendientes {
   static const _clave = 'contactos_pendientes';
 
-  /// Tiempo mínimo después del contacto antes de preguntar.
-  static const espera = Duration(seconds: 30);
+  /// Tiempo después de tocar Llamar o WhatsApp antes de preguntar.
+  static const espera = Duration(seconds: 3);
 
   /// Si responde "Todavía no", se vuelve a preguntar después de esto.
   static const reintento = Duration(days: 1);
@@ -61,12 +62,14 @@ class ContactosPendientes {
   /// "¿Qué pasó?" con un toque. "" = prefiere no decir; null = canceló.
   static Future<String?> _preguntarMotivo(BuildContext context) => showModalBottomSheet<String>(
         context: context,
-        showDragHandle: true,
+        // Obligatorio elegir una opción: no se cierra tocando afuera, arrastrando ni con "atrás".
+        isDismissible: false,
+        enableDrag: false,
         isScrollControlled: true, // toma la altura que necesita (no se corta)
         backgroundColor: Paleta.superficie,
-        builder: (c) => SafeArea(
+        builder: (c) => PopScope(canPop: false, child: SafeArea(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
             child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
               const Text('¿Qué pasó?', textAlign: TextAlign.center, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
               const SizedBox(height: 4),
@@ -91,8 +94,18 @@ class ContactosPendientes {
               TextButton(onPressed: () => Navigator.pop(c, ''), child: const Text('Prefiero no decir')),
             ]),
           ),
-        ),
+        )),
       );
+
+  /// Pregunta [espera] después de tocar Llamar o WhatsApp, sobre la pantalla
+  /// que esté abierta (en el celular aparece al volver de la llamada).
+  static void programar(SharedPreferences p) => Future.delayed(espera + const Duration(milliseconds: 300), () {
+        final c = navegador.currentContext;
+        if (c == null || !c.mounted) return;
+        final st = c.read<AppState>();
+        if (st.modoEmergencia) return; // en emergencia no se interrumpe
+        revisar(c, p, logueado: st.logueado);
+      });
 
   /// Si hay un contacto pendiente y ya pasó el tiempo, pregunta (una sola
   /// pregunta a la vez).
@@ -107,12 +120,14 @@ class ContactosPendientes {
       final titulo = '${listo['titulo']}';
       final respuesta = await showModalBottomSheet<String>(
         context: context,
-        showDragHandle: true,
+        // Obligatorio elegir una opción: no se cierra tocando afuera, arrastrando ni con "atrás".
+        isDismissible: false,
+        enableDrag: false,
         isScrollControlled: true, // con letra grande tampoco se corta
         backgroundColor: Paleta.superficie,
-        builder: (c) => SafeArea(
+        builder: (c) => PopScope(canPop: false, child: SafeArea(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
             child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
               Icon(Icons.handshake_outlined, size: 44, color: Paleta.acentoOscuro),
               const SizedBox(height: 8),
@@ -144,7 +159,7 @@ class ContactosPendientes {
               TextButton(onPressed: () => Navigator.pop(c, 'no'), child: const Text('No me fue bien')),
             ]),
           ),
-        ),
+        )),
       );
       if (!context.mounted) return;
       switch (respuesta) {

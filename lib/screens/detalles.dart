@@ -179,7 +179,10 @@ class _ServicioDetalleState extends State<ServicioDetalle> {
 
   /// Al llamar o escribir, se recuerda para preguntar luego "¿Te atendió bien?".
   void _contactar(AppState st, Servicio s, VoidCallback abrir) {
-    if (st.logueado && s.autorId != st.uid) ContactosPendientes.registrar(st.prefs, s);
+    if (st.logueado && s.autorId != st.uid) {
+      ContactosPendientes.registrar(st.prefs, s);
+      ContactosPendientes.programar(st.prefs);
+    }
     abrir();
   }
 
