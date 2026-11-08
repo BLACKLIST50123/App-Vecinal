@@ -341,6 +341,14 @@ class Repo {
   Future<List<Map<String, dynamic>>> serviciosConQuejas() async =>
       List<Map<String, dynamic>>.from(await db.rpc('servicios_con_quejas').timeout(const Duration(seconds: 10)) as List);
 
+  /// Servicios por id (para la junta: contacto de los que tienen quejas).
+  Future<List<Servicio>> serviciosPorIds(List<String> ids) async {
+    if (ids.isEmpty) return [];
+    final filas = await db.from('servicios').select('*, vistos_buenos(count)').inFilter('id', ids)
+        .timeout(const Duration(seconds: 10));
+    return filas.map(Servicio.fromMap).toList();
+  }
+
   /// Otros servicios activos del mismo vecino ("Más de este vecino").
   Future<List<Servicio>> serviciosDe(String autorId, {String? excepto}) async {
     final filas = await _consultar(

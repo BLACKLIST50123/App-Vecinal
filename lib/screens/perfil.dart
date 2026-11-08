@@ -945,6 +945,50 @@ class ServiciosConQuejasScreen extends StatelessWidget {
       );
 }
 
+/// Llamar o escribir al vecino del servicio. El mensaje no dice quién se
+/// quejó (las quejas son privadas): invita a conversar para mejorar.
+class _Conversar extends StatelessWidget {
+  const _Conversar({required this.servicio, required this.titulo});
+  final Servicio? servicio;
+  final String titulo;
+
+  @override
+  Widget build(BuildContext context) {
+    final tel = servicio?.telefono?.replaceAll(RegExp(r'\D'), '') ?? '';
+    if (tel.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.only(top: 4),
+        child: Text('Este servicio no tiene celular. Puedes buscarlo en tu sector.',
+            style: TextStyle(color: Paleta.gris, fontSize: 14)),
+      );
+    }
+    final nombre = (servicio?.autorNombre ?? '').split(' ').first;
+    final mensaje = 'Hola${nombre.isEmpty ? '' : ' $nombre'}, te escribo de la junta vecinal de Conecta Vecino '
+        'por tu servicio "$titulo". Algunos vecinos comentaron que tuvieron inconvenientes y queremos '
+        'conversar contigo para ayudarte a mejorar. ¿Cuándo podemos hablar?';
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Row(children: [
+        Expanded(
+          child: FilledButton.icon(
+            onPressed: () => llamar(tel),
+            icon: const Icon(Icons.call),
+            label: const Text('Llamar'),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: () => abrirWhatsapp(tel, mensaje),
+            icon: const Icon(Icons.chat),
+            label: const Text('WhatsApp'),
+          ),
+        ),
+      ]),
+    );
+  }
+}
+
 /// "Atención" (2 quejas) o "En revisión" (3+: sin sello ni N.º 1).
 class _Estado extends StatelessWidget {
   const _Estado(this.total);
@@ -982,15 +1026,18 @@ class _ServiciosConQuejas extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            Cargador<List<Map<String, dynamic>>>(
+            Cargador<(List<Map<String, dynamic>>, Map<String, Servicio>)>(
               cargar: (st) async {
                 try {
-                  return await st.repo.serviciosConQuejas();
+                  final lista = await st.repo.serviciosConQuejas();
+                  // Contacto de cada servicio, para conversar antes de decidir.
+                  final servicios = await st.repo.serviciosPorIds([for (final q in lista) '${q['servicio_id']}']);
+                  return (lista, {for (final s in servicios) s.id: s});
                 } catch (_) {
-                  return const []; // sin la migración 0017 o sin señal
+                  return (const <Map<String, dynamic>>[], const <String, Servicio>{}); // sin migración o sin señal
                 }
               },
-              builder: (c, lista) => lista.isEmpty
+              builder: (c, datos) => datos.$1.isEmpty
                   ? const Padding(
                       padding: EdgeInsets.symmetric(vertical: 8),
                       child: Row(children: [
@@ -1000,9 +1047,15 @@ class _ServiciosConQuejas extends StatelessWidget {
                       ]),
                     )
                   : Column(children: [
-                      for (final q in lista)
+                      for (final (i, q) in datos.$1.indexed) ...[
+                        if (i > 0) const Divider(height: 24),
                         ListTile(
                           contentPadding: EdgeInsets.zero,
+                          // Tocar abre el servicio (como lo ven los vecinos).
+                          onTap: datos.$2[q['servicio_id']] == null
+                              ? null
+                              : () => Navigator.push(context,
+                                  MaterialPageRoute(builder: (_) => ServicioDetalle(servicio: datos.$2[q['servicio_id']]!))),
                           leading: CircleAvatar(
                             backgroundColor: Paleta.rojoSuave,
                             child: Text('${q['total']}', style: const TextStyle(color: Paleta.rojoTexto, fontWeight: FontWeight.w800)),
@@ -1016,6 +1069,8 @@ class _ServiciosConQuejas extends StatelessWidget {
                             for (final m in (q['motivos'] as List?) ?? const []) _motivos['$m'] ?? '$m',
                           ].join(' · '), style: const TextStyle(fontSize: 15)),
                         ),
+                        _Conversar(servicio: datos.$2[q['servicio_id']], titulo: '${q['titulo']}'),
+                      ],
                     ]),
             ),
           ]),
