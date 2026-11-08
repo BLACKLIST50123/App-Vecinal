@@ -113,7 +113,15 @@ class BannerEmergencia extends StatelessWidget {
     final st = context.watch<AppState>();
     if (!st.modoEmergencia) return const SizedBox.shrink();
     final e = st.emergencia;
-    final titulo = e.titulo ?? 'Modo emergencia activo';
+    final esSismo = e.origen == 'sismo';
+    final titulo = e.titulo ?? (esSismo ? 'Alerta Sísmica' : 'Modo emergencia activo');
+
+    String? dist;
+    if (esSismo && e.lat != null && e.lng != null) {
+      final km = distanciaKm(st.referencia, Punto(e.lat!, e.lng!));
+      dist = 'a ${km.toStringAsFixed(0)} km de ti';
+    }
+
     return Semantics(
       liveRegion: true,
       child: Container(
@@ -121,12 +129,14 @@ class BannerEmergencia extends StatelessWidget {
         color: Paleta.rojo,
         padding: EdgeInsets.symmetric(horizontal: 16, vertical: grande ? 16 : 8),
         child: Row(children: [
-          const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 32),
+          Icon(esSismo ? Icons.vibration : Icons.warning_amber_rounded, color: Colors.white, size: 32),
           const SizedBox(width: 12),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('EMERGENCIA: $titulo',
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+              Text(
+                esSismo ? '🚨 $titulo ${dist != null ? "($dist)" : ""}' : 'EMERGENCIA: $titulo',
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+              ),
               if (grande && e.mensaje != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 4),

@@ -237,6 +237,15 @@ class Repo {
     return filas.isEmpty ? const EstadoEmergencia.inactiva() : EstadoEmergencia.fromMap(filas.first);
   }
 
+  Future<List<Sismo>> sismosRecientes({int limite = 10}) async {
+    final filas = await _consultar('sismos_recientes', () => db
+        .from('sismos')
+        .select()
+        .order('fecha_hora', ascending: false)
+        .limit(limite));
+    return filas.map((m) => Sismo.fromMap(m)).toList();
+  }
+
   Future<List<VistoBueno>> vistosBuenos(String servicioId) async {
     final filas = await _consultar(
       'vb_$servicioId',
