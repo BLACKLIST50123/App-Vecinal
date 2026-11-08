@@ -62,51 +62,6 @@ class AtajoVolumen {
   }
 }
 
-// ============================================================ botón flotante
-
-/// Botón de pánico flotante, visible sobre todas las pantallas.
-class BotonSOSFlotante extends StatelessWidget {
-  const BotonSOSFlotante({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final teclado = MediaQuery.of(context).viewInsets.bottom > 0;
-    return ValueListenableBuilder<bool>(
-      valueListenable: sosAbierto,
-      builder: (context, abierto, _) {
-        if (abierto || teclado) return const SizedBox.shrink();
-        return Positioned(
-          left: 16,
-          bottom: MediaQuery.of(context).padding.bottom + 90,
-          child: Semantics(
-            button: true,
-            label: 'SOS. Abrir modo emergencia para reportar rápido y de forma discreta.',
-            excludeSemantics: true,
-            child: Material(
-              color: Paleta.rojo,
-              shape: const CircleBorder(side: BorderSide(color: Colors.white, width: 3)),
-              elevation: 6,
-              shadowColor: Paleta.rojo.withValues(alpha: 0.5),
-              child: InkWell(
-                customBorder: const CircleBorder(),
-                onTap: abrirSOS,
-                child: const SizedBox(
-                  width: 64,
-                  height: 64,
-                  child: Center(
-                    child: Text('SOS',
-                        style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
 // ============================================================ modo emergencia
 
 class _OpcionSOS {

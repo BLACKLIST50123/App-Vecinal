@@ -296,6 +296,7 @@ class _ModalSolicitarPedidoState extends State<ModalSolicitarPedido> {
   final _telefono = TextEditingController();
   String? _sector;
   bool _enviando = false;
+  String? _errDetalle, _errTelefono;
 
   @override
   void initState() {
@@ -326,10 +327,11 @@ class _ModalSolicitarPedidoState extends State<ModalSolicitarPedido> {
       return;
     }
     final detalle = _detalle.text.trim();
-    if (detalle.length < 2) {
-      avisar('Escribe qué necesitas o qué deseas pedir.');
-      return;
-    }
+    setState(() {
+      _errDetalle = validarTexto(detalle, obligatorio: true);
+      _errTelefono = validarTelefono(_telefono.text);
+    });
+    if (_errDetalle != null || _errTelefono != null) return;
     if (widget.servicio.autorId == null) {
       avisar('No se puede enviar pedido a este servicio.');
       return;
@@ -432,14 +434,17 @@ class _ModalSolicitarPedidoState extends State<ModalSolicitarPedido> {
               TextField(
                 controller: _detalle,
                 maxLines: 3,
-                decoration: const InputDecoration(
+                maxLength: 500,
+                decoration: InputDecoration(
                   labelText: '¿Qué necesitas o qué deseas pedir? *',
                   hintText: 'Ej. Reparar fuga de agua en el lavadero / 1 torta para el sábado',
+                  errorText: _errDetalle,
                 ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: _fecha,
+                maxLength: 60,
                 decoration: const InputDecoration(
                   labelText: '¿Para cuándo lo necesitas? (opcional)',
                   hintText: 'Ej. Mañana a las 10 am / Lo antes posible',
@@ -449,9 +454,12 @@ class _ModalSolicitarPedidoState extends State<ModalSolicitarPedido> {
               TextField(
                 controller: _telefono,
                 keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(
-                  labelText: 'Tu teléfono de contacto',
-                  hintText: 'Para que el prestador te llame o escriba',
+                inputFormatters: formatoTelefono,
+                decoration: InputDecoration(
+                  labelText: 'Tu celular de contacto',
+                  hintText: '987654321',
+                  helperText: 'Para que el prestador te llame o escriba',
+                  errorText: _errTelefono,
                 ),
               ),
               const SizedBox(height: 12),

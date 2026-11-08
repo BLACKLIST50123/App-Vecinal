@@ -53,3 +53,7 @@ supabase.json
 # Cuentas y claves de demo (solo locales)
 *.local.sql
 *.local.md
+
+# Documentación y notas de desarrollo personales (no subir)
+CONTEXTO.md
+NOTAS.md

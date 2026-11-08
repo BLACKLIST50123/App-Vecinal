@@ -1,5 +1,7 @@
 import 'dart:math';
 
+import 'package:flutter/services.dart';
+
 import 'config.dart';
 
 double _rad(double g) => g * pi / 180;
@@ -54,3 +56,48 @@ String nuevoId() {
 }
 
 String soloDigitos(String s) => s.replaceAll(RegExp(r'\D'), '');
+
+// ============================================================ validación
+
+/// Filtros de teclado: solo se puede escribir lo que el campo acepta.
+final soloNumeros = FilteringTextInputFormatter.digitsOnly;
+final soloLetras = FilteringTextInputFormatter.allow(RegExp(r"[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ' -]"));
+final formatoTelefono = <TextInputFormatter>[soloNumeros, LengthLimitingTextInputFormatter(9)];
+
+/// Celular peruano: 9 dígitos y empieza en 9. Vacío es válido si es opcional.
+String? validarTelefono(String v, {bool obligatorio = false}) {
+  final t = v.trim();
+  if (t.isEmpty) return obligatorio ? 'Escribe tu celular' : null;
+  if (!RegExp(r'^9\d{8}$').hasMatch(t)) return 'El celular debe tener 9 dígitos y empezar con 9';
+  return null;
+}
+
+String? validarNombre(String v) {
+  final t = v.trim();
+  if (t.isEmpty) return 'Escribe tu nombre';
+  if (!RegExp(r"^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ' -]+$").hasMatch(t)) return 'Usa solo letras';
+  if (t.replaceAll(RegExp(r"[' -]"), '').length < 2) return 'El nombre es muy corto';
+  return null;
+}
+
+/// Texto libre: solo controla el largo mínimo. Vacío es válido si es opcional.
+String? validarTexto(String v, {int min = 15, bool obligatorio = false}) {
+  final t = v.trim();
+  if (t.isEmpty) return obligatorio ? 'Este campo es obligatorio' : null;
+  if (t.length < min) return 'Escribe un poco más (mínimo $min letras)';
+  return null;
+}
+
+/// Precio en soles, solo números. Vacío es válido (es opcional).
+String? validarPrecio(String v) {
+  final t = v.trim();
+  if (t.isEmpty) return null;
+  final n = int.tryParse(t);
+  if (n == null) return 'Escribe solo números';
+  if (n <= 0) return 'El precio debe ser mayor a 0';
+  return null;
+}
+
+/// "30" → "S/ 30" para guardar; "Desde S/ 30" → "30" para editar.
+String? precioGuardado(String v) => v.trim().isEmpty ? null : 'S/ ${v.trim()}';
+String precioEditable(String? guardado) => soloDigitos(guardado ?? '');
