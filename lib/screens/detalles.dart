@@ -10,6 +10,8 @@ import '../ui/widgets.dart';
 import '../util.dart';
 import 'auth_screen.dart';
 import 'confianza.dart';
+import '../features/recomendar/contactos_pendientes.dart';
+import '../ui/diseno.dart';
 
 String traducirError(Object e) {
   if (e is SinPermiso) return e.mensaje;
@@ -71,6 +73,91 @@ class _Dato extends StatelessWidget {
 
 // =================================================== Servicio + Visto Bueno
 
+/// Visto Bueno con motivos de un toque (Puntual, Precio justo...).
+/// Se usa en el detalle del servicio y en "¿Te atendió bien?".
+/// Devuelve true si se guardó (o si ya lo había recomendado antes).
+Future<bool> dialogoVistoBueno(BuildContext context, {required String servicioId, required String titulo}) async {
+  final st = context.read<AppState>();
+  if (!st.logueado) {
+    await Navigator.push(context, MaterialPageRoute(
+      builder: (_) => const AuthScreen(mensaje: 'Para dar tu Visto Bueno necesitas una cuenta de vecino.'),
+    ));
+    return false;
+  }
+  final comentario = TextEditingController();
+  final elegidos = <String>{};
+  String? error;
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (c) => StatefulBuilder(
+      builder: (c, setD) => AlertDialog(
+        title: const Text('Dar mi Visto Bueno'),
+        content: SingleChildScrollView(
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('¿Por qué recomiendas "$titulo"?', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+            const SizedBox(height: 4),
+            Text('Toca uno o más. Recomiéndalo solo si lo usaste y quedaste conforme.',
+                style: TextStyle(color: Paleta.gris)),
+            const SizedBox(height: 12),
+            Wrap(spacing: 8, runSpacing: 8, children: [
+              for (final (id, texto, icono) in motivosVistoBueno)
+                FilterChip(
+                  avatar: Icon(icono, size: 18, color: elegidos.contains(id) ? Colors.white : Paleta.acentoOscuro),
+                  label: Text(texto, style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: elegidos.contains(id) ? Colors.white : Paleta.tinta,
+                  )),
+                  selected: elegidos.contains(id),
+                  showCheckmark: false,
+                  selectedColor: Theme.of(c).colorScheme.primary,
+                  onSelected: (v) => setD(() {
+                    v ? elegidos.add(id) : elegidos.remove(id);
+                    error = null;
+                  }),
+                ),
+            ]),
+            const SizedBox(height: 14),
+            TextField(
+              controller: comentario,
+              maxLength: 280,
+              maxLines: 2,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(labelText: 'Comentario (opcional)', hintText: 'Ej: Arregló la fuga en 20 minutos'),
+            ),
+            if (error != null)
+              Text(error!, style: TextStyle(color: Paleta.rojoTexto, fontWeight: FontWeight.w700)),
+          ]),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancelar')),
+          FilledButton.icon(
+            onPressed: () {
+              if (elegidos.isEmpty) return setD(() => error = 'Toca al menos un motivo.');
+              Navigator.pop(c, true);
+            },
+            icon: const Icon(Icons.thumb_up),
+            label: const Text('Recomendar'),
+          ),
+        ],
+      ),
+    ),
+  );
+  if (ok != true) return false;
+  try {
+    // Orden fijo de los motivos (como en la lista), no el de los toques.
+    final motivos = [for (final m in motivosVistoBueno) if (elegidos.contains(m.$1)) m.$1];
+    await st.repo.darVistoBueno(servicioId, comentario.text, motivos: motivos);
+    avisar('¡Gracias! Tu Visto Bueno ayuda a tus vecinos');
+    st.refrescar();
+    return true;
+  } catch (e) {
+    final ya = e is PostgrestException && e.code == '23505';
+    avisar(ya ? 'Ya diste tu Visto Bueno a este servicio' : traducirError(e));
+    return ya;
+  }
+}
+
 class ServicioDetalle extends StatefulWidget {
   const ServicioDetalle({super.key, required this.servicio});
   final Servicio servicio;
@@ -83,43 +170,17 @@ class _ServicioDetalleState extends State<ServicioDetalle> {
   int _recarga = 0;
 
   Future<void> _darVistoBueno(AppState st) async {
-    if (!st.logueado) {
-      await Navigator.push(context, MaterialPageRoute(
-        builder: (_) => const AuthScreen(mensaje: 'Para dar tu Visto Bueno necesitas una cuenta de vecino.'),
-      ));
-      return;
+    final s = widget.servicio;
+    if (await dialogoVistoBueno(context, servicioId: s.id, titulo: s.titulo)) {
+      ContactosPendientes.quitar(st.prefs, s.id);
+      if (mounted) setState(() => _recarga++);
     }
-    final comentario = TextEditingController();
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (c) => AlertDialog(
-        title: const Text('Dar mi Visto Bueno'),
-        content: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Text('Recomiéndalo solo si lo contrataste y quedaste conforme.'),
-          const SizedBox(height: 12),
-          TextField(
-            controller: comentario,
-            maxLength: 280,
-            maxLines: 3,
-            decoration: const InputDecoration(labelText: 'Comentario (opcional)', hintText: 'Ej: Llegó puntual y cobró justo'),
-          ),
-        ]),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancelar')),
-          FilledButton.icon(onPressed: () => Navigator.pop(c, true), icon: const Icon(Icons.thumb_up), label: const Text('Recomendar')),
-        ],
-      ),
-    );
-    if (ok != true) return;
-    try {
-      await st.repo.darVistoBueno(widget.servicio.id, comentario.text);
-      avisar('¡Gracias! Tu Visto Bueno ayuda a tus vecinos');
-      setState(() => _recarga++);
-      st.refrescar();
-    } catch (e) {
-      final ya = e is PostgrestException && e.code == '23505';
-      avisar(ya ? 'Ya diste tu Visto Bueno a este servicio' : traducirError(e));
-    }
+  }
+
+  /// Al llamar o escribir, se recuerda para preguntar luego "¿Te atendió bien?".
+  void _contactar(AppState st, Servicio s, VoidCallback abrir) {
+    if (st.logueado && s.autorId != st.uid) ContactosPendientes.registrar(st.prefs, s);
+    abrir();
   }
 
   @override
@@ -156,6 +217,10 @@ class _ServicioDetalleState extends State<ServicioDetalle> {
               Text(s.autorNombre ?? 'Vecino', style: Theme.of(context).textTheme.titleMedium),
               InsigniaRol(s.autorRol),
             ]),
+            if (s.tieneSello(st.sector)) ...[
+              const SizedBox(height: 8),
+              SelloBarrio(propio: st.sector != null, total: s.vistosBuenos, grande: true),
+            ],
             BotonEscuchar(s.textoParaVoz),
           ]),
         ),
@@ -206,11 +271,17 @@ class _ServicioDetalleState extends State<ServicioDetalle> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(children: [
-              Expanded(child: FilledButton.icon(onPressed: () => llamar(s.telefono!), icon: const Icon(Icons.call), label: const Text('Llamar'))),
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: () => _contactar(st, s, () => llamar(s.telefono!)),
+                  icon: const Icon(Icons.call),
+                  label: const Text('Llamar'),
+                ),
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () => abrirWhatsapp(s.telefono!, 'Hola, te encontré en Conecta Vecino: "${s.titulo}"'),
+                  onPressed: () => _contactar(st, s, () => abrirWhatsapp(s.telefono!, 'Hola, te encontré en Conecta Vecino: "${s.titulo}"')),
                   icon: const Icon(Icons.chat),
                   label: const Text('WhatsApp'),
                 ),
@@ -221,6 +292,15 @@ class _ServicioDetalleState extends State<ServicioDetalle> {
         _Dato(Icons.payments, 'Precio referencial', s.precioRef),
         _Dato(Icons.schedule, 'Horario', s.horario),
         _Dato(Icons.place, 'Zona', [?s.sector, if (dist != null) formatoDistancia(dist)].join(' · ')),
+        // Otros servicios o productos del mismo vecino.
+        if (s.autorId != null && !s.esEmergencia)
+          Cargador<List<Servicio>>(
+            claves: [s.autorId],
+            cargar: (st) => st.repo.serviciosDe(s.autorId!, excepto: s.id),
+            builder: (c, otros) => otros.isEmpty
+                ? const SizedBox.shrink()
+                : _MasDelVecino(nombre: esMio ? 'Tú' : (s.autorNombre ?? 'Este vecino'), otros: otros),
+          ),
         const Divider(),
         TituloSeccion('Visto Bueno Vecinal (${s.vistosBuenos})'),
         Padding(
@@ -245,13 +325,45 @@ class _ServicioDetalleState extends State<ServicioDetalle> {
               return const EstadoVacio(icono: Icons.thumb_up_off_alt, texto: 'Aún nadie lo recomienda. ¡Sé el primero si lo usaste!');
             }
             final verificados = lista.where((v) => v.verificado).length;
-            return Column(children: [
+            final zona = st.sector ?? s.sector;
+            final deZona = lista.where((v) => v.verificado && v.sector != null && v.sector == zona).length;
+            final conteo = <String, int>{};
+            for (final v in lista) {
+              for (final m in v.motivos) {
+                conteo[m] = (conteo[m] ?? 0) + 1;
+              }
+            }
+            final motivos = conteo.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+            return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
               if (verificados > 0)
                 ListTile(
                   leading: Icon(Icons.verified_user, color: Paleta.verde, size: 32),
-                  title: Text('$verificados de ${lista.length} son vecinos verificados de ${Zona.nombre}',
+                  title: Text(
+                      deZona > 0 && zona != null
+                          ? '$deZona ${deZona == 1 ? 'es vecino verificado' : 'son vecinos verificados'} de $zona'
+                          : '$verificados de ${lista.length} son vecinos verificados de ${Zona.nombre}',
                       style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: const Text('Confirmaron con GPS que viven en la zona'),
+                  subtitle: Text([
+                    'Confirmaron con GPS que viven en la zona',
+                    // Lo reciente pesa más en el orden de la lista.
+                    if (lista.any((v) => DateTime.now().difference(v.creado).inDays <= Servicio.diasRecientes))
+                      '${lista.where((v) => DateTime.now().difference(v.creado).inDays <= Servicio.diasRecientes).length} '
+                          'en los últimos 3 meses',
+                  ].join(' · ')),
+                ),
+              // Lo que más destacan los vecinos, con cuántos lo dijeron.
+              if (motivos.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                  child: Wrap(spacing: 8, runSpacing: 8, children: [
+                    for (final m in motivos)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                        decoration: BoxDecoration(color: Paleta.verdeSuave, borderRadius: BorderRadius.circular(20)),
+                        child: Text('${textoMotivo(m.key)} · ${m.value}',
+                            style: TextStyle(color: Paleta.verde, fontWeight: FontWeight.w700, fontSize: 14)),
+                      ),
+                  ]),
                 ),
               for (final vb in lista)
                 ListTile(
@@ -261,7 +373,11 @@ class _ServicioDetalleState extends State<ServicioDetalle> {
                         color: vb.verificado ? Paleta.verde : null),
                   ),
                   title: Text([vb.autorNombre ?? 'Vecino', if (vb.verificado) '· vecino verificado'].join(' ')),
-                  subtitle: Text([?vb.comentario, haceCuanto(vb.creado)].join('\n')),
+                  subtitle: Text([
+                    if (vb.motivos.isNotEmpty) vb.motivos.map(textoMotivo).join(' · '),
+                    ?vb.comentario,
+                    [?vb.sector, haceCuanto(vb.creado)].join(' · '),
+                  ].join('\n')),
                 ),
             ]);
           },
@@ -936,3 +1052,56 @@ class _PublicacionDetalleState extends State<PublicacionDetalle> {
   }
 }
 
+/// "Maestro Pedro también ofrece": sus otros servicios, para descubrirlos
+/// sin tener que buscar.
+class _MasDelVecino extends StatelessWidget {
+  const _MasDelVecino({required this.nombre, required this.otros});
+  final String nombre;
+  final List<Servicio> otros;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Semantics(
+            header: true,
+            child: Text(nombre == 'Tú' ? 'También ofreces' : '$nombre también ofrece',
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+          ),
+          const SizedBox(height: 8),
+          for (final o in otros.take(5))
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Material(
+                color: colorGrupo(grupoServicio(o.categoria)).$2,
+                borderRadius: BorderRadius.circular(14),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(14),
+                  // Reemplaza este detalle por el otro (no lo apila): así
+                  // "Atrás" vuelve de un toque a la lista, aunque explores varios.
+                  onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => ServicioDetalle(servicio: o))),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    child: Row(children: [
+                      Icon(buscarCategoria(o.categoria).icono, color: colorGrupo(grupoServicio(o.categoria)).$1),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(o.titulo,
+                            maxLines: 2, overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                      ),
+                      if (o.vistosBuenos > 0) ...[
+                        Icon(Icons.thumb_up_alt_rounded, size: 16, color: Paleta.verde),
+                        const SizedBox(width: 3),
+                        Text('${o.vistosBuenos}', style: TextStyle(fontWeight: FontWeight.w700, color: Paleta.verde)),
+                      ],
+                      const SizedBox(width: 4),
+                      Icon(Icons.chevron_right, color: Paleta.gris),
+                    ]),
+                  ),
+                ),
+              ),
+            ),
+        ]),
+      );
+}

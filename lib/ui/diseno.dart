@@ -359,8 +359,14 @@ class TarjetaCerca extends StatelessWidget {
 
 /// Tarjeta horizontal de "Servicios y productos": ícono, datos, precio y flecha.
 class TarjetaMercado extends StatelessWidget {
-  const TarjetaMercado(this.s, {super.key});
+  const TarjetaMercado(this.s, {super.key, this.destacado = false, this.quejas = 0});
   final Servicio s;
+
+  /// Total de "No me fue bien" (no se muestra: solo baja la insignia).
+  final int quejas;
+
+  /// El de mayor puntaje de su tipo: "El más recomendado en Gasfitería".
+  final bool destacado;
 
   @override
   Widget build(BuildContext context) {
@@ -394,6 +400,20 @@ class TarjetaMercado extends StatelessWidget {
             const SizedBox(width: 14),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                if (destacado)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Row(children: [
+                      Icon(Icons.emoji_events, size: 16, color: Paleta.ambar),
+                      const SizedBox(width: 4),
+                      Flexible(
+                        // Corto para que quepa en una línea (antes se cortaba).
+                        child: Text('N.º 1 en ${cat.nombre}',
+                            maxLines: 1, overflow: TextOverflow.ellipsis,
+                            style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: Paleta.ambar)),
+                      ),
+                    ]),
+                  ),
                 Row(children: [
                   Flexible(
                     child: Text(s.titulo, maxLines: 2, overflow: TextOverflow.ellipsis,
@@ -405,25 +425,47 @@ class TarjetaMercado extends StatelessWidget {
                       child: Icon(Icons.verified, color: Paleta.azulInfo, size: 16),
                     ),
                 ]),
-                const SizedBox(height: 3),
-                Text([s.autorNombre ?? 'Vecino', if (dist != null) formatoDistancia(dist)].join(' · '),
+                const SizedBox(height: 2),
+                Text(s.autorNombre ?? 'Vecino',
                     maxLines: 1, overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: Paleta.gris, fontSize: 13)),
-                const SizedBox(height: 4),
+                    style: TextStyle(color: Paleta.gris, fontSize: 14)),
+                const SizedBox(height: 6),
+                // Lo que más importa al elegir: qué tan cerca y quién lo recomienda.
+                if (dist != null)
+                  _Dato(
+                    icono: Icons.place_outlined,
+                    texto: dist < 0.1 ? 'Muy cerca de ti' : '${_primeraMayuscula(formatoDistancia(dist))} de ti',
+                    color: Paleta.tinta,
+                  ),
                 if (s.pendiente)
-                  Text('Por enviar', style: TextStyle(fontWeight: FontWeight.w700, color: Paleta.gris, fontSize: 13))
+                  _Dato(icono: Icons.schedule, texto: 'Por enviar', color: Paleta.gris)
+                else if (apoyo)
+                  _Dato(icono: Icons.favorite_border, texto: 'Ayuda voluntaria', color: naranja)
                 else
-                  Semantics(
-                    label: apoyo ? 'Ayuda voluntaria' : '${s.vistosBuenos} Vistos Buenos',
-                    excludeSemantics: true,
-                    child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      Icon(apoyo ? Icons.favorite_border : Icons.thumb_up_alt_outlined, size: 16, color: apoyo ? naranja : Paleta.verde),
-                      const SizedBox(width: 4),
-                      Text(
-                        apoyo ? 'Ayuda voluntaria' : '${s.vistosBuenos} Vistos Buenos',
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: apoyo ? naranja : Paleta.verde),
+                  // Una sola insignia, según el puntaje de confianza vecinal.
+                  switch (s.nivel(st.sector, quejas: quejas)) {
+                    // 3+ vecinos VERIFICADOS de la misma zona lo recomiendan.
+                    NivelConfianza.barrio => SelloBarrio(propio: st.sector != null, total: s.vistosBuenos),
+                    NivelConfianza.muy => _Dato(
+                        icono: Icons.thumb_up_alt_rounded,
+                        texto: 'Muy recomendado · ${s.vistosBuenos} vecinos',
+                        color: Paleta.verde,
                       ),
-                    ]),
+                    NivelConfianza.recomendado => _Dato(
+                        icono: Icons.thumb_up_alt_rounded,
+                        texto: s.vistosBuenos == 1 ? '1 vecino lo recomienda' : '${s.vistosBuenos} vecinos lo recomiendan',
+                        color: Paleta.verde,
+                      ),
+                    // Sin recomendaciones todavía: no es malo, es nuevo.
+                    NivelConfianza.nuevo => _Dato(icono: Icons.eco_outlined, texto: 'Nuevo en el barrio', color: Paleta.gris),
+                  },
+                // Por qué lo recomiendan (los 2 motivos más elegidos).
+                if (!apoyo && s.motivosPrincipales().isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 22),
+                    child: Text(s.motivosPrincipales().map(textoMotivo).join(' · '),
+                        maxLines: 1, overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 13, color: Paleta.gris, fontWeight: FontWeight.w600)),
                   ),
                 if (s.precioRef != null) ...[
                   const SizedBox(height: 3),
@@ -448,6 +490,69 @@ class TarjetaMercado extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Sello dorado "Recomendado en tu barrio": lo dan 3 o más vecinos
+/// verificados de la misma zona. Fácil de reconocer de un vistazo.
+class SelloBarrio extends StatelessWidget {
+  const SelloBarrio({super.key, required this.propio, required this.total, this.grande = false});
+
+  /// true: zona de quien mira ("tu barrio"); false: zona del servicio.
+  final bool propio;
+  final int total;
+  final bool grande;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+        label: '${propio ? 'Recomendado en tu barrio' : 'Recomendado en su barrio'}. $total vecinos lo recomiendan.',
+        excludeSemantics: true,
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 3),
+          padding: EdgeInsets.symmetric(horizontal: grande ? 12 : 8, vertical: grande ? 8 : 4),
+          decoration: BoxDecoration(
+            color: Paleta.oroFondo,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: Paleta.oroClaro),
+          ),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Icon(Icons.workspace_premium, size: grande ? 22 : 17, color: Paleta.ambar),
+            const SizedBox(width: 5),
+            Flexible(
+              child: Text(
+                '${propio ? 'Recomendado en tu barrio' : 'Recomendado en su barrio'} · $total',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: grande ? 16 : 13, fontWeight: FontWeight.w800, color: Paleta.ambar),
+              ),
+            ),
+          ]),
+        ),
+      );
+}
+
+String _primeraMayuscula(String t) => t.isEmpty ? t : t[0].toUpperCase() + t.substring(1);
+
+/// Un dato de la tarjeta: ícono + texto corto en una línea.
+class _Dato extends StatelessWidget {
+  const _Dato({required this.icono, required this.texto, required this.color});
+  final IconData icono;
+  final String texto;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(bottom: 3),
+        child: Row(children: [
+          Icon(icono, size: 17, color: color),
+          const SizedBox(width: 5),
+          Flexible(
+            child: Text(texto,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: color)),
+          ),
+        ]),
+      );
 }
 
 /// Cuadrícula de 2 columnas con filas de IGUAL altura (se ve ordenada) y

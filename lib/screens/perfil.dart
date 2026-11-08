@@ -157,6 +157,13 @@ class PerfilScreen extends StatelessWidget {
               color: st.modoEmergencia ? Paleta.rojo : null,
               onTap: () => _ir(context, const JuntaVecinalScreen()),
             ),
+          if (st.esModerador)
+            FilaAjuste(
+              icono: Icons.report_outlined,
+              texto: 'Quejas de servicios',
+              valor: 'Revisar',
+              onTap: () => _ir(context, const ServiciosConQuejasScreen()),
+            ),
         ]),
       ],
 
@@ -926,4 +933,160 @@ class _RecordatorioAvisos extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Para la junta: servicios con varias respuestas "No me fue bien"
+/// (privadas). Permite revisar antes de que un vecino salga perjudicado.
+class ServiciosConQuejasScreen extends StatelessWidget {
+  const ServiciosConQuejasScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        appBar: AppBar(title: const Text('Quejas de servicios')),
+        body: ListView(padding: const EdgeInsets.only(bottom: 32), children: [
+          Padding(
+            padding: EdgeInsets.fromLTRB(20, 4, 20, 12),
+            child: Text(
+              'Cuando un vecino responde "No me fue bien", se guarda en privado. '
+              'Aquí ves los servicios que recibieron quejas. Con 3, dejan de salir como recomendados.\n\n'
+              'Antes de decidir algo, conversa con el vecino que ofrece el servicio.',
+              style: TextStyle(color: Paleta.gris, fontSize: 16, height: 1.4),
+            ),
+          ),
+          _ServiciosConQuejas(),
+        ]),
+      );
+}
+
+/// Llamar o escribir al vecino del servicio. El mensaje no dice quién se
+/// quejó (las quejas son privadas): invita a conversar para mejorar.
+class _Conversar extends StatelessWidget {
+  const _Conversar({required this.servicio, required this.titulo});
+  final Servicio? servicio;
+  final String titulo;
+
+  @override
+  Widget build(BuildContext context) {
+    final tel = servicio?.telefono?.replaceAll(RegExp(r'\D'), '') ?? '';
+    if (tel.isEmpty) {
+      return Padding(
+        padding: EdgeInsets.only(top: 4),
+        child: Text('Este servicio no tiene celular. Puedes buscarlo en tu sector.',
+            style: TextStyle(color: Paleta.gris, fontSize: 14)),
+      );
+    }
+    final nombre = (servicio?.autorNombre ?? '').split(' ').first;
+    final mensaje = 'Hola${nombre.isEmpty ? '' : ' $nombre'}, te escribo de la junta vecinal de Conecta Vecino '
+        'por tu servicio "$titulo". Algunos vecinos comentaron que tuvieron inconvenientes y queremos '
+        'conversar contigo para ayudarte a mejorar. ¿Cuándo podemos hablar?';
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Row(children: [
+        Expanded(
+          child: FilledButton.icon(
+            onPressed: () => llamar(tel),
+            icon: const Icon(Icons.call),
+            label: const Text('Llamar'),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: () => abrirWhatsapp(tel, mensaje),
+            icon: const Icon(Icons.chat),
+            label: const Text('WhatsApp'),
+          ),
+        ),
+      ]),
+    );
+  }
+}
+
+/// "Atención" (2 quejas) o "En revisión" (3+: sin sello ni N.º 1).
+class _Estado extends StatelessWidget {
+  const _Estado(this.total);
+  final int total;
+
+  @override
+  Widget build(BuildContext context) {
+    if (total < 2) return const SizedBox.shrink();
+    final revision = total >= Servicio.maximoQuejas;
+    final color = revision ? Paleta.rojoTexto : Paleta.ambar;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: revision ? Paleta.rojoSuave : Paleta.ambarSuave,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(revision ? 'En revisión' : 'Atención',
+          style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 13)),
+    );
+  }
+}
+
+class _ServiciosConQuejas extends StatelessWidget {
+  const _ServiciosConQuejas();
+
+  static const _motivos = {
+    'no_vino': 'No vino',
+    'cobro_de_mas': 'Cobró de más',
+    'mal_trabajo': 'Trabajo mal hecho',
+    'mal_trato': 'Mal trato',
+  };
+
+  @override
+  Widget build(BuildContext context) => Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            Cargador<(List<Map<String, dynamic>>, Map<String, Servicio>)>(
+              cargar: (st) async {
+                try {
+                  final lista = await st.repo.serviciosConQuejas();
+                  // Contacto de cada servicio, para conversar antes de decidir.
+                  final servicios = await st.repo.serviciosPorIds([for (final q in lista) '${q['servicio_id']}']);
+                  return (lista, {for (final s in servicios) s.id: s});
+                } catch (_) {
+                  return (const <Map<String, dynamic>>[], const <String, Servicio>{}); // sin migración o sin señal
+                }
+              },
+              builder: (c, datos) => datos.$1.isEmpty
+                  ? Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: Row(children: [
+                        Icon(Icons.check_circle, color: Paleta.verde),
+                        SizedBox(width: 8),
+                        Expanded(child: Text('Ningún servicio tiene quejas.')),
+                      ]),
+                    )
+                  : Column(children: [
+                      for (final (i, q) in datos.$1.indexed) ...[
+                        if (i > 0) const Divider(height: 24),
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          // Tocar abre el servicio (como lo ven los vecinos).
+                          onTap: datos.$2[q['servicio_id']] == null
+                              ? null
+                              : () => Navigator.push(context,
+                                  MaterialPageRoute(builder: (_) => ServicioDetalle(servicio: datos.$2[q['servicio_id']]!))),
+                          leading: CircleAvatar(
+                            backgroundColor: Paleta.rojoSuave,
+                            child: Text('${q['total']}', style: TextStyle(color: Paleta.rojoTexto, fontWeight: FontWeight.w800)),
+                          ),
+                          title: Text('${q['titulo']}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                          // Estado en palabras: 1 queja, Atención (2), En revisión (3+).
+                          trailing: _Estado((q['total'] as num).toInt()),
+                          subtitle: Text([
+                            '${q['autor_nombre'] ?? 'Vecino'}',
+                            (q['total'] as num) == 1 ? '1 queja' : '${q['total']} quejas',
+                            for (final m in (q['motivos'] as List?) ?? const []) _motivos['$m'] ?? '$m',
+                          ].join(' · '), style: const TextStyle(fontSize: 15)),
+                        ),
+                        _Conversar(servicio: datos.$2[q['servicio_id']], titulo: '${q['titulo']}'),
+                      ],
+                    ]),
+            ),
+          ]),
+        ),
+      );
 }

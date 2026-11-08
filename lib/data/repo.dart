@@ -143,17 +143,28 @@ class Repo {
     );
   }
 
+  /// Si falta una columna nueva (migración aún no aplicada), Postgres
+  /// responde 42703: se usa la consulta anterior y la app sigue andando.
+  static bool _faltaColumna(Object e) => e is PostgrestException && (e.code == '42703' || e.code == 'PGRST100');
+
   Future<List<Servicio>> servicios({required bool emergencia}) async {
-    final filas = await _consultar(
-      'servicios_$emergencia',
-      () => db
-          .from('servicios')
-          .select('*, vistos_buenos(count)')
-          .eq('activo', true)
-          .eq('es_emergencia', emergencia)
-          .order('created_at', ascending: false)
-          .limit(300),
-    );
+    Future<List<Map<String, dynamic>>> consulta(String vistos) => db
+        .from('servicios')
+        .select('*, $vistos')
+        .eq('activo', true)
+        .eq('es_emergencia', emergencia)
+        .order('created_at', ascending: false)
+        .limit(300);
+    final filas = await _consultar('servicios_$emergencia', () async {
+      try {
+        // Sector, verificación y motivos de cada Visto Bueno (migración 0016):
+        // permiten el sello "Recomendado en tu barrio".
+        return await consulta('vistos_buenos(autor_sector, autor_verificado, motivos, created_at)');
+      } catch (e) {
+        if (_faltaColumna(e)) return await consulta('vistos_buenos(count)');
+        rethrow;
+      }
+    });
     final enviados = filas.map(Servicio.fromMap).toList();
     final ids = enviados.map((s) => s.id).toSet();
     return [
@@ -249,11 +260,20 @@ class Repo {
   Future<List<VistoBueno>> vistosBuenos(String servicioId) async {
     final filas = await _consultar(
       'vb_$servicioId',
-      () => db
-          .from('vistos_buenos')
-          .select('id, autor_id, autor_nombre, autor_verificado, comentario, created_at')
-          .eq('servicio_id', servicioId)
-          .order('created_at', ascending: false),
+      () async {
+        Future<List<Map<String, dynamic>>> consulta(String campos) => db
+            .from('vistos_buenos')
+            .select(campos)
+            .eq('servicio_id', servicioId)
+            .order('created_at', ascending: false);
+        const base = 'id, autor_id, autor_nombre, autor_verificado, comentario, created_at';
+        try {
+          return await consulta('$base, autor_sector, motivos');
+        } catch (e) {
+          if (_faltaColumna(e)) return await consulta(base);
+          rethrow;
+        }
+      },
     );
     return filas.map(VistoBueno.fromMap).toList();
   }
@@ -298,6 +318,60 @@ class Repo {
           .order('created_at', ascending: false),
     );
     return filas.map(PedidoServicio.fromMap).toList();
+  }
+
+  // ---------------------------------- "No me fue bien" (migración 0017)
+
+  /// Guarda en privado que al vecino no le fue bien con un servicio.
+  /// Si la migración aún no está, no hace nada (la app sigue andando).
+  Future<void> registrarExperiencia(String servicioId, String? motivo) async {
+    try {
+      await db.from('experiencias').insert({'servicio_id': servicioId, 'motivo': ?motivo});
+    } on PostgrestException catch (e) {
+      if (e.code == '23505' || e.code == '42P01' || e.code == 'PGRST205') return; // ya estaba / sin migración
+      rethrow;
+    }
+  }
+
+  /// Total de experiencias negativas por servicio (sin nombres).
+  Future<Map<String, int>> conteoExperiencias() async {
+    try {
+      final filas = await _consultar(
+        'conteo_experiencias',
+        () async => List<Map<String, dynamic>>.from(await db.rpc('conteo_experiencias') as List),
+      );
+      return {for (final f in filas) '${f['servicio_id']}': (f['total'] as num).toInt()};
+    } catch (_) {
+      return const {}; // sin la migración 0017: sin descuentos
+    }
+  }
+
+  /// Para la junta vecinal: servicios con 2 o más quejas.
+  Future<List<Map<String, dynamic>>> serviciosConQuejas() async =>
+      List<Map<String, dynamic>>.from(await db.rpc('servicios_con_quejas').timeout(const Duration(seconds: 10)) as List);
+
+  /// Servicios por id (para la junta: contacto de los que tienen quejas).
+  Future<List<Servicio>> serviciosPorIds(List<String> ids) async {
+    if (ids.isEmpty) return [];
+    final filas = await db.from('servicios').select('*, vistos_buenos(count)').inFilter('id', ids)
+        .timeout(const Duration(seconds: 10));
+    return filas.map(Servicio.fromMap).toList();
+  }
+
+  /// Otros servicios activos del mismo vecino ("Más de este vecino").
+  Future<List<Servicio>> serviciosDe(String autorId, {String? excepto}) async {
+    final filas = await _consultar(
+      'servs_de_$autorId',
+      () => db
+          .from('servicios')
+          .select('*, vistos_buenos(count)')
+          .eq('autor_id', autorId)
+          .eq('activo', true)
+          .eq('es_emergencia', false)
+          .order('created_at', ascending: false)
+          .limit(10),
+    );
+    return [for (final f in filas) if (f['id'] != excepto) Servicio.fromMap(f)];
   }
 
   /// Todos los servicios creados por el usuario (activos y en pausa).
@@ -753,10 +827,19 @@ class Repo {
     await _guardarCola();
   }
 
-  Future<void> darVistoBueno(String servicioId, String? comentario) => db.from('vistos_buenos').insert({
-        'servicio_id': servicioId,
-        if (comentario != null && comentario.trim().isNotEmpty) 'comentario': comentario.trim(),
-      });
+  Future<void> darVistoBueno(String servicioId, String? comentario, {List<String> motivos = const []}) async {
+    final datos = {
+      'servicio_id': servicioId,
+      if (comentario != null && comentario.trim().isNotEmpty) 'comentario': comentario.trim(),
+    };
+    try {
+      await db.from('vistos_buenos').insert({...datos, if (motivos.isNotEmpty) 'motivos': motivos});
+    } catch (e) {
+      // Sin la migración 0016 se guarda sin motivos.
+      if (motivos.isNotEmpty && _faltaColumna(e)) return db.from('vistos_buenos').insert(datos);
+      rethrow;
+    }
+  }
 
   Future<void> cambiarEstado(String id, String estado, {bool atender = false}) =>
       db.from('publicaciones').update({
