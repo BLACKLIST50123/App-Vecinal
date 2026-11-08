@@ -62,9 +62,10 @@ class ContactosPendientes {
   static Future<String?> _preguntarMotivo(BuildContext context) => showModalBottomSheet<String>(
         context: context,
         showDragHandle: true,
+        isScrollControlled: true, // toma la altura que necesita (no se corta)
         backgroundColor: Colors.white,
         builder: (c) => SafeArea(
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
             child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
               const Text('¿Qué pasó?', textAlign: TextAlign.center, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
@@ -107,9 +108,10 @@ class ContactosPendientes {
       final respuesta = await showModalBottomSheet<String>(
         context: context,
         showDragHandle: true,
+        isScrollControlled: true, // con letra grande tampoco se corta
         backgroundColor: Colors.white,
         builder: (c) => SafeArea(
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
             child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
               const Icon(Icons.handshake_outlined, size: 44, color: Paleta.acentoOscuro),

@@ -935,7 +935,7 @@ class ServiciosConQuejasScreen extends StatelessWidget {
             padding: EdgeInsets.fromLTRB(20, 4, 20, 12),
             child: Text(
               'Cuando un vecino responde "No me fue bien", se guarda en privado. '
-              'Aquí ves los servicios con 2 o más quejas. Con 3, dejan de salir como recomendados.\n\n'
+              'Aquí ves los servicios que recibieron quejas. Con 3, dejan de salir como recomendados.\n\n'
               'Antes de decidir algo, conversa con el vecino que ofrece el servicio.',
               style: TextStyle(color: Paleta.gris, fontSize: 16, height: 1.4),
             ),
@@ -943,6 +943,28 @@ class ServiciosConQuejasScreen extends StatelessWidget {
           _ServiciosConQuejas(),
         ]),
       );
+}
+
+/// "Atención" (2 quejas) o "En revisión" (3+: sin sello ni N.º 1).
+class _Estado extends StatelessWidget {
+  const _Estado(this.total);
+  final int total;
+
+  @override
+  Widget build(BuildContext context) {
+    if (total < 2) return const SizedBox.shrink();
+    final revision = total >= Servicio.maximoQuejas;
+    final color = revision ? Paleta.rojoTexto : Paleta.ambar;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: revision ? Paleta.rojoSuave : Paleta.ambarSuave,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(revision ? 'En revisión' : 'Atención',
+          style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 13)),
+    );
+  }
 }
 
 class _ServiciosConQuejas extends StatelessWidget {
@@ -974,7 +996,7 @@ class _ServiciosConQuejas extends StatelessWidget {
                       child: Row(children: [
                         Icon(Icons.check_circle, color: Paleta.verde),
                         SizedBox(width: 8),
-                        Expanded(child: Text('Ningún servicio tiene quejas repetidas.')),
+                        Expanded(child: Text('Ningún servicio tiene quejas.')),
                       ]),
                     )
                   : Column(children: [
@@ -986,9 +1008,11 @@ class _ServiciosConQuejas extends StatelessWidget {
                             child: Text('${q['total']}', style: const TextStyle(color: Paleta.rojoTexto, fontWeight: FontWeight.w800)),
                           ),
                           title: Text('${q['titulo']}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                          // Estado en palabras: 1 queja, Atención (2), En revisión (3+).
+                          trailing: _Estado((q['total'] as num).toInt()),
                           subtitle: Text([
                             '${q['autor_nombre'] ?? 'Vecino'}',
-                            '${q['total']} quejas',
+                            (q['total'] as num) == 1 ? '1 queja' : '${q['total']} quejas',
                             for (final m in (q['motivos'] as List?) ?? const []) _motivos['$m'] ?? '$m',
                           ].join(' · '), style: const TextStyle(fontSize: 15)),
                         ),
