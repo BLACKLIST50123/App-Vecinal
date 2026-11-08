@@ -487,17 +487,19 @@ class TarjetaForo extends StatelessWidget {
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 14),
+                            const SizedBox(width: 8),
+                            // Comentarios (conteo limpio sin colisiones)
                             Row(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
                                 const Icon(
                                   Icons.chat_bubble_outline_rounded,
                                   size: 16,
                                   color: Paleta.gris,
                                 ),
-                                const SizedBox(width: 5),
+                                const SizedBox(width: 4),
                                 Text(
-                                  '${tema.respuestasCount} ${tema.respuestasCount == 1 ? 'comentario' : 'comentarios'}',
+                                  '${tema.respuestasCount}',
                                   style: const TextStyle(
                                     fontSize: 13,
                                     color: Paleta.gris,
@@ -507,7 +509,9 @@ class TarjetaForo extends StatelessWidget {
                               ],
                             ),
                             const Spacer(),
+                            // Acción
                             Row(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
                                   tema.tipo == TipoPublicacionForo.servicio
