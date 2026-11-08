@@ -8,6 +8,7 @@ import '../state/app_state.dart';
 import '../ui/diseno.dart';
 import '../ui/tema.dart';
 import '../ui/widgets.dart';
+import '../ui/foto_perfil.dart';
 import 'auth_screen.dart';
 import 'foro_modales.dart';
 import 'foro_widgets.dart';
@@ -469,17 +470,12 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                                 Row(
                                   crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
-                                    CircleAvatar(
-                                      radius: 20,
-                                      backgroundColor: colorAvatar(t.autorNombre).$1,
-                                      child: Text(
-                                        iniciales(t.autorNombre),
-                                        style: TextStyle(
-                                          color: colorAvatar(t.autorNombre).$2,
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 13,
-                                        ),
-                                      ),
+                                    AvatarVecino(
+                                      nombre: t.autorNombre,
+                                      fotoUrl: t.autorFotoUrl,
+                                      tamano: 40,
+                                      colorFondo: colorAvatar(t.autorNombre).$1,
+                                      colorTexto: colorAvatar(t.autorNombre).$2,
                                     ),
                                     const SizedBox(width: 10),
                                     Expanded(

@@ -13,6 +13,23 @@ class Zona {
   static const centro = Punto(-9.0950, -78.5600);
   static const radioKm = 15.0;
 
+  static const sectoresPorCiudad = <String, List<String>>{
+    'Chimbote': [
+      'Casco Urbano',
+      'Miraflores Alto',
+      'El Progreso',
+      'San Pedro',
+      'La Florida',
+      '21 de Abril',
+    ],
+    'Nuevo Chimbote': [
+      'Villa María',
+      'Bellamar',
+      'Buenos Aires',
+      'Nicolás Garatea',
+    ],
+  };
+
   static const sectores = <String, Punto>{
     'Casco Urbano': Punto(-9.0747, -78.5935),
     'Miraflores Alto': Punto(-9.0655, -78.5795),

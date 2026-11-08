@@ -422,6 +422,7 @@ class TemaForo {
     required this.titulo,
     required this.contenido,
     required this.autorNombre,
+    this.autorFotoUrl,
     this.autorRol = 'vecino',
     this.esPrestador = false,
     this.autorOficio,
@@ -444,6 +445,7 @@ class TemaForo {
   final String titulo;
   final String contenido;
   final String autorNombre;
+  final String? autorFotoUrl;
   final String autorRol;
   final bool esPrestador;
   final String? autorOficio;
@@ -555,6 +557,7 @@ class TemaForo {
       titulo: (m['titulo'] ?? '') as String,
       contenido: (m['contenido'] ?? '') as String,
       autorNombre: (m['autor_nombre'] ?? 'Vecino') as String,
+      autorFotoUrl: (m['autor_foto_url'] ?? m['foto_url']) as String?,
       autorRol: (m['autor_rol'] ?? 'vecino') as String,
       esPrestador: m['es_prestador'] == true,
       autorOficio: m['autor_oficio'] as String?,
@@ -581,6 +584,7 @@ class RespuestaForo {
     this.autorId,
     required this.contenido,
     required this.autorNombre,
+    this.autorFotoUrl,
     this.autorRol = 'vecino',
     this.esPrestador = false,
     this.autorOficio,
@@ -603,6 +607,7 @@ class RespuestaForo {
   final String? autorId;
   final String contenido;
   final String autorNombre;
+  final String? autorFotoUrl;
   final String autorRol;
   final bool esPrestador;
   final String? autorOficio;
@@ -691,6 +696,7 @@ class RespuestaForo {
       autorId: m['autor_id'] as String?,
       contenido: (m['contenido'] ?? '') as String,
       autorNombre: (m['autor_nombre'] ?? 'Vecino') as String,
+      autorFotoUrl: (m['autor_foto_url'] ?? m['foto_url']) as String?,
       autorRol: (m['autor_rol'] ?? 'vecino') as String,
       esPrestador: m['es_prestador'] == true,
       autorOficio: m['autor_oficio'] as String?,

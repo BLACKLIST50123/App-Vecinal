@@ -169,7 +169,6 @@ class _ForoScreenState extends State<ForoScreen> {
       ('todos', 'Todos', Icons.grid_view_rounded, Paleta.primario),
       ('servicio', 'Consultas de oficios', Icons.handyman_rounded, Paleta.azulInfo),
       ('dialogo', 'Comunidad', Icons.forum_rounded, Paleta.verde),
-      ('recomendacion', 'Recomendaciones', Icons.verified_rounded, Paleta.ambar),
       ('aviso', 'Avisos vecinales', Icons.campaign_rounded, Paleta.violeta),
     ];
 
@@ -438,11 +437,36 @@ class _ForoScreenState extends State<ForoScreen> {
                       itemBuilder: (_) => [
                         const PopupMenuItem(
                           value: 'todos',
-                          child: Text('Todo Chimbote'),
+                          child: Text(
+                            'Todo Chimbote y N. Chimbote',
+                            style: TextStyle(fontWeight: FontWeight.w700),
+                          ),
                         ),
-                        const PopupMenuDivider(),
-                        for (final s in Zona.sectores.keys)
-                          PopupMenuItem(value: s, child: Text(s)),
+                        for (final entry in Zona.sectoresPorCiudad.entries) ...[
+                          const PopupMenuDivider(),
+                          PopupMenuItem(
+                            enabled: false,
+                            height: 28,
+                            child: Text(
+                              '📍 ${entry.key.toUpperCase()}',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                                color: Paleta.primario,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                          for (final s in entry.value)
+                            PopupMenuItem(
+                              value: s,
+                              height: 38,
+                              child: Padding(
+                                padding: const EdgeInsets.only(left: 10),
+                                child: Text(s),
+                              ),
+                            ),
+                        ],
                       ],
                       child: Container(
                         padding: const EdgeInsets.symmetric(

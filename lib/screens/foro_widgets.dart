@@ -7,6 +7,7 @@ import '../state/app_state.dart';
 import '../ui/diseno.dart';
 import '../ui/tema.dart';
 import '../ui/widgets.dart';
+import '../ui/foto_perfil.dart';
 
 /// Formatea celular peruano (9 dígitos en grupos de 3: 981 150 402)
 String _formatearCelularPeru(String tel) {
@@ -142,17 +143,12 @@ class TarjetaForo extends StatelessWidget {
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            CircleAvatar(
-                              radius: 19,
-                              backgroundColor: bgAvatar,
-                              child: Text(
-                                iniciales(tema.autorNombre),
-                                style: TextStyle(
-                                  color: fgAvatar,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 12,
-                                ),
-                              ),
+                            AvatarVecino(
+                              nombre: tema.autorNombre,
+                              fotoUrl: tema.autorFotoUrl,
+                              tamano: 38,
+                              colorFondo: bgAvatar,
+                              colorTexto: fgAvatar,
                             ),
                             const SizedBox(width: 10),
                             Expanded(
@@ -594,17 +590,12 @@ class TarjetaRespuesta extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              CircleAvatar(
-                radius: esHija ? 15 : 18,
-                backgroundColor: esPrestador ? Paleta.acentoSuave : bgAvatar,
-                child: Text(
-                  iniciales(r.autorNombre),
-                  style: TextStyle(
-                    color: esPrestador ? Paleta.acentoOscuro : fgAvatar,
-                    fontWeight: FontWeight.w700,
-                    fontSize: esHija ? 10.5 : 12,
-                  ),
-                ),
+              AvatarVecino(
+                nombre: r.autorNombre,
+                fotoUrl: r.autorFotoUrl,
+                tamano: esHija ? 30 : 36,
+                colorFondo: esPrestador ? Paleta.acentoSuave : bgAvatar,
+                colorTexto: esPrestador ? Paleta.acentoOscuro : fgAvatar,
               ),
               const SizedBox(width: 10),
               Expanded(

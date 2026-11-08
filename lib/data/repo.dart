@@ -308,9 +308,36 @@ class Repo {
 
   // -------------------------------------------------------- foro vecinal
 
+  Future<void> _adjuntarFotosPerfiles(List<Map<String, dynamic>> filas) async {
+    if (filas.isEmpty || forzarOffline) return;
+    final uids = filas
+        .map((f) => f['autor_id'])
+        .whereType<String>()
+        .where((id) => id.isNotEmpty)
+        .toSet()
+        .toList();
+    if (uids.isEmpty) return;
+    try {
+      final perfiles = await db
+          .from('perfiles')
+          .select('id, foto_url')
+          .inFilter('id', uids);
+      final mapaFotos = {
+        for (final p in perfiles)
+          p['id'] as String: p['foto_url'] as String?,
+      };
+      for (final f in filas) {
+        final aid = f['autor_id'] as String?;
+        if (aid != null && mapaFotos.containsKey(aid)) {
+          f['autor_foto_url'] = mapaFotos[aid];
+        }
+      }
+    } catch (_) {}
+  }
+
   Future<List<Map<String, dynamic>>> temasForo() async {
     try {
-      return await _consultar(
+      final filas = await _consultar(
         'foro_temas',
         () => db
             .from('foro_temas')
@@ -318,6 +345,8 @@ class Repo {
             .order('created_at', ascending: false)
             .limit(200),
       );
+      await _adjuntarFotosPerfiles(filas);
+      return filas;
     } on PostgrestException catch (e) {
       if (e.code == '42P01') return [];
       rethrow;
@@ -326,8 +355,9 @@ class Repo {
 
   Future<List<Map<String, dynamic>>> respuestasForo(String temaId) async {
     try {
+      List<Map<String, dynamic>> filas;
       try {
-        return await _consultar(
+        filas = await _consultar(
           'foro_respuestas_$temaId',
           () => db
               .from('foro_respuestas')
@@ -337,7 +367,7 @@ class Repo {
               .limit(300),
         );
       } catch (_) {
-        return await _consultar(
+        filas = await _consultar(
           'foro_respuestas_$temaId',
           () => db
               .from('foro_respuestas')
@@ -347,6 +377,8 @@ class Repo {
               .limit(300),
         );
       }
+      await _adjuntarFotosPerfiles(filas);
+      return filas;
     } on PostgrestException catch (e) {
       if (e.code == '42P01') return [];
       rethrow;
