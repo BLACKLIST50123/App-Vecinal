@@ -206,7 +206,7 @@ class _ModalNuevoTemaState extends State<ModalNuevoTema> {
                           side: BorderSide(color: Paleta.linea),
                         ),
                         elevation: 8,
-                        color: Colors.white,
+                        color: Paleta.superficie,
                         constraints: BoxConstraints(
                           maxHeight: 270,
                           minWidth: ancho,
@@ -230,7 +230,7 @@ class _ModalNuevoTemaState extends State<ModalNuevoTema> {
                                       decoration: BoxDecoration(
                                         color: seleccionado
                                             ? Paleta.acentoSuave
-                                            : const Color(0xFFF1F5F9),
+                                            : Paleta.grisFondo,
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: Icon(
@@ -238,7 +238,7 @@ class _ModalNuevoTemaState extends State<ModalNuevoTema> {
                                         size: 15,
                                         color: seleccionado
                                             ? Paleta.acentoOscuro
-                                            : const Color(0xFF64748B),
+                                            : Paleta.gris,
                                       ),
                                     ),
                                     const SizedBox(width: 10),
@@ -252,7 +252,7 @@ class _ModalNuevoTemaState extends State<ModalNuevoTema> {
                                               : FontWeight.w500,
                                           color: seleccionado
                                               ? Paleta.acentoOscuro
-                                              : const Color(0xFF1E293B),
+                                              : Paleta.tinta,
                                         ),
                                       ),
                                     ),
@@ -274,7 +274,7 @@ class _ModalNuevoTemaState extends State<ModalNuevoTema> {
                             vertical: 12,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF8FAFC),
+                            color: Paleta.grisFondo,
                             borderRadius: BorderRadius.circular(14),
                             border: Border.all(color: Paleta.linea),
                           ),
@@ -340,7 +340,7 @@ class _ModalNuevoTemaState extends State<ModalNuevoTema> {
                         side: BorderSide(color: Paleta.linea),
                       ),
                       elevation: 8,
-                      color: Colors.white,
+                      color: Paleta.superficie,
                       constraints: BoxConstraints(
                         maxHeight: 280,
                         minWidth: ancho,
@@ -363,10 +363,10 @@ class _ModalNuevoTemaState extends State<ModalNuevoTema> {
                                   vertical: 4,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFF1F5F9),
+                                  color: Paleta.grisFondo,
                                   borderRadius: BorderRadius.circular(6),
                                   border: Border.all(
-                                    color: const Color(0xFFE2E8F0),
+                                    color: Paleta.linea,
                                   ),
                                 ),
                                 child: Row(
@@ -403,8 +403,8 @@ class _ModalNuevoTemaState extends State<ModalNuevoTema> {
                                       Icons.location_on_outlined,
                                       size: 16,
                                       color: seleccionado
-                                          ? const Color(0xFF16A34A)
-                                          : const Color(0xFF94A3B8),
+                                          ? Paleta.verde
+                                          : Paleta.grisClaro,
                                     ),
                                     const SizedBox(width: 8),
                                     Expanded(
@@ -416,16 +416,16 @@ class _ModalNuevoTemaState extends State<ModalNuevoTema> {
                                               ? FontWeight.w700
                                               : FontWeight.w500,
                                           color: seleccionado
-                                              ? const Color(0xFF166534)
-                                              : const Color(0xFF1E293B),
+                                              ? Paleta.verde
+                                              : Paleta.tinta,
                                         ),
                                       ),
                                     ),
                                     if (seleccionado)
-                                      const Icon(
+                                      Icon(
                                         Icons.check_rounded,
                                         size: 18,
-                                        color: Color(0xFF16A34A),
+                                        color: Paleta.verde,
                                       ),
                                   ],
                                 ),
@@ -441,7 +441,7 @@ class _ModalNuevoTemaState extends State<ModalNuevoTema> {
                           vertical: 12,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF8FAFC),
+                          color: Paleta.grisFondo,
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(color: Paleta.linea),
                         ),

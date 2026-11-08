@@ -243,7 +243,7 @@ class _LogoAnimado extends StatelessWidget {
                       height: 184,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        gradient: RadialGradient(colors: [Paleta.superficie, Paleta.primarioSuave]),
+                        gradient: const RadialGradient(colors: [Colors.white, Color(0xFFE8ECF2)]), // blanco siempre: el logo es oscuro
                         boxShadow: [BoxShadow(color: Paleta.primario.withValues(alpha: 0.08), blurRadius: 30, offset: const Offset(0, 12))],
                       ),
                     ),

@@ -17,10 +17,11 @@ import '../emergencia/pedidos_emergencia.dart';
 
 /// Tipos de punto del mapa del Inicio.
 enum TipoPunto {
+  // El orden es el de los filtros del mapa: Emergencias, Peticiones, Servicios, Productos.
+  emergencia('Emergencias', 'Emergencia', Icons.sos_rounded),
+  peticion('Peticiones', 'Petición de ayuda', Icons.front_hand_rounded),
   servicio('Servicios', 'Servicio', Icons.handyman_rounded),
   producto('Productos', 'Producto', Icons.shopping_basket_rounded),
-  peticion('Peticiones', 'Petición de ayuda', Icons.front_hand_rounded),
-  emergencia('Emergencias', 'Emergencia', Icons.sos_rounded),
   grupo('Grupos de apoyo', 'Grupo de apoyo', Icons.health_and_safety_rounded);
 
   const TipoPunto(this.plural, this.singular, this.icono);
@@ -315,10 +316,13 @@ class _DialogoPedidoState extends State<_DialogoPedido> {
 
 /// Mapa del barrio (con filtros) y, debajo, "Cerca de ti" con el mismo filtro.
 class MapaYCercanos extends StatefulWidget {
-  const MapaYCercanos({super.key, this.emergencia = false});
+  const MapaYCercanos({super.key, this.emergencia = false, this.pantallaCompleta = false});
 
   /// En emergencia: suma los grupos de apoyo y empieza filtrado en Emergencias.
   final bool emergencia;
+
+  /// Solo filtros + mapa a todo el alto (sin intro ni "Cerca de ti").
+  final bool pantallaCompleta;
 
   @override
   State<MapaYCercanos> createState() => _MapaYCercanosState();
@@ -366,13 +370,15 @@ class _MapaYCercanosState extends State<MapaYCercanos> {
         final cercanos = [...visibles]..sort((a, b) => distanciaKm(ref, a.punto).compareTo(distanciaKm(ref, b.punto)));
         final alto = (MediaQuery.of(context).size.height * 0.32).clamp(220.0, 300.0);
 
+        final completa = widget.pantallaCompleta;
         return Container(
-          margin: EdgeInsets.only(top: widget.emergencia ? 0 : 14),
-          padding: EdgeInsets.only(top: widget.emergencia ? 4 : 16, bottom: 18),
+          margin: EdgeInsets.only(top: widget.emergencia || completa ? 0 : 14),
+          padding: EdgeInsets.only(top: widget.emergencia || completa ? 4 : 16, bottom: completa ? 12 : 18),
           // Fondo cálido suave: separa la sección sin cortes bruscos.
-          color: Paleta.seccion,
+          color: completa ? null : Paleta.seccion,
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           // ── Introducción al mapa
+          if (!completa)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -424,9 +430,9 @@ class _MapaYCercanosState extends State<MapaYCercanos> {
             ),
           ),
 
-          // ── Mapa
-          Container(
-            height: alto,
+          // ── Mapa (en pantalla completa ocupa todo el alto disponible)
+          _expandirSi(completa, Container(
+            height: completa ? null : alto,
             margin: const EdgeInsets.fromLTRB(16, 6, 16, 0),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
@@ -443,8 +449,10 @@ class _MapaYCercanosState extends State<MapaYCercanos> {
                   maxZoom: 18,
                   // Con un dedo se desplaza la pantalla; el mapa se mueve y amplía con dos dedos
                   // (o en pantalla completa). Así el mapa no "atrapa" el desplazamiento.
-                  interactionOptions: const InteractionOptions(
-                    flags: InteractiveFlag.pinchZoom | InteractiveFlag.pinchMove | InteractiveFlag.doubleTapZoom,
+                  interactionOptions: InteractionOptions(
+                    flags: completa
+                        ? InteractiveFlag.all & ~InteractiveFlag.rotate
+                        : InteractiveFlag.pinchZoom | InteractiveFlag.pinchMove | InteractiveFlag.doubleTapZoom,
                   ),
                   onTap: (_, _) => setState(() => _elegido = null),
                 ),
@@ -519,12 +527,14 @@ class _MapaYCercanosState extends State<MapaYCercanos> {
                       _mapa.move(LatLng(u.lat, u.lng), 15);
                     },
                   ),
-                  const SizedBox(height: 8),
-                  _BotonMapa(
-                    icono: Icons.fullscreen_rounded,
-                    tooltip: 'Ver el mapa en pantalla completa',
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PantallaMapaCompleto())),
-                  ),
+                  if (!completa) ...[
+                    const SizedBox(height: 8),
+                    _BotonMapa(
+                      icono: Icons.fullscreen_rounded,
+                      tooltip: 'Ver el mapa en pantalla completa',
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PantallaMapaCompleto())),
+                    ),
+                  ],
                 ]),
               ),
               if (_elegido != null)
@@ -550,8 +560,9 @@ class _MapaYCercanosState extends State<MapaYCercanos> {
                   ),
                 ),
             ]),
-          ),
+          )),
 
+          if (!completa) ...[
           Padding(
             padding: EdgeInsets.fromLTRB(20, 8, 20, 0),
             child: Row(children: [
@@ -611,12 +622,15 @@ class _MapaYCercanosState extends State<MapaYCercanos> {
                   ),
                 ),
             ]),
+          ],
           ]),
         );
       },
     );
   }
 }
+
+Widget _expandirSi(bool expandir, Widget hijo) => expandir ? Expanded(child: hijo) : hijo;
 
 class _Filtro extends StatelessWidget {
   const _Filtro({required this.texto, required this.cantidad, required this.color, required this.elegido, required this.onTap, this.icono});

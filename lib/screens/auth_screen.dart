@@ -310,7 +310,19 @@ class _AuthScreenState extends State<AuthScreen> {
                   ],
                 ])
               : ListView(key: const ValueKey('ingresar'), padding: const EdgeInsets.fromLTRB(16, 24, 16, 120), children: [
-                  Center(child: Image.asset('assets/images/logo_icono.png', width: 72, semanticLabel: 'Logo de Conecta Vecino')),
+                  // Círculo blanco siempre: el logo es oscuro y en modo oscuro se perdería.
+                  Center(
+                    child: Container(
+                      width: 104,
+                      height: 104,
+                      alignment: Alignment.center,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: RadialGradient(colors: [Colors.white, Color(0xFFE8ECF2)]),
+                      ),
+                      child: Image.asset('assets/images/logo_icono.png', width: 72, semanticLabel: 'Logo de Conecta Vecino'),
+                    ),
+                  ),
                   const SizedBox(height: 16),
                   const _TituloPaso(titulo: '¡Hola de nuevo!', texto: 'Entra con tu celular y tu clave de 6 números.'),
                   const SizedBox(height: 16),

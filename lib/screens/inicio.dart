@@ -91,9 +91,17 @@ class _Bienvenida extends StatelessWidget {
           label: 'Conecta Vecino. ¡La app que nos une!',
           excludeSemantics: true,
           child: Row(children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.asset('assets/images/logo_icono.png', width: 44, height: 44, fit: BoxFit.cover),
+            // Círculo blanco del mismo tamaño (44): el logo oscuro se nota en ambos temas.
+            Container(
+              width: 44,
+              height: 44,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white,
+                border: Border.all(color: Paleta.linea),
+              ),
+              child: Image.asset('assets/images/logo_icono.png', width: 32, height: 32, fit: BoxFit.contain),
             ),
             const SizedBox(width: 12),
             Expanded(
