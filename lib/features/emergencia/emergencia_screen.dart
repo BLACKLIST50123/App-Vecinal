@@ -217,8 +217,19 @@ class _AvisoJunta extends StatelessWidget {
   Widget build(BuildContext context) {
     final st = context.watch<AppState>();
     final e = st.emergencia;
-    final titulo = e.titulo ?? 'Emergencia en tu barrio';
+    final esSismo = e.origen == 'sismo';
+    final titulo = e.titulo ?? (esSismo ? 'Alerta Sísmica' : 'Emergencia en tu barrio');
     final texto = 'Emergencia. $titulo. ${e.mensaje ?? ''}';
+
+    String? infoDistancia;
+    if (e.lat != null && e.lng != null) {
+      final d = distanciaKm(st.referencia, Punto(e.lat!, e.lng!));
+      infoDistancia = 'Epicentro a ${d.toStringAsFixed(0)} km de ti';
+      if (e.radioKm != null) {
+        infoDistancia += ' · Radio de alerta: ${e.radioKm!.toStringAsFixed(0)} km';
+      }
+    }
+
     return Semantics(
       liveRegion: true,
       label: texto,
@@ -227,20 +238,36 @@ class _AvisoJunta extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
         decoration: BoxDecoration(color: Paleta.rojo, borderRadius: BorderRadius.circular(20)),
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Padding(
-            padding: EdgeInsets.only(top: 2),
-            child: Icon(Icons.warning_amber_rounded, color: Colors.white, size: 30),
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Icon(esSismo ? Icons.vibration : Icons.warning_amber_rounded, color: Colors.white, size: 30),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: ExcludeSemantics(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(
-                  e.desde == null ? 'AVISO DE LA JUNTA VECINAL' : 'AVISO DE LA JUNTA · ${haceCuanto(e.desde!.toLocal()).toUpperCase()}',
+                  esSismo
+                      ? 'ALERTA SÍSMICA OFICIAL'
+                      : (e.desde == null ? 'AVISO DE LA JUNTA VECINAL' : 'AVISO DE LA JUNTA · ${haceCuanto(e.desde!.toLocal()).toUpperCase()}'),
                   style: const TextStyle(color: Color(0xFFFFE4E4), fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 0.8),
                 ),
                 const SizedBox(height: 2),
                 Text(titulo, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900, height: 1.2)),
+                if (infoDistancia != null) ...[
+                  const SizedBox(height: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      infoDistancia,
+                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
                 if (e.mensaje != null && e.mensaje!.trim().isNotEmpty) ...[
                   const SizedBox(height: 6),
                   Text(e.mensaje!, style: const TextStyle(color: Colors.white, fontSize: 15, height: 1.35)),

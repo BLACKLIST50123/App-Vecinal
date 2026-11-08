@@ -1,5 +1,5 @@
 // Edge Function: enviar-avisos
-// La llaman los disparadores de la migración 0012 (emergencia, SOS, pedidos,
+// La llaman los disparadores de la migración 0012 y 0014 (emergencia, SOS, sismos, pedidos,
 // pedidos a servicios y foro). Busca qué celulares tienen ese aviso
 // encendido y les manda un push con Firebase Cloud Messaging (FCM v1),
 // que llega aunque la app esté cerrada.
@@ -44,10 +44,37 @@ async function armarAviso(tipo: string, r: Fila) {
   const sinAutor = (lista: Dispositivo[]) => lista.filter((d) => !autor || d.usuario_id !== autor);
 
   if (tipo === "emergencia") {
-    const destinos = await dispositivos("emergencia");
+    let destinos = await dispositivos("emergencia");
+    const lat = r.lat as number | null;
+    const lng = r.lng as number | null;
+    const radioKm = r.radio_km as number | null;
+    // Si la emergencia tiene coordenadas y radio (ej. por sismo), solo a los que estén dentro del radio
+    if (r.activa && lat != null && lng != null && radioKm != null) {
+      destinos = destinos.filter((d) => d.lat != null && d.lng != null && distanciaKm(lat, lng, d.lat, d.lng) <= radioKm);
+    }
     return r.activa
-      ? { destinos, critico: true, titulo: "🚨 EMERGENCIA en tu barrio", cuerpo: String(r.titulo ?? "La junta vecinal activó el modo emergencia.") }
+      ? { destinos, critico: true, titulo: "🚨 EMERGENCIA en tu zona", cuerpo: String(r.titulo ?? "Se activó el modo emergencia.") }
       : { destinos, critico: true, titulo: "Terminó la emergencia", cuerpo: "Tu barrio volvió a la normalidad." };
+  }
+
+  if (tipo === "sismo") {
+    const lat = r.lat as number | null;
+    const lng = r.lng as number | null;
+    const radioKm = (r.radio_alerta_km as number) || 50;
+    const mag = (r.magnitud as number) || 4.0;
+    const ubicacion = String(r.ubicacion ?? "Perú");
+
+    let destinos = await dispositivos("sismos");
+    if (lat != null && lng != null) {
+      destinos = destinos.filter((d) => d.lat != null && d.lng != null && distanciaKm(lat, lng, d.lat, d.lng) <= radioKm);
+    }
+    const critico = mag >= 4.5;
+    return {
+      destinos,
+      critico,
+      titulo: critico ? `🚨 ALERTA SÍSMICA: M ${mag}` : `⚠️ Sismo detectado: M ${mag}`,
+      cuerpo: `Epicentro: ${ubicacion}. Prof: ${r.profundidad_km ?? 0} km. Mantén la calma y ubícate en zona segura.`,
+    };
   }
 
   if (tipo === "sos") {

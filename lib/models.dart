@@ -301,10 +301,23 @@ class EntradaHistorial {
 }
 
 class EstadoEmergencia {
-  const EstadoEmergencia({required this.activa, this.titulo, this.mensaje, this.desde});
+  const EstadoEmergencia({
+    required this.activa,
+    this.titulo,
+    this.mensaje,
+    this.desde,
+    this.lat,
+    this.lng,
+    this.radioKm,
+    this.origen,
+    this.sismoId,
+  });
   const EstadoEmergencia.inactiva() : this(activa: false);
   final bool activa;
   final String? titulo, mensaje;
+  final double? lat, lng, radioKm;
+  final String? origen;
+  final String? sismoId;
 
   /// Cuándo se activó (identifica esta emergencia para "Estoy bien").
   final DateTime? desde;
@@ -316,7 +329,51 @@ class EstadoEmergencia {
         activa: m['activa'] == true,
         titulo: m['titulo'] as String?,
         mensaje: m['mensaje'] as String?,
+        lat: (m['lat'] as num?)?.toDouble(),
+        lng: (m['lng'] as num?)?.toDouble(),
+        radioKm: (m['radio_km'] as num?)?.toDouble(),
+        origen: m['origen'] as String?,
+        sismoId: m['sismo_id'] as String?,
         desde: DateTime.tryParse('${m['actualizado_en']}'),
+      );
+}
+
+class Sismo {
+  const Sismo({
+    required this.id,
+    required this.fechaHora,
+    required this.magnitud,
+    required this.profundidadKm,
+    required this.ubicacion,
+    required this.lat,
+    required this.lng,
+    required this.radioAlertaKm,
+    this.intensidad,
+    this.activoEmergencia = false,
+  });
+
+  final String id;
+  final DateTime fechaHora;
+  final double magnitud;
+  final double profundidadKm;
+  final String ubicacion;
+  final double lat;
+  final double lng;
+  final double radioAlertaKm;
+  final String? intensidad;
+  final bool activoEmergencia;
+
+  factory Sismo.fromMap(Map<String, dynamic> m) => Sismo(
+        id: m['id'] as String,
+        fechaHora: DateTime.tryParse('${m['fecha_hora']}') ?? DateTime.now(),
+        magnitud: (m['magnitud'] as num).toDouble(),
+        profundidadKm: (m['profundidad_km'] as num).toDouble(),
+        ubicacion: m['ubicacion'] as String? ?? 'Perú',
+        lat: (m['lat'] as num).toDouble(),
+        lng: (m['lng'] as num).toDouble(),
+        radioAlertaKm: (m['radio_alerta_km'] as num).toDouble(),
+        intensidad: m['intensidad'] as String?,
+        activoEmergencia: m['activo_emergencia'] == true,
       );
 }
 

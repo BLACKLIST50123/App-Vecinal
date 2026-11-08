@@ -14,6 +14,7 @@ import '../models.dart';
 import '../services/notificaciones.dart';
 import '../services/push.dart';
 import '../services/ubicacion.dart';
+import '../services/voz.dart';
 import '../util.dart';
 
 final mensajero = GlobalKey<ScaffoldMessengerState>();
@@ -107,7 +108,17 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   bool get esModerador => rol == 'moderador';
   bool get esOrganizacion => rol == 'organizacion';
   bool get verificado => perfil?['verificado_gps'] == true;
-  bool get modoEmergencia => emergencia.activa;
+  bool get modoEmergencia {
+    if (!emergencia.activa) return false;
+    // Si la emergencia tiene coordenadas y radio (ej. por sismo o evento geolocalizado):
+    if (emergencia.lat != null && emergencia.lng != null && emergencia.radioKm != null) {
+      final puntoEmergencia = Punto(emergencia.lat!, emergencia.lng!);
+      return distanciaKm(referencia, puntoEmergencia) <= emergencia.radioKm!;
+    }
+    // Si no tiene radio definido (activación general de la junta vecinal), aplica para todos:
+    return true;
+  }
+  Sismo? ultimoSismoCercano;
   int get pendientes => repo.pendientes.length;
   String get nombre => perfil?['nombre'] as String? ?? 'vecino';
   String? get sector => perfil?['sector'] as String?;
@@ -147,16 +158,16 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
             schema: 'public',
             table: 'emergencia',
             callback: (_) async {
-              final antes = emergencia.activa;
+              final antes = modoEmergencia;
               await actualizarEmergencia();
-              if (!antes && emergencia.activa) {
-                avisar('Se activó el modo EMERGENCIA en tu barrio');
-                notificar(TipoAviso.emergencia, 'EMERGENCIA en tu barrio',
-                    emergencia.titulo ?? 'La junta vecinal activó el modo emergencia.', mensajeInterno: false);
+              if (!antes && modoEmergencia) {
+                final titulo = emergencia.titulo ?? 'Se activó el modo emergencia en tu zona.';
+                avisar('Se activó el modo EMERGENCIA en tu zona');
+                notificar(TipoAviso.emergencia, 'EMERGENCIA en tu zona', titulo, mensajeInterno: false);
               }
-              if (antes && !emergencia.activa) {
+              if (antes && !modoEmergencia) {
                 avisar('Terminó el modo emergencia');
-                notificar(TipoAviso.emergencia, 'Terminó la emergencia', 'Tu barrio volvió a la normalidad.',
+                notificar(TipoAviso.emergencia, 'Terminó la emergencia', 'Tu zona volvió a la normalidad.',
                     mensajeInterno: false);
               }
             },
@@ -263,10 +274,43 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
               _debounce = Timer(const Duration(milliseconds: 800), refrescar);
             },
           )
+          .onPostgresChanges(
+            event: PostgresChangeEvent.insert,
+            schema: 'public',
+            table: 'sismos',
+            callback: (cambio) => _procesarNuevoSismo(cambio.newRecord),
+          )
           .subscribe();
     } catch (_) {
       // Sin tiempo real la app sigue funcionando con la consulta cada 30 s.
     }
+  }
+
+  /// Sismo recibido en tiempo real: verifica si el usuario está dentro del radio de afectación.
+  void _procesarNuevoSismo(Map<String, dynamic> fila) {
+    try {
+      final s = Sismo.fromMap(fila);
+      final puntoSismo = Punto(s.lat, s.lng);
+      final km = distanciaKm(referencia, puntoSismo);
+
+      // Si el usuario está fuera del radio de percepción/alerta, no se le interrumpe
+      if (km > s.radioAlertaKm) return;
+
+      ultimoSismoCercano = s;
+      notifyListeners();
+
+      HapticFeedback.vibrate();
+      final esCritico = s.magnitud >= 4.5;
+      final dKm = km.toStringAsFixed(0);
+      final titulo = esCritico ? '🚨 ALERTA SÍSMICA: M ${s.magnitud}' : '⚠️ Sismo detectado: M ${s.magnitud}';
+      final cuerpo = 'A $dKm km de ti (${s.ubicacion}). Prof: ${s.profundidadKm} km. Mantén la calma.';
+
+      avisar(titulo);
+      notificar(TipoAviso.emergencia, titulo, cuerpo, mensajeInterno: true);
+
+      // Voz de aviso automático
+      Voz.hablar('Alerta sísmica. Sismo de magnitud ${s.magnitud} a $dKm kilómetros de tu posición. Mantén la calma y ve a zona segura.');
+    } catch (_) {}
   }
 
   /// Un SOS nuevo a ≤ 2 km (y que no es mío) se avisa al instante, con
