@@ -431,6 +431,8 @@ class TemaForo {
     this.lng,
     this.apoyos = 0,
     this.apoyadoPorUsuario = false,
+    this.dislikes = 0,
+    this.dislikePorUsuario = false,
     this.respuestasCount = 0,
     this.estado = 'abierto',
     required this.creado,
@@ -451,6 +453,8 @@ class TemaForo {
   final double? lng;
   int apoyos;
   bool apoyadoPorUsuario;
+  int dislikes;
+  bool dislikePorUsuario;
   int respuestasCount;
   String estado; // 'abierto', 'resuelto', 'cerrado'
   final DateTime creado;
@@ -506,9 +510,42 @@ class TemaForo {
     };
 
     var apoyado = false;
+    var conDislike = false;
+    int conteoApoyos = (m['apoyos_count'] as num?)?.toInt() ?? 0;
+    int conteoDislikes = (m['dislikes_count'] as num?)?.toInt() ?? 0;
     final apoyos = m['foro_apoyos'];
-    if (miUid != null && apoyos is List) {
-      apoyado = apoyos.any((a) => a is Map && a['usuario_id'] == miUid);
+    if (apoyos is List) {
+      int likesEnLista = 0;
+      int dislikesEnLista = 0;
+      for (final a in apoyos) {
+        if (a is Map) {
+          final tipo = (a['tipo'] ?? 'like') as String;
+          if (tipo == 'dislike') {
+            dislikesEnLista++;
+          } else {
+            likesEnLista++;
+          }
+          if (miUid != null && a['usuario_id'] == miUid) {
+            if (tipo == 'dislike') {
+              conDislike = true;
+            } else {
+              apoyado = true;
+            }
+          }
+        }
+      }
+      if (likesEnLista > conteoApoyos) {
+        conteoApoyos = likesEnLista;
+      }
+      if (dislikesEnLista > conteoDislikes) {
+        conteoDislikes = dislikesEnLista;
+      }
+    }
+    if (apoyado && conteoApoyos < 1) {
+      conteoApoyos = 1;
+    }
+    if (conDislike && conteoDislikes < 1) {
+      conteoDislikes = 1;
     }
 
     return TemaForo(
@@ -525,8 +562,10 @@ class TemaForo {
       categoriaServicio: m['categoria_servicio'] as String?,
       lat: (m['lat'] as num?)?.toDouble(),
       lng: (m['lng'] as num?)?.toDouble(),
-      apoyos: (m['apoyos_count'] as num?)?.toInt() ?? 0,
+      apoyos: conteoApoyos,
       apoyadoPorUsuario: apoyado,
+      dislikes: conteoDislikes,
+      dislikePorUsuario: conDislike,
       respuestasCount: (m['respuestas_count'] as num?)?.toInt() ?? 0,
       estado: (m['estado'] ?? 'abierto') as String,
       creado: DateTime.tryParse(m['created_at']?.toString() ?? '')?.toLocal() ?? DateTime.now(),
@@ -550,6 +589,11 @@ class RespuestaForo {
     this.nombreComercial,
     this.servicioId,
     this.vistosBuenos = 0,
+    this.likes = 0,
+    this.likePorUsuario = false,
+    this.dislikes = 0,
+    this.dislikePorUsuario = false,
+    this.respuestaAId,
     this.respondiendoA,
     required this.creado,
   });
@@ -567,6 +611,11 @@ class RespuestaForo {
   final String? nombreComercial;
   final String? servicioId;
   final int vistosBuenos;
+  int likes;
+  bool likePorUsuario;
+  int dislikes;
+  bool dislikePorUsuario;
+  final String? respuestaAId;
   final String? respondiendoA;
   final DateTime creado;
 
@@ -574,17 +623,68 @@ class RespuestaForo {
     final diff = DateTime.now().difference(creado);
     if (diff.inMinutes < 60) {
       final m = diff.inMinutes.clamp(1, 59);
-      return 'Hace $m min';
+      return 'Hace ${m} min';
     }
     if (diff.inHours < 24) {
       final h = diff.inHours;
-      return 'Hace $h ${h == 1 ? 'hora' : 'horas'}';
+      return 'Hace ${h} ${h == 1 ? 'hora' : 'horas'}';
     }
     final d = diff.inDays;
-    return 'Hace $d ${d == 1 ? 'día' : 'días'}';
+    return 'Hace ${d} ${d == 1 ? 'día' : 'días'}';
   }
 
-  factory RespuestaForo.fromMap(Map<String, dynamic> m) {
+  String get tiempoCorto {
+    final diff = DateTime.now().difference(creado);
+    if (diff.inMinutes < 1) return 'Ahora';
+    if (diff.inMinutes < 60) return '${diff.inMinutes} min';
+    if (diff.inHours < 24) return '${diff.inHours} h';
+    if (diff.inDays < 7) return '${diff.inDays} d';
+    final sem = (diff.inDays / 7).floor();
+    return '$sem sem';
+  }
+
+  factory RespuestaForo.fromMap(Map<String, dynamic> m, {String? miUid}) {
+    var dioLike = false;
+    var dioDislike = false;
+    final lk = m['foro_respuestas_likes'];
+    int totalLikes = (m['likes_count'] as num?)?.toInt() ??
+        (m['vistos_buenos'] as num?)?.toInt() ??
+        0;
+    int totalDislikes = (m['dislikes_count'] as num?)?.toInt() ?? 0;
+    if (lk is List) {
+      int likesEnLista = 0;
+      int dislikesEnLista = 0;
+      for (final l in lk) {
+        if (l is Map) {
+          final tipo = (l['tipo'] ?? 'like') as String;
+          if (tipo == 'dislike') {
+            dislikesEnLista++;
+          } else {
+            likesEnLista++;
+          }
+          if (miUid != null && l['usuario_id'] == miUid) {
+            if (tipo == 'dislike') {
+              dioDislike = true;
+            } else {
+              dioLike = true;
+            }
+          }
+        }
+      }
+      if (likesEnLista > totalLikes) {
+        totalLikes = likesEnLista;
+      }
+      if (dislikesEnLista > totalDislikes) {
+        totalDislikes = dislikesEnLista;
+      }
+    }
+    if (dioLike && totalLikes < 1) {
+      totalLikes = 1;
+    }
+    if (dioDislike && totalDislikes < 1) {
+      totalDislikes = 1;
+    }
+
     return RespuestaForo(
       id: m['id'] as String,
       temaId: m['tema_id'] as String,
@@ -599,6 +699,11 @@ class RespuestaForo {
       nombreComercial: m['nombre_comercial'] as String?,
       servicioId: m['servicio_id'] as String?,
       vistosBuenos: (m['vistos_buenos'] as num?)?.toInt() ?? 0,
+      likes: totalLikes,
+      likePorUsuario: dioLike,
+      dislikes: totalDislikes,
+      dislikePorUsuario: dioDislike,
+      respuestaAId: m['respuesta_a_id'] as String?,
       respondiendoA: m['respondiendo_a'] as String?,
       creado: DateTime.tryParse(m['created_at']?.toString() ?? '')?.toLocal() ?? DateTime.now(),
     );

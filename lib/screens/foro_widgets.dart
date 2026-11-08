@@ -8,6 +8,18 @@ import '../ui/diseno.dart';
 import '../ui/tema.dart';
 import '../ui/widgets.dart';
 
+/// Formatea celular peruano (9 dígitos en grupos de 3: 981 150 402)
+String _formatearCelularPeru(String tel) {
+  var d = tel.replaceAll(RegExp(r'\D'), '');
+  if (d.length == 11 && d.startsWith('51')) {
+    d = d.substring(2);
+  }
+  if (d.length == 9) {
+    return '' + d.substring(0, 3) + ' ' + d.substring(3, 6) + ' ' + d.substring(6);
+  }
+  return tel;
+}
+
 /// Paleta armónica para avatares vecinales con vida y color.
 (Color, Color) colorAvatar(String nombre) {
   const paletas = [
@@ -80,11 +92,13 @@ class TarjetaForo extends StatelessWidget {
     required this.tema,
     required this.onTap,
     required this.onApoyar,
+    required this.onDislike,
   });
 
   final TemaForo tema;
   final VoidCallback onTap;
   final VoidCallback onApoyar;
+  final VoidCallback onDislike;
 
   @override
   Widget build(BuildContext context) {
@@ -414,6 +428,7 @@ class TarjetaForo extends StatelessWidget {
                         // Pie de tarjeta
                         Row(
                           children: [
+                            // Botón Like
                             InkWell(
                               borderRadius: BorderRadius.circular(8),
                               onTap: onApoyar,
@@ -429,9 +444,7 @@ class TarjetaForo extends StatelessWidget {
                                           ? Icons.thumb_up_alt_rounded
                                           : Icons.thumb_up_alt_outlined,
                                       size: 16,
-                                      color: tema.apoyadoPorUsuario
-                                          ? Paleta.verde
-                                          : Paleta.gris,
+                                      color: tema.apoyadoPorUsuario ? const Color(0xFF2563EB) : Paleta.gris,
                                     ),
                                     const SizedBox(width: 5),
                                     Text(
@@ -439,9 +452,39 @@ class TarjetaForo extends StatelessWidget {
                                       style: TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w700,
-                                        color: tema.apoyadoPorUsuario
-                                            ? Paleta.verde
-                                            : Paleta.gris,
+                                        color: tema.apoyadoPorUsuario ? const Color(0xFF2563EB) : Paleta.gris,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            // Botón Dislike
+                            InkWell(
+                              borderRadius: BorderRadius.circular(8),
+                              onTap: onDislike,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 4,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      tema.dislikePorUsuario
+                                          ? Icons.thumb_down_alt_rounded
+                                          : Icons.thumb_down_alt_outlined,
+                                      size: 16,
+                                      color: tema.dislikePorUsuario ? const Color(0xFFDC2626) : Paleta.gris,
+                                    ),
+                                    const SizedBox(width: 5),
+                                    Text(
+                                      '${tema.dislikes}',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w700,
+                                        color: tema.dislikePorUsuario ? const Color(0xFFDC2626) : Paleta.gris,
                                       ),
                                     ),
                                   ],
@@ -458,7 +501,7 @@ class TarjetaForo extends StatelessWidget {
                                 ),
                                 const SizedBox(width: 5),
                                 Text(
-                                  '${tema.respuestasCount} ${tema.respuestasCount == 1 ? 'respuesta' : 'respuestas'}',
+                                  '${tema.respuestasCount} ${tema.respuestasCount == 1 ? 'comentario' : 'comentarios'}',
                                   style: const TextStyle(
                                     fontSize: 13,
                                     color: Paleta.gris,
@@ -502,18 +545,24 @@ class TarjetaForo extends StatelessWidget {
   }
 }
 
-/// Tarjeta de respuesta optimizada, limpia y con opción para responder a un usuario específico.
+/// Tarjeta de respuesta profesional y estructurada con soporte para hilos jerárquicos y likes.
 class TarjetaRespuesta extends StatelessWidget {
   const TarjetaRespuesta({
     super.key,
     required this.r,
     required this.onEliminar,
     required this.onResponder,
+    required this.onLike,
+    required this.onDislike,
+    this.esHija = false,
   });
 
   final RespuestaForo r;
   final VoidCallback onEliminar;
   final VoidCallback onResponder;
+  final VoidCallback onLike;
+  final VoidCallback onDislike;
+  final bool esHija;
 
   @override
   Widget build(BuildContext context) {
@@ -522,41 +571,38 @@ class TarjetaRespuesta extends StatelessWidget {
     final st = context.watch<AppState>();
     final esMiRespuesta = st.uid != null && st.uid == r.autorId;
 
+    // Texto limpio sin prefijo redundante
+    String textoLimpio = r.contenido;
+    if (textoLimpio.startsWith('↳ @') && textoLimpio.contains(': ')) {
+      textoLimpio = textoLimpio.substring(textoLimpio.indexOf(': ') + 2);
+    }
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: esPrestador
-              ? Paleta.acento.withValues(alpha: 0.35)
-              : const Color(0xFFE2E8F0),
-        ),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x060F172A),
-            blurRadius: 8,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
+      margin: EdgeInsets.only(bottom: esHija ? 8 : 0),
+      padding: EdgeInsets.all(esHija ? 10 : 0),
+      decoration: esHija
+          ? BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            )
+          : null,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Cabecera compacta y bien proporcionada
+          // 1. Cabecera profesional: Avatar + Nombre + Badges + Sector/Tiempo + Like/Eliminar
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               CircleAvatar(
-                radius: 18,
+                radius: esHija ? 15 : 18,
                 backgroundColor: esPrestador ? Paleta.acentoSuave : bgAvatar,
                 child: Text(
                   iniciales(r.autorNombre),
                   style: TextStyle(
                     color: esPrestador ? Paleta.acentoOscuro : fgAvatar,
                     fontWeight: FontWeight.w700,
-                    fontSize: 12,
+                    fontSize: esHija ? 10.5 : 12,
                   ),
                 ),
               ),
@@ -571,9 +617,9 @@ class TarjetaRespuesta extends StatelessWidget {
                         Flexible(
                           child: Text(
                             r.autorNombre,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontWeight: FontWeight.w700,
-                              fontSize: 14,
+                              fontSize: esHija ? 13 : 14,
                               color: Paleta.tinta,
                             ),
                             overflow: TextOverflow.ellipsis,
@@ -626,19 +672,78 @@ class TarjetaRespuesta extends StatelessWidget {
               ),
               if (esMiRespuesta)
                 IconButton(
-                  icon: const Icon(Icons.delete_outline, size: 18, color: Paleta.grisClaro),
-                  tooltip: 'Eliminar mi respuesta',
+                  icon: const Icon(Icons.delete_outline, size: 17, color: Paleta.grisClaro),
+                  tooltip: 'Eliminar comentario',
                   visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
                   onPressed: onEliminar,
                 ),
+              InkWell(
+                onTap: onLike,
+                borderRadius: BorderRadius.circular(16),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        r.likePorUsuario ? Icons.thumb_up_alt_rounded : Icons.thumb_up_alt_outlined,
+                        size: 16,
+                        color: r.likePorUsuario ? const Color(0xFF2563EB) : const Color(0xFF94A3B8),
+                      ),
+                      if (r.likes > 0) ...[
+                        const SizedBox(width: 4),
+                        Text(
+                          '${r.likes}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: r.likePorUsuario ? const Color(0xFF2563EB) : Paleta.gris,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 4),
+              InkWell(
+                onTap: onDislike,
+                borderRadius: BorderRadius.circular(16),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        r.dislikePorUsuario ? Icons.thumb_down_alt_rounded : Icons.thumb_down_alt_outlined,
+                        size: 16,
+                        color: r.dislikePorUsuario ? const Color(0xFFDC2626) : const Color(0xFF94A3B8),
+                      ),
+                      if (r.dislikes > 0) ...[
+                        const SizedBox(width: 4),
+                        Text(
+                          '${r.dislikes}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: r.dislikePorUsuario ? const Color(0xFFDC2626) : Paleta.gris,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
 
-          // Indicador "Respuesta a @Usuario"
+          // 2. Indicador "Respuesta a @Usuario"
           if (r.respondiendoA != null && r.respondiendoA!.isNotEmpty) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
                 color: const Color(0xFFF1F5F9),
                 borderRadius: BorderRadius.circular(6),
@@ -662,13 +767,11 @@ class TarjetaRespuesta extends StatelessWidget {
             ),
           ],
 
-          const SizedBox(height: 9),
+          const SizedBox(height: 8),
 
-          // Texto de la respuesta
+          // 3. Texto del comentario
           Text(
-            r.contenido.startsWith('↳ @') && r.contenido.contains(': ')
-                ? r.contenido.substring(r.contenido.indexOf(': ') + 2)
-                : r.contenido,
+            textoLimpio,
             style: const TextStyle(
               fontSize: 14,
               color: Color(0xFF334155),
@@ -676,69 +779,49 @@ class TarjetaRespuesta extends StatelessWidget {
             ),
           ),
 
-          // Tarjeta de recomendación de contacto
+          // 4. Tarjeta opcional de contacto recomendado
           if (r.contactoTelefono != null && r.contactoTelefono!.isNotEmpty) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             Material(
               color: const Color(0xFFF0FDF4),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(10),
               child: InkWell(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(10),
                 onTap: () => llamar(r.contactoTelefono!),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: const Color(0xFFBBF7D0)),
                   ),
                   child: Row(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFDCFCE7),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(Icons.phone_outlined, size: 16, color: Color(0xFF16A34A)),
-                      ),
-                      const SizedBox(width: 10),
+                      const Icon(Icons.phone_outlined, size: 15, color: Color(0xFF16A34A)),
+                      const SizedBox(width: 8),
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              r.nombreComercial ?? 'Prestador recomendado',
-                              style: const TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF166534),
-                              ),
-                            ),
-                            Text(
-                              r.contactoTelefono!,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Color(0xFF15803D),
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      FilledButton.icon(
-                        style: FilledButton.styleFrom(
-                          backgroundColor: const Color(0xFF16A34A),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          minimumSize: Size.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                        child: Text(
+                          '${r.nombreComercial ?? 'Prestador recomendado'}: ${_formatearCelularPeru(r.contactoTelefono!)}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF166534),
                           ),
                         ),
-                        onPressed: () => llamar(r.contactoTelefono!),
-                        icon: const Icon(Icons.call, size: 13),
-                        label: const Text('Llamar', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF16A34A),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.call, size: 11, color: Colors.white),
+                            SizedBox(width: 3),
+                            Text('Llamar', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -747,19 +830,19 @@ class TarjetaRespuesta extends StatelessWidget {
             ),
           ],
 
-          // Botón para responder a este comentario
-          const SizedBox(height: 8),
+          // 5. Botón Responder alineado a la derecha
+          const SizedBox(height: 6),
           Align(
             alignment: Alignment.centerRight,
             child: InkWell(
               borderRadius: BorderRadius.circular(6),
               onTap: onResponder,
               child: const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.reply_rounded, size: 14, color: Paleta.primario),
+                    Icon(Icons.reply_rounded, size: 13, color: Paleta.primario),
                     SizedBox(width: 4),
                     Text(
                       'Responder',

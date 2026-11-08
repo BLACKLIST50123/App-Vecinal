@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -16,11 +17,13 @@ class DetalleTemaForoScreen extends StatefulWidget {
   const DetalleTemaForoScreen({
     super.key,
     required this.tema,
-    required this.onToggleApoyo,
+    this.onToggleApoyo,
+    this.onToggleDislike,
   });
 
   final TemaForo tema;
-  final VoidCallback onToggleApoyo;
+  final VoidCallback? onToggleApoyo;
+  final VoidCallback? onToggleDislike;
 
   @override
   State<DetalleTemaForoScreen> createState() => _DetalleTemaForoScreenState();
@@ -31,13 +34,120 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
   FocusNode? _focusNode;
   FocusNode get _nodoFoco => _focusNode ??= FocusNode();
   String? _respondiendoA;
+  String? _respuestaAPadreId;
   bool _enviando = false;
+  Timer? _timerRefresco;
+
+  final Set<String> _respuestasExpandidas = {};
+  final Set<String> _procesandoLikes = {};
+
+  // Memoria optimista de reacciones locales para respuesta inmediata en 0ms
+  final Map<String, ({bool like, bool dislike, int likes, int dislikes})> _reaccionesLocales = {};
+  int _versionRespuestas = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // Refresco periódico no intrusivo en vivo cada 15 segundos sin bloquear la UI
+    _timerRefresco = Timer.periodic(const Duration(seconds: 15), (_) {
+      if (mounted) setState(() {});
+    });
+  }
 
   @override
   void dispose() {
+    _timerRefresco?.cancel();
     _respuestaCtrl.dispose();
     _focusNode?.dispose();
     super.dispose();
+  }
+
+  Future<void> _toggleTemaLike() async {
+    final st = context.read<AppState>();
+    if (!st.logueado) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const AuthScreen(
+            mensaje: 'Para apoyar una consulta necesitas ingresar con tu cuenta de vecino.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    final t = widget.tema;
+    final teniaLike = t.apoyadoPorUsuario;
+    final teniaDislike = t.dislikePorUsuario;
+    final nuevoLike = !teniaLike;
+
+    setState(() {
+      t.apoyadoPorUsuario = nuevoLike;
+      if (nuevoLike) {
+        t.apoyos = (t.apoyos + 1).clamp(1, 999999);
+        if (teniaDislike) {
+          t.dislikePorUsuario = false;
+          t.dislikes = (t.dislikes - 1).clamp(0, 999999);
+        }
+      } else {
+        t.apoyos = (t.apoyos - 1).clamp(0, 999999);
+      }
+    });
+
+    try {
+      await st.repo.toggleReaccionTemaForo(t.id, tipo: 'like', activar: nuevoLike);
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          t.apoyadoPorUsuario = teniaLike;
+          t.dislikePorUsuario = teniaDislike;
+        });
+      }
+    }
+  }
+
+  Future<void> _toggleTemaDislike() async {
+    final st = context.read<AppState>();
+    if (!st.logueado) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const AuthScreen(
+            mensaje: 'Para reaccionar en una consulta necesitas ingresar con tu cuenta de vecino.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    final t = widget.tema;
+    final teniaLike = t.apoyadoPorUsuario;
+    final teniaDislike = t.dislikePorUsuario;
+    final nuevoDislike = !teniaDislike;
+
+    setState(() {
+      t.dislikePorUsuario = nuevoDislike;
+      if (nuevoDislike) {
+        t.dislikes = (t.dislikes + 1).clamp(1, 999999);
+        if (teniaLike) {
+          t.apoyadoPorUsuario = false;
+          t.apoyos = (t.apoyos - 1).clamp(0, 999999);
+        }
+      } else {
+        t.dislikes = (t.dislikes - 1).clamp(0, 999999);
+      }
+    });
+
+    try {
+      await st.repo.toggleReaccionTemaForo(t.id, tipo: 'dislike', activar: nuevoDislike);
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          t.dislikePorUsuario = teniaDislike;
+          t.apoyadoPorUsuario = teniaLike;
+        });
+      }
+    }
   }
 
   Future<void> _enviarRespuesta() async {
@@ -61,23 +171,29 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
 
     try {
       final aQuien = _respondiendoA;
+      final padreId = _respuestaAPadreId;
       await st.repo.crearRespuestaForo({
         'tema_id': widget.tema.id,
         'autor_id': st.uid,
         'contenido': texto,
         'sector': st.sector,
         if (aQuien != null && aQuien.isNotEmpty) 'respondiendo_a': aQuien,
+        if (padreId != null && padreId.isNotEmpty) 'respuesta_a_id': padreId,
       });
 
       _respuestaCtrl.clear();
-      setState(() => _respondiendoA = null);
-      st.refrescar();
+      setState(() {
+        _respondiendoA = null;
+        _respuestaAPadreId = null;
+        _versionRespuestas++;
+        widget.tema.respuestasCount++;
+      });
 
       if (mounted) {
         FocusScope.of(context).unfocus();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Tu respuesta ha sido enviada.'),
+            content: Text('Tu comentario ha sido publicado.'),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -117,11 +233,101 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
       builder: (_) => ModalRecomendarPrestador(
         tema: widget.tema,
         onRecomendado: () {
-          st.refrescar();
-          setState(() {});
+          setState(() {
+            _versionRespuestas++;
+            widget.tema.respuestasCount++;
+          });
         },
       ),
     );
+  }
+
+  void _toggleLikeComentario(RespuestaForo r, {required bool esLike}) {
+    if (_procesandoLikes.contains(r.id)) return;
+    final st = context.read<AppState>();
+    if (!st.logueado) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const AuthScreen(
+            mensaje: 'Para reaccionar a un comentario debes ingresar con tu cuenta de vecino.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    _procesandoLikes.add(r.id);
+    final previa = _reaccionesLocales[r.id];
+    final teniaLike = previa?.like ?? r.likePorUsuario;
+    final teniaDislike = previa?.dislike ?? r.dislikePorUsuario;
+    var nuevoLike = teniaLike;
+    var nuevoDislike = teniaDislike;
+    var nuevosLikes = previa?.likes ?? r.likes;
+    var nuevosDislikes = previa?.dislikes ?? r.dislikes;
+
+    if (esLike) {
+      nuevoLike = !teniaLike;
+      if (nuevoLike) {
+        nuevosLikes = (nuevosLikes + 1).clamp(1, 999999);
+        if (teniaDislike) {
+          nuevoDislike = false;
+          nuevosDislikes = (nuevosDislikes - 1).clamp(0, 999999);
+        }
+      } else {
+        nuevosLikes = (nuevosLikes - 1).clamp(0, 999999);
+      }
+    } else {
+      nuevoDislike = !teniaDislike;
+      if (nuevoDislike) {
+        nuevosDislikes = (nuevosDislikes + 1).clamp(1, 999999);
+        if (teniaLike) {
+          nuevoLike = false;
+          nuevosLikes = (nuevosLikes - 1).clamp(0, 999999);
+        }
+      } else {
+        nuevosDislikes = (nuevosDislikes - 1).clamp(0, 999999);
+      }
+    }
+
+    // Respuesta instantánea en 0ms en pantalla
+    setState(() {
+      _reaccionesLocales[r.id] = (
+        like: nuevoLike,
+        dislike: nuevoDislike,
+        likes: nuevosLikes,
+        dislikes: nuevosDislikes,
+      );
+      r.likePorUsuario = nuevoLike;
+      r.dislikePorUsuario = nuevoDislike;
+      r.likes = nuevosLikes;
+      r.dislikes = nuevosDislikes;
+    });
+
+    // Enviar a la base de datos de fondo
+    final nuevoEstado = esLike ? nuevoLike : nuevoDislike;
+    st.repo.toggleReaccionRespuestaForo(
+      r.id,
+      tipo: esLike ? 'like' : 'dislike',
+      activar: nuevoEstado,
+    ).then((_) {
+      _procesandoLikes.remove(r.id);
+    }).catchError((_) {
+      _procesandoLikes.remove(r.id);
+      if (mounted) {
+        setState(() {
+          if (previa != null) {
+            _reaccionesLocales[r.id] = previa;
+            r.likePorUsuario = previa.like;
+            r.dislikePorUsuario = previa.dislike;
+            r.likes = previa.likes;
+            r.dislikes = previa.dislikes;
+          } else {
+            _reaccionesLocales.remove(r.id);
+          }
+        });
+      }
+    });
   }
 
   @override
@@ -139,21 +345,6 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
           style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
         ),
         actions: [
-          IconButton(
-            tooltip: 'Apoyar tema',
-            icon: Icon(
-              t.apoyadoPorUsuario
-                  ? Icons.thumb_up_alt_rounded
-                  : Icons.thumb_up_alt_outlined,
-              color: t.apoyadoPorUsuario
-                  ? Paleta.verde
-                  : Paleta.tinta,
-            ),
-            onPressed: () {
-              widget.onToggleApoyo();
-              setState(() {});
-            },
-          ),
           if (esMiTema)
             PopupMenuButton<String>(
               icon: const Icon(Icons.more_vert, color: Paleta.tinta),
@@ -187,7 +378,6 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                   );
                   if (confirmar == true && context.mounted) {
                     await st.repo.eliminarTemaForo(t.id);
-                    st.refrescar();
                     if (context.mounted) {
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -287,14 +477,14 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                                         style: TextStyle(
                                           color: colorAvatar(t.autorNombre).$2,
                                           fontWeight: FontWeight.w700,
+                                          fontSize: 13,
                                         ),
                                       ),
                                     ),
-                                    const SizedBox(width: 12),
+                                    const SizedBox(width: 10),
                                     Expanded(
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
-                                        mainAxisSize: MainAxisSize.min,
                                         children: [
                                           Row(
                                             children: [
@@ -310,7 +500,7 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                                                 ),
                                               ),
                                               if (badgeRolAutor(t.autorRol) != null) ...[
-                                                const SizedBox(width: 4),
+                                                const SizedBox(width: 5),
                                                 badgeRolAutor(t.autorRol)!,
                                               ],
                                             ],
@@ -326,47 +516,52 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                                         ],
                                       ),
                                     ),
-                                    const SizedBox(width: 8),
                                     Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         if (t.estado == 'resuelto') ...[
                                           Container(
                                             padding: const EdgeInsets.symmetric(
-                                              horizontal: 6,
-                                              vertical: 3,
+                                              horizontal: 8,
+                                              vertical: 4,
                                             ),
                                             decoration: BoxDecoration(
                                               color: const Color(0xFFDCFCE7),
-                                              borderRadius: BorderRadius.circular(6),
-                                              border: Border.all(color: const Color(0xFF86EFAC)),
+                                              borderRadius: BorderRadius.circular(8),
+                                              border: Border.all(
+                                                color: const Color(0xFF86EFAC),
+                                              ),
                                             ),
                                             child: const Row(
                                               mainAxisSize: MainAxisSize.min,
                                               children: [
-                                                Icon(Icons.check_circle, size: 10, color: Color(0xFF16A34A)),
-                                                SizedBox(width: 2.5),
+                                                Icon(
+                                                  Icons.check_circle,
+                                                  size: 12,
+                                                  color: Color(0xFF16A34A),
+                                                ),
+                                                SizedBox(width: 3),
                                                 Text(
                                                   'Resuelto',
                                                   style: TextStyle(
                                                     color: Color(0xFF166534),
-                                                    fontSize: 9.5,
+                                                    fontSize: 11,
                                                     fontWeight: FontWeight.w700,
                                                   ),
                                                 ),
                                               ],
                                             ),
                                           ),
-                                          const SizedBox(width: 5),
+                                          const SizedBox(width: 6),
                                         ],
                                         Container(
                                           padding: const EdgeInsets.symmetric(
-                                            horizontal: 8,
-                                            vertical: 4,
+                                            horizontal: 10,
+                                            vertical: 5,
                                           ),
                                           decoration: BoxDecoration(
                                             color: fondoTipo,
-                                            borderRadius: BorderRadius.circular(8),
+                                            borderRadius: BorderRadius.circular(10),
                                             border: Border.all(
                                               color: colorTipo.withValues(alpha: 0.25),
                                             ),
@@ -448,19 +643,107 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                                   ),
                                 ],
                                 const SizedBox(height: 14),
+                                const Divider(height: 1, color: Paleta.linea),
+                                const SizedBox(height: 10),
+
+                                // Botones táctiles de Me gusta y No me gusta dentro de la tarjeta
                                 Row(
                                   children: [
-                                    Icon(
-                                      Icons.thumb_up_alt_outlined,
-                                      size: 15,
-                                      color: Paleta.gris,
+                                    // Botón Me gusta
+                                    Material(
+                                      color: t.apoyadoPorUsuario
+                                          ? const Color(0xFFEFF6FF)
+                                          : const Color(0xFFF8FAFC),
+                                      borderRadius: BorderRadius.circular(20),
+                                      child: InkWell(
+                                        borderRadius: BorderRadius.circular(20),
+                                        onTap: _toggleTemaLike,
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                                          decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.circular(20),
+                                            border: Border.all(
+                                              color: t.apoyadoPorUsuario
+                                                  ? const Color(0xFF93C5FD)
+                                                  : Paleta.linea,
+                                              width: 1,
+                                            ),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(
+                                                t.apoyadoPorUsuario
+                                                    ? Icons.thumb_up_alt_rounded
+                                                    : Icons.thumb_up_alt_outlined,
+                                                size: 16,
+                                                color: t.apoyadoPorUsuario
+                                                    ? const Color(0xFF2563EB)
+                                                    : Paleta.gris,
+                                              ),
+                                              const SizedBox(width: 6),
+                                              Text(
+                                                '${t.apoyos} me gusta',
+                                                style: TextStyle(
+                                                  fontSize: 12.5,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: t.apoyadoPorUsuario
+                                                      ? const Color(0xFF2563EB)
+                                                      : Paleta.tinta,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
                                     ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      '${t.apoyos} vecinos interesados en esta consulta',
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        color: Paleta.gris,
+                                    const SizedBox(width: 10),
+                                    // Botón No me gusta
+                                    Material(
+                                      color: t.dislikePorUsuario
+                                          ? const Color(0xFFFEF2F2)
+                                          : const Color(0xFFF8FAFC),
+                                      borderRadius: BorderRadius.circular(20),
+                                      child: InkWell(
+                                        borderRadius: BorderRadius.circular(20),
+                                        onTap: _toggleTemaDislike,
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                                          decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.circular(20),
+                                            border: Border.all(
+                                              color: t.dislikePorUsuario
+                                                  ? const Color(0xFFFCA5A5)
+                                                  : Paleta.linea,
+                                              width: 1,
+                                            ),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(
+                                                t.dislikePorUsuario
+                                                    ? Icons.thumb_down_alt_rounded
+                                                    : Icons.thumb_down_alt_outlined,
+                                                size: 16,
+                                                color: t.dislikePorUsuario
+                                                    ? const Color(0xFFDC2626)
+                                                    : Paleta.gris,
+                                              ),
+                                              const SizedBox(width: 6),
+                                              Text(
+                                                '${t.dislikes} no me gusta',
+                                                style: TextStyle(
+                                                  fontSize: 12.5,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: t.dislikePorUsuario
+                                                      ? const Color(0xFFDC2626)
+                                                      : Paleta.tinta,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -478,44 +761,43 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
 
                 // Subtítulo de respuestas
                 const Text(
-                  'Respuestas y recomendaciones',
+                  'Respuestas y comentarios',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
+                    letterSpacing: -0.2,
                     color: Paleta.tinta,
                   ),
                 ),
-
                 const SizedBox(height: 10),
 
                 // Lista de respuestas
-                Cargador<List<RespuestaForo>>(
-                  claves: [st.version],
-                  cargar: (st) async {
-                    final filas = await st.repo.respuestasForo(t.id);
-                    return filas.map(RespuestaForo.fromMap).toList();
-                  },
-                  builder: (context, respuestas) {
+                Cargador<List<Map<String, dynamic>>>(
+                  claves: [_versionRespuestas],
+                  cargar: (st) => st.repo.respuestasForo(t.id),
+                  builder: (context, filas) {
+                    final respuestas = filas.map((m) {
+                      final item = RespuestaForo.fromMap(m, miUid: st.uid);
+                      final override = _reaccionesLocales[item.id];
+                      if (override != null) {
+                        item.likePorUsuario = override.like;
+                        item.dislikePorUsuario = override.dislike;
+                        item.likes = override.likes;
+                        item.dislikes = override.dislikes;
+                      }
+                      return item;
+                    }).toList();
+
                     if (respuestas.isEmpty) {
-                      return Container(
-                        padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Paleta.ambarSuave, Colors.white],
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 24),
+                        child: Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Paleta.linea),
                           ),
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(color: Paleta.oroClaro),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Color(0x061E293B),
-                              blurRadius: 10,
-                              offset: Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Center(
                           child: Column(
                             children: [
                               Container(
@@ -583,14 +865,47 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                         ),
                       );
                     }
+
+                    // Organización jerárquica O(N) estilo Instagram
+                    final List<RespuestaForo> padres = [];
+                    final Map<String, List<RespuestaForo>> hijosPorPadre = {};
+
+                    for (final r in respuestas) {
+                      if (r.respuestaAId == null || r.respuestaAId!.isEmpty) {
+                        padres.add(r);
+                      } else {
+                        hijosPorPadre.putIfAbsent(r.respuestaAId!, () => []).add(r);
+                      }
+                    }
+
                     return Column(
-                      children: respuestas
-                          .map((r) => TarjetaRespuesta(
-                                r: r,
+                      children: padres.map((padre) {
+                        final hijos = hijosPorPadre[padre.id] ?? const [];
+                        final estaExpandido = _respuestasExpandidas.contains(padre.id);
+
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Paleta.linea),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Comentario padre
+                              TarjetaRespuesta(
+                                r: padre,
                                 onResponder: () {
-                                  setState(() => _respondiendoA = r.autorNombre);
+                                  setState(() {
+                                    _respondiendoA = padre.autorNombre;
+                                    _respuestaAPadreId = padre.id;
+                                  });
                                   _nodoFoco.requestFocus();
                                 },
+                                onLike: () => _toggleLikeComentario(padre, esLike: true),
+                                onDislike: () => _toggleLikeComentario(padre, esLike: false),
                                 onEliminar: () async {
                                   final confirmar = await showDialog<bool>(
                                     context: context,
@@ -604,28 +919,141 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                                       ),
                                       actions: [
                                         TextButton(
-                                          onPressed: () =>
-                                              Navigator.pop(ctx, false),
+                                          onPressed: () => Navigator.pop(ctx, false),
                                           child: const Text('Cancelar'),
                                         ),
                                         FilledButton(
                                           style: FilledButton.styleFrom(
                                             backgroundColor: Paleta.rojo,
                                           ),
-                                          onPressed: () =>
-                                              Navigator.pop(ctx, true),
+                                          onPressed: () => Navigator.pop(ctx, true),
                                           child: const Text('Eliminar'),
                                         ),
                                       ],
                                     ),
                                   );
                                   if (confirmar == true) {
-                                    await st.repo.eliminarRespuestaForo(r.id);
-                                    st.refrescar();
+                                    await st.repo.eliminarRespuestaForo(padre.id);
+                                    if (mounted) {
+                                      setState(() {
+                                        _versionRespuestas++;
+                                        widget.tema.respuestasCount = (widget.tema.respuestasCount - 1).clamp(0, 999999);
+                                      });
+                                    }
                                   }
                                 },
-                              ))
-                          .toList(),
+                              ),
+
+                              // Botón desplegable estilo Instagram para ver respuestas
+                              if (hijos.isNotEmpty) ...[
+                                const SizedBox(height: 6),
+                                InkWell(
+                                  onTap: () {
+                                    setState(() {
+                                      if (estaExpandido) {
+                                        _respuestasExpandidas.remove(padre.id);
+                                      } else {
+                                        _respuestasExpandidas.add(padre.id);
+                                      }
+                                    });
+                                  },
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          width: 24,
+                                          height: 1,
+                                          color: const Color(0xFF94A3B8),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          estaExpandido
+                                              ? 'Ocultar respuestas'
+                                              : 'Ver respuestas (${hijos.length})',
+                                          style: const TextStyle(
+                                            color: Color(0xFF64748B),
+                                            fontSize: 12.5,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+
+                              // Respuestas hijas indentadas con línea vertical
+                              if (estaExpandido && hijos.isNotEmpty)
+                                Container(
+                                  margin: const EdgeInsets.only(left: 12, top: 8),
+                                  padding: const EdgeInsets.only(left: 12),
+                                  decoration: const BoxDecoration(
+                                    border: Border(
+                                      left: BorderSide(color: Color(0xFFE2E8F0), width: 2),
+                                    ),
+                                  ),
+                                  child: Column(
+                                    children: hijos
+                                        .map(
+                                          (hijo) => TarjetaRespuesta(
+                                            r: hijo,
+                                            esHija: true,
+                                            onResponder: () {
+                                              setState(() {
+                                                _respondiendoA = hijo.autorNombre;
+                                                _respuestaAPadreId = padre.id;
+                                              });
+                                              _nodoFoco.requestFocus();
+                                            },
+                                            onLike: () => _toggleLikeComentario(hijo, esLike: true),
+                                            onDislike: () => _toggleLikeComentario(hijo, esLike: false),
+                                            onEliminar: () async {
+                                              final confirmar = await showDialog<bool>(
+                                                context: context,
+                                                builder: (ctx) => AlertDialog(
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius: BorderRadius.circular(16),
+                                                  ),
+                                                  title: const Text('¿Eliminar respuesta?'),
+                                                  content: const Text(
+                                                    'Se borrará tu comentario permanentemente.',
+                                                  ),
+                                                  actions: [
+                                                    TextButton(
+                                                      onPressed: () => Navigator.pop(ctx, false),
+                                                      child: const Text('Cancelar'),
+                                                    ),
+                                                    FilledButton(
+                                                      style: FilledButton.styleFrom(
+                                                        backgroundColor: Paleta.rojo,
+                                                      ),
+                                                      onPressed: () => Navigator.pop(ctx, true),
+                                                      child: const Text('Eliminar'),
+                                                    ),
+                                                  ],
+                                                ),
+                                              );
+                                              if (confirmar == true) {
+                                                await st.repo.eliminarRespuestaForo(hijo.id);
+                                                if (mounted) {
+                                                  setState(() {
+                                                    _versionRespuestas++;
+                                                    widget.tema.respuestasCount = (widget.tema.respuestasCount - 1).clamp(0, 999999);
+                                                  });
+                                                }
+                                              }
+                                            },
+                                          ),
+                                        )
+                                        .toList(),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
                     );
                   },
                 ),
@@ -657,7 +1085,10 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                     ),
                   ),
                   InkWell(
-                    onTap: () => setState(() => _respondiendoA = null),
+                    onTap: () => setState(() {
+                      _respondiendoA = null;
+                      _respuestaAPadreId = null;
+                    }),
                     borderRadius: BorderRadius.circular(12),
                     child: const Padding(
                       padding: EdgeInsets.all(4),
@@ -668,54 +1099,118 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
               ),
             ),
 
+          // Barra explicativa clara si la publicación busca un servicio/oficio
+          if (t.tipo == TipoPublicacionForo.servicio)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: const BoxDecoration(
+                color: Color(0xFFFFFBEB),
+                border: Border(
+                  top: BorderSide(color: Color(0xFFFDE68A)),
+                  bottom: BorderSide(color: Color(0xFFFEF3C7)),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(5),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFEF3C7),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.handyman_rounded,
+                      size: 15,
+                      color: Color(0xFFB45309),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  const Expanded(
+                    child: Text(
+                      '¿Conoces a un especialista? Comparte su teléfono para que el vecino pueda llamarlo.',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        color: Color(0xFF92400E),
+                        fontWeight: FontWeight.w600,
+                        height: 1.25,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFFD97706),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    onPressed: _abrirModalRecomendar,
+                    icon: const Icon(Icons.add_call, size: 13),
+                    label: const Text(
+                      'Recomendar',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
           // Caja fija inferior para responder
           Container(
-            padding: const EdgeInsets.fromLTRB(12, 10, 16, 24),
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
             decoration: const BoxDecoration(
               color: Colors.white,
               border: Border(top: BorderSide(color: Paleta.linea)),
             ),
             child: Row(
               children: [
-                if (t.tipo == TipoPublicacionForo.servicio) ...[
-                  IconButton(
-                    tooltip: 'Recomendar prestador con teléfono',
-                    style: IconButton.styleFrom(
-                      backgroundColor: Paleta.acentoSuave,
-                      foregroundColor: Paleta.acentoOscuro,
-                    ),
-                    onPressed: _abrirModalRecomendar,
-                    icon: const Icon(Icons.handyman_outlined, size: 20),
-                  ),
-                  const SizedBox(width: 8),
-                ],
                 Expanded(
                   child: TextField(
                     controller: _respuestaCtrl,
                     focusNode: _nodoFoco,
-                    textCapitalization: TextCapitalization.sentences,
+                    minLines: 1,
+                    maxLines: 4,
                     decoration: InputDecoration(
                       hintText: _respondiendoA != null
-                          ? 'Escribe tu respuesta a @$_respondiendoA...'
-                          : (t.tipo == TipoPublicacionForo.servicio
-                              ? 'Escribe tu respuesta o recomendación...'
-                              : 'Escribe tu respuesta...'),
+                          ? 'Respondiendo a @$_respondiendoA...'
+                          : 'Escribe un comentario público...',
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 16,
-                        vertical: 12,
+                        vertical: 10,
                       ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(24),
                         borderSide: const BorderSide(color: Paleta.linea),
                       ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(24),
+                        borderSide: const BorderSide(color: Paleta.linea),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(24),
+                        borderSide: const BorderSide(
+                          color: Paleta.primario,
+                          width: 1.5,
+                        ),
+                      ),
                       filled: true,
-                      fillColor: Paleta.crema,
+                      fillColor: const Color(0xFFF8FAFC),
                     ),
                   ),
                 ),
                 const SizedBox(width: 8),
                 IconButton.filled(
-                  style: IconButton.styleFrom(backgroundColor: Paleta.primario),
+                  style: IconButton.styleFrom(
+                    backgroundColor: Paleta.primario,
+                    padding: const EdgeInsets.all(12),
+                  ),
                   onPressed: _enviando ? null : _enviarRespuesta,
                   icon: _enviando
                       ? const SizedBox(

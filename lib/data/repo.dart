@@ -314,7 +314,7 @@ class Repo {
         'foro_temas',
         () => db
             .from('foro_temas')
-            .select('*, foro_apoyos(usuario_id)')
+            .select('*, foro_apoyos(usuario_id, tipo)')
             .order('created_at', ascending: false)
             .limit(200),
       );
@@ -326,19 +326,58 @@ class Repo {
 
   Future<List<Map<String, dynamic>>> respuestasForo(String temaId) async {
     try {
-      return await _consultar(
-        'foro_respuestas_$temaId',
-        () => db
-            .from('foro_respuestas')
-            .select()
-            .eq('tema_id', temaId)
-            .order('created_at', ascending: true)
-            .limit(300),
-      );
+      try {
+        return await _consultar(
+          'foro_respuestas_$temaId',
+          () => db
+              .from('foro_respuestas')
+              .select('*, foro_respuestas_likes(usuario_id, tipo)')
+              .eq('tema_id', temaId)
+              .order('created_at', ascending: true)
+              .limit(300),
+        );
+      } catch (_) {
+        return await _consultar(
+          'foro_respuestas_$temaId',
+          () => db
+              .from('foro_respuestas')
+              .select()
+              .eq('tema_id', temaId)
+              .order('created_at', ascending: true)
+              .limit(300),
+        );
+      }
     } on PostgrestException catch (e) {
       if (e.code == '42P01') return [];
       rethrow;
     }
+  }
+
+  Future<void> toggleReaccionRespuestaForo(String respuestaId, {required String tipo, required bool activar}) async {
+    final u = uid;
+    if (u == null) return;
+    try {
+      if (activar) {
+        try {
+          await db.from('foro_respuestas_likes').upsert({
+            'respuesta_id': respuestaId,
+            'usuario_id': u,
+            'tipo': tipo,
+          });
+        } catch (_) {
+          await db.from('foro_respuestas_likes').upsert({
+            'respuesta_id': respuestaId,
+            'usuario_id': u,
+          });
+        }
+      } else {
+        await db.from('foro_respuestas_likes').delete().eq('respuesta_id', respuestaId).eq('usuario_id', u);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> toggleLikeRespuesta(String respuestaId, bool darLike) async {
+    await toggleReaccionRespuestaForo(respuestaId, tipo: 'like', activar: darLike);
   }
 
   Future<void> crearTemaForo(Map<String, dynamic> datos) async {
@@ -349,14 +388,31 @@ class Repo {
     await db.from('foro_respuestas').insert(datos);
   }
 
-  Future<void> toggleApoyoForo(String temaId, bool apoyar) async {
+  Future<void> toggleReaccionTemaForo(String temaId, {required String tipo, required bool activar}) async {
     final u = uid;
     if (u == null) return;
-    if (apoyar) {
-      await db.from('foro_apoyos').upsert({'tema_id': temaId, 'usuario_id': u});
-    } else {
-      await db.from('foro_apoyos').delete().eq('tema_id', temaId).eq('usuario_id', u);
-    }
+    try {
+      if (activar) {
+        try {
+          await db.from('foro_apoyos').upsert({
+            'tema_id': temaId,
+            'usuario_id': u,
+            'tipo': tipo,
+          });
+        } catch (_) {
+          await db.from('foro_apoyos').upsert({
+            'tema_id': temaId,
+            'usuario_id': u,
+          });
+        }
+      } else {
+        await db.from('foro_apoyos').delete().eq('tema_id', temaId).eq('usuario_id', u);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> toggleApoyoForo(String temaId, bool apoyar) async {
+    await toggleReaccionTemaForo(temaId, tipo: 'like', activar: apoyar);
   }
 
   Future<void> eliminarTemaForo(String id) async {

@@ -205,7 +205,43 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
             callback: (_) {
               // Conteo de vecinos a salvo (junta, organizaciones, brigadistas).
               _debounce?.cancel();
-              _debounce = Timer(const Duration(milliseconds: 800), refrescar);
+              _debounce = Timer(const Duration(milliseconds: 500), refrescar);
+            },
+          )
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'foro_temas',
+            callback: (_) {
+              _debounce?.cancel();
+              _debounce = Timer(const Duration(milliseconds: 500), refrescar);
+            },
+          )
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'foro_respuestas',
+            callback: (_) {
+              _debounce?.cancel();
+              _debounce = Timer(const Duration(milliseconds: 500), refrescar);
+            },
+          )
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'foro_apoyos',
+            callback: (_) {
+              _debounce?.cancel();
+              _debounce = Timer(const Duration(milliseconds: 500), refrescar);
+            },
+          )
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'foro_respuestas_likes',
+            callback: (_) {
+              _debounce?.cancel();
+              _debounce = Timer(const Duration(milliseconds: 500), refrescar);
             },
           )
           .onPostgresChanges(

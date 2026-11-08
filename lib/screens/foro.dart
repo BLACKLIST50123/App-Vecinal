@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -24,9 +26,21 @@ class _ForoScreenState extends State<ForoScreen> {
   String _busqueda = '';
   String _filtroTipo = 'todos';
   String _filtroSector = 'todos';
+  Timer? _pollTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _pollTimer = Timer.periodic(const Duration(seconds: 20), (_) {
+      if (mounted && ModalRoute.of(context)?.isCurrent == true) {
+        context.read<AppState>().refrescar();
+      }
+    });
+  }
 
   @override
   void dispose() {
+    _pollTimer?.cancel();
     _buscarCtrl.dispose();
     super.dispose();
   }
@@ -53,7 +67,10 @@ class _ForoScreenState extends State<ForoScreen> {
     );
   }
 
+  final Set<String> _procesandoApoyos = {};
+
   Future<void> _toggleApoyo(TemaForo tema) async {
+    if (_procesandoApoyos.contains(tema.id)) return;
     final st = context.read<AppState>();
     if (!st.logueado) {
       Navigator.push(
@@ -67,21 +84,80 @@ class _ForoScreenState extends State<ForoScreen> {
       return;
     }
 
+    _procesandoApoyos.add(tema.id);
     final nuevoEstado = !tema.apoyadoPorUsuario;
+    final teniaDislike = tema.dislikePorUsuario;
+
     setState(() {
       tema.apoyadoPorUsuario = nuevoEstado;
-      tema.apoyos += nuevoEstado ? 1 : -1;
+      if (nuevoEstado) {
+        tema.apoyos = (tema.apoyos + 1).clamp(1, 999999);
+        if (teniaDislike) {
+          tema.dislikePorUsuario = false;
+          tema.dislikes = (tema.dislikes - 1).clamp(0, 999999);
+        }
+      } else {
+        tema.apoyos = (tema.apoyos - 1).clamp(0, 999999);
+      }
     });
 
     try {
-      await st.repo.toggleApoyoForo(tema.id, nuevoEstado);
+      await st.repo.toggleReaccionTemaForo(tema.id, tipo: 'like', activar: nuevoEstado);
     } catch (_) {
       if (mounted) {
         setState(() {
           tema.apoyadoPorUsuario = !nuevoEstado;
-          tema.apoyos += !nuevoEstado ? 1 : -1;
+          tema.dislikePorUsuario = teniaDislike;
         });
       }
+    } finally {
+      _procesandoApoyos.remove(tema.id);
+    }
+  }
+
+  Future<void> _toggleDislike(TemaForo tema) async {
+    if (_procesandoApoyos.contains(tema.id)) return;
+    final st = context.read<AppState>();
+    if (!st.logueado) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const AuthScreen(
+            mensaje: 'Para reaccionar en una consulta necesitas ingresar con tu cuenta de vecino.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    _procesandoApoyos.add(tema.id);
+    final nuevoDislike = !tema.dislikePorUsuario;
+    final teniaLike = tema.apoyadoPorUsuario;
+
+    setState(() {
+      tema.dislikePorUsuario = nuevoDislike;
+      if (nuevoDislike) {
+        tema.dislikes = (tema.dislikes + 1).clamp(1, 999999);
+        if (teniaLike) {
+          tema.apoyadoPorUsuario = false;
+          tema.apoyos = (tema.apoyos - 1).clamp(0, 999999);
+        }
+      } else {
+        tema.dislikes = (tema.dislikes - 1).clamp(0, 999999);
+      }
+    });
+
+    try {
+      await st.repo.toggleReaccionTemaForo(tema.id, tipo: 'dislike', activar: nuevoDislike);
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          tema.dislikePorUsuario = !nuevoDislike;
+          tema.apoyadoPorUsuario = teniaLike;
+        });
+      }
+    } finally {
+      _procesandoApoyos.remove(tema.id);
     }
   }
 
@@ -518,6 +594,7 @@ class _ForoScreenState extends State<ForoScreen> {
                   (t) => TarjetaForo(
                     tema: t,
                     onApoyar: () => _toggleApoyo(t),
+                    onDislike: () => _toggleDislike(t),
                     onTap: () async {
                       await Navigator.push(
                         context,
@@ -525,10 +602,16 @@ class _ForoScreenState extends State<ForoScreen> {
                           builder: (_) => DetalleTemaForoScreen(
                             tema: t,
                             onToggleApoyo: () => _toggleApoyo(t),
+                            onToggleDislike: () => _toggleDislike(t),
                           ),
                         ),
                       );
-                      st.refrescar();
+                      // Pausa breve hasta que termine la animacion de regreso (300ms)
+                      // para que la transicion sea 100% fluida a 60fps sin tirones visuales
+                      await Future.delayed(const Duration(milliseconds: 320));
+                      if (mounted) {
+                        setState(() {});
+                      }
                     },
                   ),
                 ),
