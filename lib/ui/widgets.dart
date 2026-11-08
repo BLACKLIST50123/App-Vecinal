@@ -19,7 +19,11 @@ import 'tema.dart';
 
 Future<void> llamar(String telefono) async {
   try {
-    await launchUrl(Uri(scheme: 'tel', path: soloDigitos(telefono)));
+    var d = soloDigitos(telefono);
+    if (d.length == 11 && d.startsWith('51')) {
+      d = d.substring(2);
+    }
+    await launchUrl(Uri(scheme: 'tel', path: d));
   } catch (_) {
     avisar('No se pudo abrir el teléfono. Marca: $telefono');
   }
@@ -247,7 +251,7 @@ class _CargadorState<T> extends State<Cargador<T>> {
     return FutureBuilder<T>(
       future: _futuro,
       builder: (c, s) {
-        if (s.connectionState != ConnectionState.done) {
+        if (s.connectionState != ConnectionState.done && !s.hasData) {
           return const Center(
             child: Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator(semanticsLabel: 'Cargando')),
           );
