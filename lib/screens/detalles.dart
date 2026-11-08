@@ -292,6 +292,15 @@ class _ServicioDetalleState extends State<ServicioDetalle> {
         _Dato(Icons.payments, 'Precio referencial', s.precioRef),
         _Dato(Icons.schedule, 'Horario', s.horario),
         _Dato(Icons.place, 'Zona', [?s.sector, if (dist != null) formatoDistancia(dist)].join(' · ')),
+        // Otros servicios o productos del mismo vecino.
+        if (s.autorId != null && !s.esEmergencia)
+          Cargador<List<Servicio>>(
+            claves: [s.autorId],
+            cargar: (st) => st.repo.serviciosDe(s.autorId!, excepto: s.id),
+            builder: (c, otros) => otros.isEmpty
+                ? const SizedBox.shrink()
+                : _MasDelVecino(nombre: esMio ? 'Tú' : (s.autorNombre ?? 'Este vecino'), otros: otros),
+          ),
         const Divider(),
         TituloSeccion('Visto Bueno Vecinal (${s.vistosBuenos})'),
         Padding(
@@ -1037,3 +1046,54 @@ class _PublicacionDetalleState extends State<PublicacionDetalle> {
   }
 }
 
+/// "Maestro Pedro también ofrece": sus otros servicios, para descubrirlos
+/// sin tener que buscar.
+class _MasDelVecino extends StatelessWidget {
+  const _MasDelVecino({required this.nombre, required this.otros});
+  final String nombre;
+  final List<Servicio> otros;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Semantics(
+            header: true,
+            child: Text(nombre == 'Tú' ? 'También ofreces' : '$nombre también ofrece',
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+          ),
+          const SizedBox(height: 8),
+          for (final o in otros.take(5))
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Material(
+                color: colorGrupo(grupoServicio(o.categoria)).$2,
+                borderRadius: BorderRadius.circular(14),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(14),
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ServicioDetalle(servicio: o))),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    child: Row(children: [
+                      Icon(buscarCategoria(o.categoria).icono, color: colorGrupo(grupoServicio(o.categoria)).$1),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(o.titulo,
+                            maxLines: 2, overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                      ),
+                      if (o.vistosBuenos > 0) ...[
+                        const Icon(Icons.thumb_up_alt_rounded, size: 16, color: Paleta.verde),
+                        const SizedBox(width: 3),
+                        Text('${o.vistosBuenos}', style: const TextStyle(fontWeight: FontWeight.w700, color: Paleta.verde)),
+                      ],
+                      const SizedBox(width: 4),
+                      const Icon(Icons.chevron_right, color: Paleta.gris),
+                    ]),
+                  ),
+                ),
+              ),
+            ),
+        ]),
+      );
+}

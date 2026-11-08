@@ -150,8 +150,12 @@ void abrirFormulario(BuildContext context, TipoForm t) {
 }
 
 class FormularioPublicar extends StatefulWidget {
-  const FormularioPublicar({super.key, required this.tipo});
+  const FormularioPublicar({super.key, required this.tipo, this.plantilla});
   final TipoForm tipo;
+
+  /// "Publicar otro": datos del servicio anterior (celular, horario,
+  /// sector y ubicación) para no escribirlos de nuevo.
+  final Map<String, dynamic>? plantilla;
 
   @override
   State<FormularioPublicar> createState() => _FormularioPublicarState();
@@ -273,6 +277,17 @@ class _FormularioPublicarState extends State<FormularioPublicar> {
     if (tel != null) _telefono.text = tel;
     if (t == TipoForm.reportarVulnerable) _prioridad = 'critica';
     _gps = st.ubicacion;
+    final p = widget.plantilla;
+    if (p != null) {
+      if (p['telefono'] case final String tel when tel.isNotEmpty) _telefono.text = tel;
+      if (p['horario'] case final String h) _horario.text = h;
+      if (p['sector'] case final String sec) _sector = sec;
+      if (p['lat'] case final num lat) {
+        if (p['lng'] case final num lng) _gps = Punto(lat.toDouble(), lng.toDouble());
+      }
+      _buscandoGps = false;
+      return; // misma ubicación que el anterior: no hace falta el GPS
+    }
     _buscarGps();
   }
 
@@ -402,6 +417,18 @@ class _FormularioPublicarState extends State<FormularioPublicar> {
           } catch (_) {} // no bloquea: el servicio ya quedó publicado
         }
         if (!mounted) return;
+        if (t == TipoForm.servicio && st.logueado) {
+          // ¿Ofrece algo más? Se publica otro con sus datos ya llenos.
+          final otro = await _preguntarOtro();
+          if (!mounted) return;
+          if (otro) {
+            await Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => FormularioPublicar(tipo: t, plantilla: datos)),
+            );
+            return;
+          }
+        }
         Navigator.pop(context);
         avisar('¡Publicado! Tus vecinos ya pueden verlo.');
       } else {
@@ -441,6 +468,31 @@ class _FormularioPublicarState extends State<FormularioPublicar> {
       Navigator.pop(context);
     }
   }
+
+  Future<bool> _preguntarOtro() async =>
+      await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (c) => AlertDialog(
+          icon: const Icon(Icons.check_circle, color: Paleta.verde, size: 48),
+          title: const Text('¡Publicado!', textAlign: TextAlign.center),
+          content: const Text(
+            '¿Ofreces otro servicio o producto?\nTu celular, horario y ubicación ya quedan llenos.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 16, height: 1.35),
+          ),
+          actionsAlignment: MainAxisAlignment.center,
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Listo')),
+            FilledButton.icon(
+              onPressed: () => Navigator.pop(c, true),
+              icon: const Icon(Icons.add),
+              label: const Text('Publicar otro'),
+            ),
+          ],
+        ),
+      ) ??
+      false;
 
   Widget _campoDetalle() => TextField(
         controller: _detalle,
@@ -519,6 +571,21 @@ class _FormularioPublicarState extends State<FormularioPublicar> {
                 leading: Icon(Icons.info_outline),
                 title: Text('Estás publicando sin cuenta. Solo pedimos tu nombre para que te encuentren.'),
               ),
+            ),
+
+          if (widget.plantilla != null)
+            Container(
+              margin: const EdgeInsets.only(top: 4),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: Paleta.verdeSuave, borderRadius: BorderRadius.circular(14)),
+              child: const Row(children: [
+                Icon(Icons.auto_awesome, color: Paleta.verde),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text('Usamos tu celular, horario y ubicación de antes. Solo cuéntanos qué más ofreces.',
+                      style: TextStyle(fontSize: 15, color: Paleta.verde, fontWeight: FontWeight.w600)),
+                ),
+              ]),
             ),
 
           // 1 ─ La pregunta principal

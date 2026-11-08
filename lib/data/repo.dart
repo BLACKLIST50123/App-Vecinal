@@ -311,6 +311,22 @@ class Repo {
     return filas.map(PedidoServicio.fromMap).toList();
   }
 
+  /// Otros servicios activos del mismo vecino ("Más de este vecino").
+  Future<List<Servicio>> serviciosDe(String autorId, {String? excepto}) async {
+    final filas = await _consultar(
+      'servs_de_$autorId',
+      () => db
+          .from('servicios')
+          .select('*, vistos_buenos(count)')
+          .eq('autor_id', autorId)
+          .eq('activo', true)
+          .eq('es_emergencia', false)
+          .order('created_at', ascending: false)
+          .limit(10),
+    );
+    return [for (final f in filas) if (f['id'] != excepto) Servicio.fromMap(f)];
+  }
+
   /// Todos los servicios creados por el usuario (activos y en pausa).
   Future<List<Servicio>> misServicios() async {
     final id = uid;
