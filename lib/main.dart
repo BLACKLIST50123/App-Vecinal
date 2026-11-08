@@ -12,7 +12,6 @@ import 'features/sos/sos_boton.dart';
 import 'features/sos/sos_navegacion.dart';
 import 'screens/bienvenida.dart';
 import 'screens/home_shell.dart';
-import 'screens/roles.dart';
 import 'screens/tutorial.dart';
 import 'state/app_state.dart';
 import 'ui/tema.dart';
@@ -59,20 +58,17 @@ class AppVecinal extends StatelessWidget {
         final sistema = mq.textScaler.scale(1);
         return MediaQuery(
           data: mq.copyWith(textScaler: TextScaler.linear(sistema > st.escala ? sistema : st.escala)),
-          // Botón SOS sobre todas las pantallas (después de la bienvenida,
-          // el tutorial y de elegir rol).
+          // Aviso de SOS cercano sobre todas las pantallas.
           child: CapaSos(child: child!),
         );
       },
-      // Bienvenida (iniciar sesión / crear cuenta / invitado) → tutorial y
-      // rol solo la primera vez → la app.
+      // Bienvenida (iniciar sesión / crear cuenta / invitado) → tutorial solo
+      // la primera vez → la app. El rol de brigadista lo da la junta vecinal.
       home: !st.entro
           ? const BienvenidaScreen()
           : !st.tutorialVisto
               ? const TutorialScreen(inicial: true)
-              : !st.rolElegido
-                  ? const SelectorRolScreen()
-                  : const HomeShell(),
+              : const HomeShell(),
     );
   }
 }

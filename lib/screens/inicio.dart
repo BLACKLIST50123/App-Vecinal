@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../config.dart';
 import '../features/inicio/mapa_inicio.dart';
+import '../features/junta/junta.dart';
 import '../features/inicio/pulso.dart';
 import '../models.dart';
 import '../state/app_state.dart';
@@ -35,6 +36,8 @@ class InicioScreen extends StatelessWidget {
       child: ListView(
         padding: const EdgeInsets.only(bottom: 110),
         children: [
+          // Invitación de la junta para ser brigadista (si la hay).
+          const TarjetaNombramiento(),
           // El brigadista ve primero las alertas SOS de su zona.
           if (st.esBrigadista) const PanelBrigadista(),
           const _Bienvenida(),
@@ -118,7 +121,7 @@ class EmergenciaScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final st = context.watch<AppState>();
     const rojo = Paleta.rojo;
-    const rojoCat = (Color(0xFFE53935), Color(0xFFFDECEA));
+    const rojoCat = (Paleta.rojo, Paleta.rojoSuave);
     return RefreshIndicator(
       onRefresh: () async => st.refrescar(),
       child: ListView(
@@ -464,7 +467,7 @@ class TarjetaMisAportes extends StatelessWidget {
                           : '${servs.length} ${servs.length == 1 ? 'publicación activa' : 'publicaciones activas'}',
                       style: TextStyle(
                         color: pendientes > 0
-                            ? const Color(0xFFC2185B)
+                            ? Paleta.rosa
                             : Paleta.gris,
                         fontWeight: pendientes > 0
                             ? FontWeight.bold
