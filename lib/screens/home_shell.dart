@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../config.dart';
 import '../features/emergencia/emergencia_screen.dart';
+import '../features/emergencia/panel_coordinacion.dart';
 import '../features/inicio/mapa_inicio.dart';
 import '../features/solidaridad/solidaridad_screen.dart';
 import '../services/voz.dart';
@@ -67,7 +68,13 @@ class _HomeShellState extends State<HomeShell> {
     //   Emergencia (actuar ya) · Mapa de ayuda (quién necesita ayuda y puntos
     //   de ayuda, un solo mapa) · Perfil (siempre).
     final paginas = e
-        ? <Widget>[EmergenciaScreen(irA: (i) => _irA(i)), const _MapaEmergencia(), const PerfilScreen()]
+        ? <Widget>[
+            EmergenciaScreen(irA: (i) => _irA(i)),
+            const _MapaEmergencia(),
+            // Solo la junta (moderador): gestionar los pedidos y SOS.
+            if (st.esModerador) const PanelSos(),
+            const PerfilScreen(),
+          ]
         : <Widget>[
             InicioScreen(irA: _irA),
             ServiciosScreen(
@@ -91,6 +98,7 @@ class _HomeShellState extends State<HomeShell> {
         ? <(String, String?)>[
             ('Emergencia', st.emergencia.titulo),
             ('Mapa de ayuda', 'Solo esta emergencia'),
+            if (st.esModerador) ('Pedidos y SOS', 'Deriva y asigna cada aviso'),
             ('Mi perfil', st.logueado ? null : 'Estás como visitante'),
           ]
         : <(String, String?)>[
@@ -121,7 +129,20 @@ class _HomeShellState extends State<HomeShell> {
     final destinos = e
         ? <NavigationDestination>[
             const NavigationDestination(icon: Icon(Icons.sos_outlined), selectedIcon: Icon(Icons.sos), label: 'Emergencia'),
-            const NavigationDestination(icon: Icon(Icons.map_outlined), selectedIcon: Icon(Icons.map), label: 'Mapa de ayuda'),
+            NavigationDestination(
+              icon: const Icon(Icons.map_outlined),
+              selectedIcon: const Icon(Icons.map),
+              // Con 4 pestañas (moderador) el texto corto no se parte.
+              label: st.esModerador ? 'Mapa' : 'Mapa de ayuda',
+              tooltip: 'Mapa de ayuda',
+            ),
+            if (st.esModerador)
+              const NavigationDestination(
+                icon: Icon(Icons.dashboard_customize_outlined),
+                selectedIcon: Icon(Icons.dashboard_customize),
+                label: 'SOS',
+                tooltip: 'Pedidos de ayuda y SOS',
+              ),
             perfil,
           ]
         : <NavigationDestination>[
@@ -139,9 +160,11 @@ class _HomeShellState extends State<HomeShell> {
     final resumenes = e
         ? <String>[
             'Emergencia. ${st.emergencia.titulo ?? ''}. ${st.emergencia.mensaje ?? ''}. Avisa si estás bien o toca Necesito ayuda. '
-                'Abajo está tu punto de ayuda más cercano. Si hay riesgo de vida, llama al 105, 106 o 116.',
+                'Si hay riesgo de vida, llama al 105, 106 o 116.',
             'Mapa de ayuda. Solo lo de esta emergencia: vecinos que necesitan ayuda y puntos de ayuda como albergues o postas. '
                 'Toca un punto para ayudar, llamar o ver cómo llegar.',
+            if (st.esModerador)
+              'Pedidos y SOS. Cada aviso de esta emergencia con fecha y hora. Tócalo para derivarlo a las autoridades, asignarlo a un brigadista o cambiar su estado.',
             resumenPerfil,
           ]
         : <String>[

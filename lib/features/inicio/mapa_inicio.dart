@@ -361,7 +361,7 @@ class _MapaYCercanosState extends State<MapaYCercanos> {
 
         return Container(
           margin: EdgeInsets.only(top: widget.emergencia ? 0 : 14),
-          padding: EdgeInsets.only(top: widget.emergencia ? 4 : 16, bottom: 18),
+          padding: EdgeInsets.only(top: 16, bottom: 18),
           // Fondo cálido suave: separa la sección sin cortes bruscos.
           color: Paleta.acentoSuave,
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [

@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../data/datos_iniciales.dart';
-import '../inicio/mapa_inicio.dart';
 import 'pedidos_emergencia.dart';
 import 'pedir_ayuda_rapido.dart';
 import '../../models.dart';
@@ -25,7 +24,7 @@ import '../../util.dart';
 ///   2. ¿Cómo estás?  → Estoy bien / Necesito ayuda
 ///   3. Llamar ahora (105 · 106 · 116)
 ///   4. También puedes (avisar de un vecino, compartir, QR sin internet)
-///   5. Tu punto de ayuda más cercano y cuántos piden ayuda (→ Mapa de ayuda)
+/// Los puntos de ayuda y los pedidos están en la pestaña Mapa de ayuda.
 /// Para junta, organizaciones y brigadistas: arriba, cuántos vecinos están a salvo.
 class EmergenciaScreen extends StatelessWidget {
   const EmergenciaScreen({super.key, required this.irA});
@@ -34,15 +33,15 @@ class EmergenciaScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final st = context.watch<AppState>();
-    final coordina = st.esModerador || st.esOrganizacion || st.esBrigadista;
     return RefreshIndicator(
       onRefresh: () async => st.refrescar(),
       child: ListView(padding: const EdgeInsets.only(bottom: 40), children: [
         const _AvisoJunta(),
-        if (coordina) const _VecinosASalvo(),
+        // Solo la junta (moderador): cuántos están a salvo. La gestión está en la pestaña Pedidos y SOS.
+        if (st.esModerador) const _VecinosASalvo(),
         if (st.esBrigadista) const PanelBrigadista(),
         const _ComoEstas(),
-        _AyudaCerca(irAlMapa: () => irA(1)),
+        const _MiPedido(),
         const _Bloque(
           titulo: 'Llamar ahora',
           child: Padding(
@@ -68,12 +67,6 @@ class EmergenciaScreen extends StatelessWidget {
               texto: 'Sin internet: llevar mensajes por QR',
               onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EscanearQrScreen())),
             ),
-            if (coordina)
-              FilaAjuste(
-                icono: Icons.dashboard_outlined,
-                texto: 'Panel de coordinación',
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PanelCoordinacionScreen())),
-              ),
           ]),
         ),
       ]),
@@ -81,120 +74,86 @@ class EmergenciaScreen extends StatelessWidget {
   }
 }
 
-/// Tu punto de ayuda más cercano y cuántos vecinos piden ayuda en ESTA
-/// emergencia (el detalle de ambos está en el Mapa de ayuda).
-class _AyudaCerca extends StatelessWidget {
-  const _AyudaCerca({required this.irAlMapa});
-  final VoidCallback irAlMapa;
+/// "Tu pedido de ayuda": lo que enviaste y cómo va (sin atender, en
+/// atención, atendido, cuántos vecinos van a ayudar).
+class _MiPedido extends StatelessWidget {
+  const _MiPedido();
 
   @override
   Widget build(BuildContext context) {
     final st = context.watch<AppState>();
-    return Cargador<List<PuntoMapa>>(
-      claves: [st.emergencia.clave],
+    final guardado = st.miPedidoEmergencia;
+    if (guardado == null && !st.logueado) return const SizedBox.shrink();
+    return Cargador<Publicacion?>(
+      claves: [st.emergencia.clave, guardado?['id']],
       cargar: (st) async {
-        final r = await Future.wait([
-          st.repo.servicios(emergencia: true),
-          st.repo.publicaciones(emergencia: true),
-          st.repo.alertasSos(),
-        ]);
-        return armarPuntosEmergencia(
-          grupos: r[0] as List<Servicio>,
-          pedidos: [...r[2] as List<Publicacion>, ...r[1] as List<Publicacion>],
-          desde: st.emergencia.desde,
-        );
+        final pedidos = await cargarPedidosEmergencia(st);
+        final id = guardado?['id'];
+        for (final p in pedidos) {
+          if (p.id == id) return p;
+        }
+        // Con cuenta: también lo enviado desde otro celular.
+        final mios = pedidos.where((p) => p.autorId != null && p.autorId == st.uid).toList()
+          ..sort((a, b) => b.creado.compareTo(a.creado));
+        return mios.isEmpty ? null : mios.first;
       },
-      builder: (context, puntos) {
-        final ref = st.referencia;
-        final grupos = puntos.where((p) => p.tipo == TipoPunto.grupo).toList()
-          ..sort((a, b) => distanciaKm(ref, a.punto).compareTo(distanciaKm(ref, b.punto)));
-        final piden = puntos.where((p) => p.tipo == TipoPunto.emergencia).length;
-        final cercano = grupos.isEmpty ? null : grupos.first;
-        return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          const TituloDiseno('Tu punto de ayuda más cercano'),
-          if (cercano == null)
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20),
-              child: Text('La junta aún no ha publicado puntos de ayuda para esta emergencia.',
-                  style: TextStyle(color: Paleta.gris)),
-            )
-          else
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Material(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(18),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(18),
-                  onTap: () => abrirPuntoDeAyuda(context, cercano.servicio!),
-                  child: Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(18), border: Border.all(color: Paleta.linea)),
-                    child: Row(children: [
-                      Container(
-                        width: 46,
-                        height: 46,
-                        decoration: BoxDecoration(
-                          color: TipoPunto.grupo.color.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: Icon(cercano.icono, color: TipoPunto.grupo.color),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          Text(cercano.titulo,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Paleta.tinta)),
-                          Text(formatoDistancia(distanciaKm(ref, cercano.punto)),
-                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: TipoPunto.grupo.color)),
-                          const Text('Toca para llamar, ver cómo llegar o pedirles ayuda',
-                              style: TextStyle(fontSize: 12, color: Paleta.gris)),
-                        ]),
-                      ),
-                      const Icon(Icons.chevron_right_rounded, color: Paleta.grisClaro),
-                    ]),
-                  ),
-                ),
-              ),
-            ),
-          const SizedBox(height: 12),
-          // Todos los reportes de "Necesito ayuda" y SOS, cada uno con "Ver en el mapa".
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size.fromHeight(52),
-                    foregroundColor: piden == 0 ? null : Paleta.rojoTexto,
-                    side: BorderSide(color: piden == 0 ? Paleta.linea : Paleta.rojo, width: 1.5),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  ),
-                  onPressed: piden == 0
-                      ? null
-                      : () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PedidosEmergenciaScreen())),
-                  icon: const Icon(Icons.front_hand_outlined),
-                  label: Text(piden == 0 ? 'Nadie pide ayuda aún' : '$piden ${piden == 1 ? 'pedido' : 'pedidos'} de ayuda'),
-                ),
-              ),
-              const SizedBox(width: 10),
-              OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size(0, 52),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                ),
-                onPressed: irAlMapa,
-                icon: const Icon(Icons.map_outlined),
-                label: const Text('Mapa'),
-              ),
+      builder: (context, p) {
+        if (p == null && guardado == null) return const SizedBox.shrink();
+        final titulo = p?.titulo ?? (guardado!['titulo'] ?? 'Necesito ayuda') as String;
+        final critica = (p?.prioridad ?? guardado?['prioridad']) == 'critica';
+        final creado = p?.creado ?? DateTime.tryParse('${guardado?['creado_offline_en']}')?.toLocal();
+        final (estado, color) = p == null
+            ? ('Por enviar · sin señal', Paleta.gris)
+            : switch (p.estado) {
+                'resuelta' => ('Atendido', const Color(0xFF15803D)),
+                'en_curso' => ('En atención', const Color(0xFF1D4ED8)),
+                _ => ('Esperando ayuda', const Color(0xFFB45309)),
+              };
+        return Container(
+          margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: Paleta.rojo.withValues(alpha: 0.35)),
+          ),
+          child: InkWell(
+            onTap: p == null ? null : () => Navigator.push(context, MaterialPageRoute(builder: (_) => PublicacionDetalle(publicacion: p))),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Text('TU PEDIDO DE AYUDA',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 0.8, color: Paleta.rojoTexto)),
+              const SizedBox(height: 4),
+              Text(titulo, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Paleta.tinta)),
+              const SizedBox(height: 6),
+              Wrap(spacing: 8, runSpacing: 6, crossAxisAlignment: WrapCrossAlignment.center, children: [
+                _Pastilla(critica ? 'Muy urgente' : 'Urgente', critica ? Paleta.rojo : const Color(0xFFB45309)),
+                _Pastilla(estado, color),
+                if (creado != null) Text('Enviado ${fechaHora(creado)}', style: const TextStyle(fontSize: 13, color: Paleta.gris)),
+              ]),
+              if (p != null && p.ayudantes > 0) ...[
+                const SizedBox(height: 6),
+                Text('${p.ayudantes} ${p.ayudantes == 1 ? 'vecino va' : 'vecinos van'} a ayudarte',
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF15803D))),
+              ],
             ]),
           ),
-        ]);
+        );
       },
     );
   }
+}
+
+class _Pastilla extends StatelessWidget {
+  const _Pastilla(this.texto, this.color);
+  final String texto;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+        decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(999)),
+        child: Text(texto, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: color)),
+      );
 }
 
 class _Bloque extends StatelessWidget {

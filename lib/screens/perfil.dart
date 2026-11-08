@@ -138,11 +138,12 @@ class PerfilScreen extends StatelessWidget {
       if (st.esOrganizacion || st.esModerador) ...[
         TituloDiseno(st.esModerador ? 'Junta vecinal' : 'Organización'),
         ListaAjustes(filas: [
-          FilaAjuste(
-            icono: Icons.dashboard_outlined,
-            texto: 'Panel de coordinación',
-            onTap: () => _ir(context, const PanelCoordinacionScreen()),
-          ),
+          if (st.esModerador)
+            FilaAjuste(
+              icono: Icons.dashboard_outlined,
+              texto: 'Gestionar pedidos y SOS',
+              onTap: () => _ir(context, const PanelCoordinacionScreen()),
+            ),
           if (st.esModerador)
             FilaAjuste(
               icono: Icons.groups_2_outlined,

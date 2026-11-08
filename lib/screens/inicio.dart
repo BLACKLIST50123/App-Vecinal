@@ -11,7 +11,6 @@ import '../ui/diseno.dart';
 import '../ui/tema.dart';
 import '../ui/widgets.dart';
 import '../util.dart';
-import 'confianza.dart';
 import 'detalles.dart';
 import 'publicar.dart';
 
@@ -174,7 +173,11 @@ class PanelBrigadista extends StatelessWidget {
             // Una sola fuente de alertas: los SOS del botón de pánico (origen 'sos',
             // vigentes y sin atender), haya o no emergencia activa.
             cargar: (st) => st.repo.alertasSos(),
-            builder: (c, alertas) {
+            builder: (c, todas) {
+              // Primero los SOS que la junta le asignó a este brigadista.
+              final uid = context.read<AppState>().uid;
+              bool mio(Publicacion p) => uid != null && p.atendidoPor == uid;
+              final alertas = [...todas]..sort((a, b) => (mio(b) ? 1 : 0) - (mio(a) ? 1 : 0));
               if (alertas.isEmpty) {
                 return const Padding(
                   padding: EdgeInsets.all(14),
@@ -201,11 +204,14 @@ class PanelBrigadista extends StatelessWidget {
                       ),
                       subtitle: Text(
                         [
+                          if (mio(p)) 'ASIGNADO A TI',
                           p.autorNombre ?? 'Vecino',
                           if (p.sector != null) p.sector!,
                           haceCuanto(p.creado),
                         ].join(' · '),
+                        style: mio(p) ? const TextStyle(color: Paleta.azulInfo, fontWeight: FontWeight.w700) : null,
                       ),
+                      tileColor: mio(p) ? Paleta.azulInfo.withValues(alpha: 0.08) : null,
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () => Navigator.push(
                         c,
@@ -218,19 +224,8 @@ class PanelBrigadista extends StatelessWidget {
               );
             },
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
-            child: OutlinedButton.icon(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const PanelCoordinacionScreen(),
-                ),
-              ),
-              icon: const Icon(Icons.dashboard_outlined),
-              label: const Text('Panel de coordinación'),
-            ),
-          ),
+          // La gestión de SOS (derivar, asignar, estados) es solo de la junta.
+          const SizedBox(height: 8),
         ],
       ),
     );

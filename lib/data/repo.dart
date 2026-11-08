@@ -717,6 +717,28 @@ class Repo {
         if (comentario != null && comentario.trim().isNotEmpty) 'comentario': comentario.trim(),
       });
 
+  /// SOS para el panel de coordinación: todos los de los últimos [dias] días
+  /// (también atendidos o falsas alarmas), del más reciente al más antiguo.
+  Future<List<Publicacion>> sosParaCoordinar({int dias = 7}) async {
+    final desde = DateTime.now().toUtc().subtract(Duration(days: dias)).toIso8601String();
+    final filas = await _consultar(
+      'sos_coordinar',
+      () => db
+          .from('publicaciones')
+          .select('*, ayudas(count)')
+          // SOS del botón rojo y "Necesito ayuda" de emergencia: los dos piden auxilio.
+          .or('origen.eq.sos,and(es_emergencia.eq.true,tipo.eq.pido)')
+          .gte('created_at', desde)
+          .order('created_at', ascending: false)
+          .limit(150),
+    );
+    return filas.map(Publicacion.fromMap).toList();
+  }
+
+  /// La junta asigna un SOS a un brigadista: queda "en atención" a su nombre.
+  Future<void> asignarSos(String id, String brigadistaId) =>
+      db.from('publicaciones').update({'estado': 'en_curso', 'atendido_por': brigadistaId}).eq('id', id);
+
   Future<void> cambiarEstado(String id, String estado, {bool atender = false}) =>
       db.from('publicaciones').update({
         'estado': estado,
