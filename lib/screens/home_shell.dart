@@ -9,6 +9,7 @@ import '../features/solidaridad/solidaridad_screen.dart';
 import '../services/voz.dart';
 import '../state/app_state.dart';
 import '../ui/diseno.dart';
+import '../ui/tema.dart';
 import '../ui/widgets.dart';
 import 'foro.dart';
 import 'inicio.dart';
@@ -100,18 +101,34 @@ class _HomeShellState extends State<HomeShell> {
             ('Mi perfil', st.logueado ? null : 'Estás como visitante'),
           ];
 
-    const perfil = NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Perfil');
+    // Perfil con puntito rojo: recuerda activar los avisos de emergencia.
+    final perfil = NavigationDestination(
+      icon: Badge(
+        isLabelVisible: st.faltaActivarAvisos,
+        smallSize: 10,
+        backgroundColor: Paleta.rojo,
+        child: const Icon(Icons.person_outline),
+      ),
+      selectedIcon: Badge(
+        isLabelVisible: st.faltaActivarAvisos,
+        smallSize: 10,
+        backgroundColor: Paleta.rojo,
+        child: const Icon(Icons.person),
+      ),
+      label: 'Perfil',
+      tooltip: st.faltaActivarAvisos ? 'Perfil: falta activar los avisos de emergencia' : null,
+    );
     final destinos = e
-        ? const <NavigationDestination>[
-            NavigationDestination(icon: Icon(Icons.sos_outlined), selectedIcon: Icon(Icons.sos), label: 'Emergencia'),
-            NavigationDestination(icon: Icon(Icons.map_outlined), selectedIcon: Icon(Icons.map), label: 'Mapa de ayuda'),
+        ? <NavigationDestination>[
+            const NavigationDestination(icon: Icon(Icons.sos_outlined), selectedIcon: Icon(Icons.sos), label: 'Emergencia'),
+            const NavigationDestination(icon: Icon(Icons.map_outlined), selectedIcon: Icon(Icons.map), label: 'Mapa de ayuda'),
             perfil,
           ]
-        : const <NavigationDestination>[
-            NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Inicio'),
-            NavigationDestination(icon: Icon(Icons.storefront_outlined), selectedIcon: Icon(Icons.storefront), label: 'Servicios'),
-            NavigationDestination(icon: Icon(Icons.favorite_border), selectedIcon: Icon(Icons.favorite), label: 'Solidaridad'),
-            NavigationDestination(icon: Icon(Icons.forum_outlined), selectedIcon: Icon(Icons.forum), label: 'Foro'),
+        : <NavigationDestination>[
+            const NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Inicio'),
+            const NavigationDestination(icon: Icon(Icons.storefront_outlined), selectedIcon: Icon(Icons.storefront), label: 'Servicios'),
+            const NavigationDestination(icon: Icon(Icons.favorite_border), selectedIcon: Icon(Icons.favorite), label: 'Solidaridad'),
+            const NavigationDestination(icon: Icon(Icons.forum_outlined), selectedIcon: Icon(Icons.forum), label: 'Foro'),
             perfil,
           ];
 

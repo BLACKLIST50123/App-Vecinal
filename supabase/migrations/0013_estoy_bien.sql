@@ -1,5 +1,5 @@
 -- =====================================================================
--- Migración 0012 · "Estoy bien / Necesito ayuda" durante una emergencia
+-- Migración 0013 · "Estoy bien / Necesito ayuda" durante una emergencia
 -- Cada vecino avisa cómo está con un toque. La junta, las organizaciones
 -- y los brigadistas ven cuántos vecinos están a salvo y cuántos necesitan
 -- ayuda. Una respuesta por vecino y por emergencia (se identifica por la
@@ -48,6 +48,10 @@ begin
   end if;
 end $$;
 
+-- Si se ejecutó antes con el número 0012, se corrige el registro.
+update public.migraciones set version = '0013'
+  where version = '0012' and nombre like 'Estoy bien%';
+
 insert into public.migraciones (version, nombre)
-values ('0012', 'Estoy bien / Necesito ayuda en emergencia')
+values ('0013', 'Estoy bien / Necesito ayuda en emergencia')
 on conflict do nothing;
