@@ -7,8 +7,8 @@ import '../../models.dart';
 import '../../screens/auth_screen.dart';
 import '../../screens/detalles.dart';
 import '../../state/app_state.dart';
-import '../../ui/diseno.dart';
 import '../../ui/tema.dart';
+import '../../ui/foto_perfil.dart';
 import '../../util.dart';
 
 /// Tarjeta de una petición para el carrusel "Apoyar".
@@ -143,11 +143,11 @@ class _TarjetaApoyoState extends State<TarjetaApoyo> {
                   ]),
                   const SizedBox(height: 10),
                   Row(children: [
-                    CircleAvatar(
-                      radius: 14,
-                      backgroundColor: Paleta.acentoSuave,
-                      child: Text(iniciales(p.autorVisible),
-                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Paleta.acentoOscuro)),
+                    // Foto de perfil de quien pide (o sus iniciales si no tiene).
+                    AvatarVecino(
+                      nombre: p.autorVisible,
+                      fotoUrl: p.autorFoto ?? (esMio ? st.fotoUrl : null),
+                      tamano: 30,
                     ),
                     const SizedBox(width: 8),
                     Expanded(

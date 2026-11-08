@@ -77,8 +77,10 @@ class _FilaPedido extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final st = context.watch<AppState>();
+    final propio = (st.uid != null && p.autorId == st.uid) || p.id == st.miPedidoEmergencia?['id'];
     final critica = p.prioridad == 'critica';
-    final color = critica ? Paleta.rojo : Paleta.ambar;
+    final color = propio ? Paleta.azulInfo : (critica ? Paleta.rojo : Paleta.ambar);
     final cat = buscarCategoria(p.categoria, emergencia: true);
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -106,7 +108,7 @@ class _FilaPedido extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(999)),
-                    child: Text(critica ? 'MUY URGENTE' : 'URGENTE',
+                    child: Text(propio ? 'TU PEDIDO' : (critica ? 'MUY URGENTE' : 'URGENTE'),
                         style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: color, letterSpacing: 0.3)),
                   ),
                   const SizedBox(height: 4),

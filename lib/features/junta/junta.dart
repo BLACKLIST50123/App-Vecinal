@@ -7,6 +7,7 @@ import '../../screens/detalles.dart';
 import '../../state/app_state.dart';
 import '../../ui/diseno.dart';
 import '../../ui/tema.dart';
+import '../../util.dart';
 import '../../ui/widgets.dart';
 
 // ======================================================= panel de la junta
@@ -360,12 +361,16 @@ class _FormCanalState extends State<_FormCanal> {
     String? error;
     if (etiqueta.length < 2) {
       error = 'Escribe un nombre para el canal.';
+    } else if (revisarContenido(etiqueta) case final e?) {
+      error = e;
     } else if (_tipo == 'whatsapp' && !(valor.startsWith('https://chat.whatsapp.com/') || valor.startsWith('https://wa.me/'))) {
       error = 'Pega el enlace de invitación del grupo de WhatsApp.';
     } else if (_tipo == 'telegram' && !valor.startsWith('https://t.me/')) {
       error = 'Pega el enlace de Telegram (https://t.me/...).';
-    } else if (_tipo == 'telefono' && !RegExp(r'^\+?\d{6,12}$').hasMatch(valor.replaceAll(' ', ''))) {
-      error = 'Escribe un número válido.';
+    } else if (_tipo == 'telefono' && validarTelefono(valor.replaceAll(' ', ''), obligatorio: true) != null) {
+      error = validarTelefono(valor.replaceAll(' ', ''), obligatorio: true);
+    } else if (_tipo == 'reunion' && revisarContenido(valor) != null) {
+      error = revisarContenido(valor);
     } else if (valor.length < 2) {
       error = 'Completa el dato del canal.';
     }
@@ -397,6 +402,7 @@ class _FormCanalState extends State<_FormCanal> {
           ),
           TextField(
             controller: _valor,
+            maxLength: 200,
             keyboardType: _tipo == 'telefono' ? TextInputType.phone : TextInputType.text,
             decoration: InputDecoration(labelText: 'Enlace o dato', hintText: _pista, errorText: _error),
           ),

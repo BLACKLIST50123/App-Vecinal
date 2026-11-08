@@ -88,6 +88,7 @@ class _PedirAyudaRapidoScreenState extends State<PedirAyudaRapidoScreen> {
     };
     try {
       final enLinea = await st.publicar('publicaciones', datos);
+      await st.guardarMiPedido(datos); // se muestra en la pestaña Emergencia
       if (st.logueado) st.marcarEstado('ayuda').catchError((_) {});
       if (!mounted) return;
       setState(() {
@@ -107,6 +108,7 @@ class _PedirAyudaRapidoScreenState extends State<PedirAyudaRapidoScreen> {
     if (id == null) return;
     try {
       await st.repo.eliminar('publicaciones', id);
+      await st.olvidarMiPedido();
       st.refrescar();
       if (mounted) Navigator.pop(context);
       avisar('Cancelaste tu pedido de ayuda.');

@@ -8,6 +8,7 @@ import '../models.dart';
 import '../state/app_state.dart';
 import '../ui/tema.dart';
 import '../ui/widgets.dart';
+import '../features/inicio/guia.dart';
 import 'auth_screen.dart';
 import 'foro_detalle.dart';
 import 'foro_modales.dart';
@@ -15,15 +16,18 @@ import 'foro_widgets.dart';
 
 /// Pestaña Foro Vecinal: Espacio comunitario para consultas, oficios y diálogo barrial.
 class ForoScreen extends StatefulWidget {
-  const ForoScreen({super.key});
+  const ForoScreen({super.key, this.consultaInicial});
+
+  /// Búsqueda ya escrita desde "¿Qué necesitas hoy?" del Inicio.
+  final String? consultaInicial;
 
   @override
   State<ForoScreen> createState() => _ForoScreenState();
 }
 
 class _ForoScreenState extends State<ForoScreen> {
-  final TextEditingController _buscarCtrl = TextEditingController();
-  String _busqueda = '';
+  late final TextEditingController _buscarCtrl = TextEditingController(text: widget.consultaInicial ?? '');
+  late String _busqueda = (widget.consultaInicial ?? '').trim().toLowerCase();
   String _filtroTipo = 'todos';
   String _filtroSector = 'todos';
   Timer? _pollTimer;
@@ -217,6 +221,14 @@ class _ForoScreenState extends State<ForoScreen> {
           return ListView(
             padding: const EdgeInsets.only(bottom: 100),
             children: [
+              ConsejoPrimeraVez(
+                clave: 'foro',
+                icono: Icons.forum_rounded,
+                colores: (Paleta.azulInfo, Paleta.azulSuave),
+                texto: 'Pide que te recomienden: un profesor, un gasfitero…',
+                boton: 'Preguntar',
+                alTocar: _abrirNuevaPublicacion,
+              ),
               // 1. Banner Comunitario con vida y color
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),

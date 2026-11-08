@@ -12,7 +12,6 @@ import 'features/sos/sos_boton.dart';
 import 'features/sos/sos_navegacion.dart';
 import 'screens/bienvenida.dart';
 import 'screens/home_shell.dart';
-import 'screens/tutorial.dart';
 import 'state/app_state.dart';
 import 'ui/tema.dart';
 
@@ -64,11 +63,9 @@ class AppVecinal extends StatelessWidget {
       },
       // Bienvenida (iniciar sesión / crear cuenta / invitado) → tutorial solo
       // la primera vez → la app. El rol de brigadista lo da la junta vecinal.
-      home: !st.entro
-          ? const BienvenidaScreen()
-          : !st.tutorialVisto
-              ? const TutorialScreen(inicial: true)
-              : const HomeShell(),
+      // La guía "Esto puedes hacer" vive dentro del Inicio (ya no hay
+      // diapositivas al entrar); el tutorial sigue en Perfil > Cómo usar la app.
+      home: !st.entro ? const BienvenidaScreen() : const HomeShell(),
     );
   }
 }

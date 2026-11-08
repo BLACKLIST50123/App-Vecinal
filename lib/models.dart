@@ -216,9 +216,12 @@ class Publicacion {
     this.verificada = false,
     this.meta,
     this.avance = 0,
+    this.autorFoto,
     DateTime? creado,
   }) : creado = creado ?? DateTime.now();
 
+  /// Foto de perfil de quien publica (si la tiene).
+  final String? autorFoto;
   final int ayudantes; // vecinos que respondieron (ayudo / aporto / me interesa)
   final bool verificada; // verificada por organización o junta vecinal
   final int? meta; // colectas: cuántas donaciones se buscan
@@ -294,6 +297,7 @@ class Publicacion {
         verificada: m['verificada'] == true,
         meta: (m['meta'] as num?)?.toInt(),
         avance: (m['avance'] as num?)?.toInt() ?? 0,
+        autorFoto: (m['autor'] is Map) ? (m['autor'] as Map)['foto_url'] as String? : null,
         creado: _fecha(m['created_at'] ?? m['creado_offline_en']),
       );
 

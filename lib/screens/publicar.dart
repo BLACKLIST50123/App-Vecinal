@@ -178,7 +178,7 @@ class _FormularioPublicarState extends State<FormularioPublicar> {
   bool _enviando = false;
   bool _editarContacto = false;
   String? _error; // error del servidor o de conexión
-  String? _errTitulo, _errDetalle, _errNombre, _errTelefono, _errPrecio;
+  String? _errTitulo, _errDetalle, _errNombre, _errTelefono, _errPrecio, _errHorario;
   bool _escuchando = false;
   bool _vozDisponible = true;
   bool _categoriaManual = false; // el vecino eligió el tipo a mano: no se cambia solo
@@ -345,18 +345,34 @@ class _FormularioPublicarState extends State<FormularioPublicar> {
     final titulo = _titulo.text.trim();
     final pideNombre = _muestraNombre(st);
     setState(() {
-      _errTitulo = titulo.length < 5 ? 'Escribe en pocas palabras ${t.tipoPub == 'pido' ? 'qué necesitas' : 'qué ofreces'}.' : null;
+      _errTitulo = validarTitulo(titulo, vacio: 'Escribe en pocas palabras ${t.tipoPub == 'pido' ? 'qué necesitas' : 'qué ofreces'}.');
       _errDetalle = validarTexto(_detalle.text);
       _errNombre = pideNombre ? validarNombre(_nombre.text) : null;
       _errTelefono = validarTelefono(_telefono.text);
       _errPrecio = t == TipoForm.servicio ? validarPrecio(_precio.text) : null;
       _errTipo = _tipoCompacto && !_tipoElegido ? 'Elige de qué tipo es, así tus vecinos lo encuentran.' : null;
+      _errHorario = t.esServicio ? validarHorario(_horario.text) : null;
+      // El mismo número en el título y en el teléfono es spam o un error.
+      if (_errTitulo == null && RegExp(r'9\d{8}').hasMatch(titulo)) {
+        _errTitulo = 'No pongas tu número en el título: va en "Teléfono o WhatsApp"';
+      }
       // Si el contacto precargado está mal, se abre para corregirlo.
       if (_errNombre != null || _errTelefono != null) _editarContacto = true;
       // Si el error está en lo plegado, se abre para verlo.
-      if (_errPrecio != null || (t.esServicio && _errDetalle != null)) _verDetalles = true;
+      if (_errPrecio != null || _errHorario != null || (t.esServicio && _errDetalle != null)) _verDetalles = true;
     });
-    if ([_errTitulo, _errDetalle, _errNombre, _errTelefono, _errPrecio, _errTipo].any((e) => e != null)) return;
+    if ([_errTitulo, _errDetalle, _errNombre, _errTelefono, _errPrecio, _errHorario, _errTipo].any((e) => e != null)) {
+      setState(() => _error = 'Revisa los campos marcados en rojo.');
+      return;
+    }
+    // Rangos (los botones ya los limitan; esto protege por si acaso).
+    final rango = t == TipoForm.colecta
+        ? validarRango(_meta, min: 5, max: Limites.meta, que: 'La meta')
+        : validarRango(_personas, min: 1, max: Limites.personas, que: 'El número de personas');
+    if (rango != null) {
+      setState(() => _error = rango);
+      return;
+    }
     setState(() {
       _enviando = true;
       _error = null;
@@ -514,7 +530,7 @@ class _FormularioPublicarState extends State<FormularioPublicar> {
   bool _muestraNombre(AppState st) =>
       !st.logueado || (t.esEmergencia && t.tipoPub == 'pido') || t == TipoForm.ofrezcoRecurso;
 
-  Widget _contador(String etiqueta, int valor, int paso, int minimo, ValueChanged<int> cambiar, String menos, String mas) {
+  Widget _contador(String etiqueta, int valor, int paso, int minimo, int maximo, ValueChanged<int> cambiar, String menos, String mas) {
     return Row(children: [
       Expanded(child: Text(etiqueta, style: const TextStyle(fontWeight: FontWeight.bold))),
       IconButton.filledTonal(
@@ -529,7 +545,11 @@ class _FormularioPublicarState extends State<FormularioPublicar> {
           child: Text('$valor', style: Theme.of(context).textTheme.headlineSmall),
         ),
       ),
-      IconButton.filledTonal(tooltip: mas, onPressed: () => cambiar(valor + paso), icon: const Icon(Icons.add)),
+      IconButton.filledTonal(
+        tooltip: mas,
+        onPressed: valor + paso <= maximo ? () => cambiar(valor + paso) : null,
+        icon: const Icon(Icons.add),
+      ),
     ]);
   }
 
@@ -672,7 +692,7 @@ class _FormularioPublicarState extends State<FormularioPublicar> {
 
           // 3 ─ Lo propio de cada tipo
           if (t == TipoForm.colecta) ...[
-            _contador('¿Cuántas donaciones quieren juntar?', _meta, 5, 5, (v) => setState(() => _meta = v), 'Cinco menos', 'Cinco más'),
+            _contador('¿Cuántas donaciones quieren juntar?', _meta, 5, 5, Limites.meta, (v) => setState(() => _meta = v), 'Cinco menos', 'Cinco más'),
             const Text('Los vecinos verán cuánto falta para llegar a la meta.'),
             espacio,
           ],
@@ -689,7 +709,7 @@ class _FormularioPublicarState extends State<FormularioPublicar> {
               onSelectionChanged: (s) => setState(() => _prioridad = s.first),
             ),
             const SizedBox(height: 12),
-            _contador('¿Cuántas personas?', _personas, 1, 1, (v) => setState(() => _personas = v), 'Una persona menos', 'Una persona más'),
+            _contador('¿Cuántas personas?', _personas, 1, 1, Limites.personas, (v) => setState(() => _personas = v), 'Una persona menos', 'Una persona más'),
             espacio,
           ],
           // 4 ─ Contacto
@@ -782,12 +802,13 @@ class _FormularioPublicarState extends State<FormularioPublicar> {
                 const SizedBox(height: 10),
                 TextField(
                   controller: _horario,
-                  maxLength: 80,
-                  onChanged: (_) => setState(() {}),
-                  decoration: const InputDecoration(
+                  maxLength: Limites.horario,
+                  onChanged: (_) => setState(() => _errHorario = null),
+                  decoration: InputDecoration(
                     labelText: 'U otro horario',
                     hintText: 'Ej: Lun a Sáb, 8 am a 6 pm',
-                    prefixIcon: Icon(Icons.schedule),
+                    prefixIcon: const Icon(Icons.schedule),
+                    errorText: _errHorario,
                   ),
                 ),
                 const SizedBox(height: 8),

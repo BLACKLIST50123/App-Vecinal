@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models.dart';
+import '../state/app_state.dart' show SinPermiso;
 import 'datos_iniciales.dart';
 
 /// Publicación creada sin conexión (o traída por QR) que espera enviarse.
@@ -82,11 +83,82 @@ class Repo {
 
   // ------------------------------------------------------------ lecturas
 
-  /// Pulso del barrio: lo que pasó en las últimas [horas] (apoyos dados,
+  /// Pulso del barrio: SOLO casos de éxito de las últimas [horas], sin nombres:
+  ///   - recomendaciones (Visto Bueno) a servicios y productos,
+  ///   - ayudas agradecidas (alguien recibió ayuda y lo confirmó),
+  ///   - pedidos y SOS atendidos.
+  /// Sin internet devuelve la última copia y cuándo se actualizó.
+  Future<({List<Map<String, dynamic>> recomendaciones, List<Map<String, dynamic>> agradecimientos, List<Map<String, dynamic>> atendidos, Set<String> brigadistas, DateTime? actualizado, bool enVivo})>
+      pulso({int horas = 48}) async {
+    final desde = DateTime.now().toUtc().subtract(Duration(hours: horas)).toIso8601String();
+    var enVivo = false;
+    Future<List<Map<String, dynamic>>> q(String clave, Future<List<Map<String, dynamic>>> Function() c) async {
+      if (!forzarOffline) {
+        try {
+          final r = await c().timeout(const Duration(seconds: 10));
+          await prefs.setString('cache_$clave', jsonEncode(r));
+          enVivo = true;
+          return r;
+        } catch (e) {
+          if (!esErrorDeRed(e)) rethrow;
+        }
+      }
+      final raw = prefs.getString('cache_$clave');
+      if (raw == null) return [];
+      return (jsonDecode(raw) as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    }
+
+    final recomendaciones = await q(
+      'pulso_recomendaciones',
+      () => db
+          .from('vistos_buenos')
+          .select('created_at, autor:perfiles(sector), servicios(titulo, categoria, sector)')
+          .gte('created_at', desde)
+          .order('created_at', ascending: false)
+          .limit(15),
+    );
+    final agradecimientos = await q(
+      'pulso_agradecimientos',
+      () => db
+          .from('agradecimientos')
+          .select('created_at, publicaciones(categoria, sector, origen, es_emergencia)')
+          .gte('created_at', desde)
+          .order('created_at', ascending: false)
+          .limit(15),
+    );
+    final atendidos = await q(
+      'pulso_atendidos',
+      () => db
+          .from('publicaciones')
+          .select('categoria, sector, origen, es_emergencia, tipo, created_at, atendido_por, atendio:perfiles!publicaciones_atendido_por_fkey(rol)')
+          .eq('estado', 'resuelta')
+          .eq('tipo', 'pido')
+          .gte('created_at', desde)
+          .order('created_at', ascending: false)
+          .limit(15),
+    );
+    // Para decir quién atendió un SOS: "un brigadista".
+    final brigadistas = await q(
+      'pulso_brigadistas',
+      () => db.from('brigadistas').select('vecino_id').eq('estado', 'activo').limit(500),
+    );
+    if (enVivo) await prefs.setString('pulso_actualizado', DateTime.now().toIso8601String());
+    final at = prefs.getString('pulso_actualizado');
+    return (
+      recomendaciones: recomendaciones,
+      agradecimientos: agradecimientos,
+      atendidos: atendidos,
+      brigadistas: {for (final b in brigadistas) b['vecino_id'] as String},
+      actualizado: at == null ? null : DateTime.tryParse(at),
+      enVivo: enVivo,
+    );
+  }
+
+  /// "Ahora en tu barrio": lo que pasó en las últimas [horas] (apoyos dados,
   /// pedidos, colectas y servicios nuevos), sin nombres. Sin internet devuelve
   /// la última copia y cuándo se actualizó.
   Future<({List<Map<String, dynamic>> apoyos, List<Map<String, dynamic>> publicaciones, List<Map<String, dynamic>> servicios, DateTime? actualizado, bool enVivo})>
-      pulso({int horas = 2}) async {
+      actividadReciente({int horas = 2}) async {
     final desde = DateTime.now().toUtc().subtract(Duration(hours: horas)).toIso8601String();
     var enVivo = false;
     Future<List<Map<String, dynamic>>> q(String clave, Future<List<Map<String, dynamic>>> Function() c) async {
@@ -106,7 +178,7 @@ class Repo {
     }
 
     final apoyos = await q(
-      'pulso_apoyos',
+      'actividad_apoyos',
       () => db
           .from('ayudas')
           .select('created_at, publicaciones(categoria, sector, es_emergencia)')
@@ -115,7 +187,7 @@ class Repo {
           .limit(20),
     );
     final pubs = await q(
-      'pulso_publicaciones',
+      'actividad_publicaciones',
       () => db
           .from('publicaciones')
           .select('id, tipo, categoria, sector, es_emergencia, origen, meta, created_at')
@@ -124,7 +196,7 @@ class Repo {
           .limit(20),
     );
     final servs = await q(
-      'pulso_servicios',
+      'actividad_servicios',
       () => db
           .from('servicios')
           .select('categoria, sector, es_emergencia, created_at')
@@ -132,8 +204,8 @@ class Repo {
           .order('created_at', ascending: false)
           .limit(10),
     );
-    if (enVivo) await prefs.setString('pulso_actualizado', DateTime.now().toIso8601String());
-    final at = prefs.getString('pulso_actualizado');
+    if (enVivo) await prefs.setString('actividad_actualizado', DateTime.now().toIso8601String());
+    final at = prefs.getString('actividad_actualizado');
     return (
       apoyos: apoyos,
       publicaciones: pubs,
@@ -179,16 +251,21 @@ class Repo {
   }
 
   Future<List<Publicacion>> publicaciones({required bool emergencia}) async {
-    final filas = await _consultar(
-      'publicaciones_$emergencia',
-      () => db
-          .from('publicaciones')
-          .select('*, ayudas(count)')
-          .eq('es_emergencia', emergencia)
-          .neq('estado', 'resuelta')
-          .order('created_at', ascending: false)
-          .limit(300),
-    );
+    Future<List<Map<String, dynamic>>> consulta(String campos) => db
+        .from('publicaciones')
+        .select(campos)
+        .eq('es_emergencia', emergencia)
+        .neq('estado', 'resuelta')
+        .order('created_at', ascending: false)
+        .limit(300);
+    final filas = await _consultar('publicaciones_$emergencia', () async {
+      try {
+        // Con la foto de perfil de quien publica (migración 0010_foto_perfil).
+        return await consulta('*, ayudas(count), autor:perfiles!publicaciones_autor_id_fkey(foto_url)');
+      } on PostgrestException {
+        return consulta('*, ayudas(count)'); // sin la columna de foto: igual funciona
+      }
+    });
     final enviadas = filas.map(Publicacion.fromMap).toList();
     final ids = enviadas.map((p) => p.id).toSet();
     return [
@@ -841,6 +918,28 @@ class Repo {
     }
   }
 
+  /// SOS para el panel de coordinación: todos los de los últimos [dias] días
+  /// (también atendidos o falsas alarmas), del más reciente al más antiguo.
+  Future<List<Publicacion>> sosParaCoordinar({int dias = 7}) async {
+    final desde = DateTime.now().toUtc().subtract(Duration(days: dias)).toIso8601String();
+    final filas = await _consultar(
+      'sos_coordinar',
+      () => db
+          .from('publicaciones')
+          .select('*, ayudas(count)')
+          // SOS del botón rojo y "Necesito ayuda" de emergencia: los dos piden auxilio.
+          .or('origen.eq.sos,and(es_emergencia.eq.true,tipo.eq.pido)')
+          .gte('created_at', desde)
+          .order('created_at', ascending: false)
+          .limit(150),
+    );
+    return filas.map(Publicacion.fromMap).toList();
+  }
+
+  /// La junta asigna un SOS a un brigadista: queda "en atención" a su nombre.
+  Future<void> asignarSos(String id, String brigadistaId) =>
+      db.from('publicaciones').update({'estado': 'en_curso', 'atendido_por': brigadistaId}).eq('id', id);
+
   Future<void> cambiarEstado(String id, String estado, {bool atender = false}) =>
       db.from('publicaciones').update({
         'estado': estado,
@@ -911,6 +1010,26 @@ class Repo {
     await actualizarPerfil({'foto_url': url});
     return url;
   }
+
+  // ------------------------------------------- recuperar la clave (0015)
+
+  /// Código nuevo de recuperación para la cuenta con sesión (anula el anterior).
+  Future<String> crearCodigoRecuperacion() async =>
+      (await db.rpc('crear_codigo_recuperacion').timeout(const Duration(seconds: 15))) as String;
+
+  /// Cambia la clave con el código. Devuelve el código NUEVO si salió bien;
+  /// si no, lanza [SinPermiso] con el motivo para mostrarlo tal cual.
+  Future<String> recuperarClave({required String email, required String codigo, required String nueva}) async {
+    final r = await db.rpc('recuperar_clave', params: {'p_email': email, 'p_codigo': codigo, 'p_nueva': nueva})
+        .timeout(const Duration(seconds: 15));
+    final m = Map<String, dynamic>.from(r as Map);
+    if (m['ok'] == true) return m['codigo'] as String;
+    throw SinPermiso((m['mensaje'] as String?) ?? 'No se pudo cambiar la clave.');
+  }
+
+  /// La junta vecinal genera un código para un vecino que perdió el suyo.
+  Future<String> codigoParaVecino(String celular) async =>
+      (await db.rpc('codigo_para_vecino', params: {'p_celular': celular}).timeout(const Duration(seconds: 15))) as String;
 
   Future<void> quitarFotoPerfil() async {
     try {

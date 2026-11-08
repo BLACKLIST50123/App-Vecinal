@@ -15,6 +15,7 @@ import 'confianza.dart';
 import 'detalles.dart';
 import 'notificaciones_screen.dart';
 import 'qr_screens.dart';
+import 'recuperar_clave.dart';
 import '../features/junta/junta.dart';
 import 'tutorial.dart';
 
@@ -35,7 +36,7 @@ class PerfilScreen extends StatelessWidget {
       context: context,
       builder: (c) => AlertDialog(
         icon: const Icon(Icons.logout, size: 36),
-        title: const Text('¿Cerrar sesión?'),
+        title: Text('¿Cerrar sesión?'),
         content: Text(n > 0
             ? 'Tienes ${n == 1 ? '1 publicación' : '$n publicaciones'} sin enviar. '
                 'Si cierras sesión ahora, podrían no enviarse. Mejor espera a tener internet.'
@@ -138,11 +139,12 @@ class PerfilScreen extends StatelessWidget {
       if (st.esOrganizacion || st.esModerador) ...[
         TituloDiseno(st.esModerador ? 'Junta vecinal' : 'Organización'),
         ListaAjustes(filas: [
-          FilaAjuste(
-            icono: Icons.dashboard_outlined,
-            texto: 'Panel de coordinación',
-            onTap: () => _ir(context, const PanelCoordinacionScreen()),
-          ),
+          if (st.esModerador)
+            FilaAjuste(
+              icono: Icons.dashboard_outlined,
+              texto: 'Gestionar pedidos y SOS',
+              onTap: () => _ir(context, const PanelCoordinacionScreen()),
+            ),
           if (st.esModerador)
             FilaAjuste(
               icono: Icons.groups_2_outlined,
@@ -425,6 +427,29 @@ class _TarjetaInvitado extends StatelessWidget {
 class MasOpcionesScreen extends StatelessWidget {
   const MasOpcionesScreen({super.key});
 
+  /// Crea un código de recuperación nuevo (el anterior deja de servir).
+  Future<void> _nuevoCodigo(BuildContext context, AppState st) async {
+    if (!st.online) return avisar('Necesitas internet para crear tu código.');
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('¿Crear un código nuevo?'),
+        content: const Text('Tu código anterior dejará de servir. Guarda bien el nuevo.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancelar')),
+          FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Crear código')),
+        ],
+      ),
+    );
+    if (ok != true || !context.mounted) return;
+    try {
+      final codigo = await st.repo.crearCodigoRecuperacion();
+      if (context.mounted) await mostrarCodigoRecuperacion(context, codigo);
+    } catch (e) {
+      avisar(traducirError(e));
+    }
+  }
+
   void _ir(BuildContext context, Widget pantalla) =>
       Navigator.push(context, MaterialPageRoute(builder: (_) => pantalla));
 
@@ -447,6 +472,13 @@ class MasOpcionesScreen extends StatelessWidget {
         ListaAjustes(filas: [
           FilaAjuste(icono: Icons.rule, texto: 'Normas del barrio', onTap: () => mostrarNormas(context)),
           FilaAjuste(icono: Icons.shield_outlined, texto: 'Ayudar con seguridad', onTap: () => mostrarConsejos(context)),
+          if (st.logueado)
+            FilaAjuste(
+              icono: Icons.key_rounded,
+              texto: 'Código para recuperar mi clave',
+              valor: 'Crear uno nuevo',
+              onTap: () => _nuevoCodigo(context, st),
+            ),
         ]),
         const TituloDiseno('Ayuda'),
         ListaAjustes(filas: [
@@ -606,7 +638,79 @@ class JuntaVecinalScreen extends StatelessWidget {
                 style: TextStyle(color: Paleta.gris, fontSize: 15)),
           ),
           _PanelModerador(),
+          _AyudaClaveVecino(),
         ]),
+      );
+}
+
+/// La junta da un código nuevo a un vecino que perdió su clave y su código
+/// (después de verificar en persona que es él, por ejemplo con su DNI).
+class _AyudaClaveVecino extends StatefulWidget {
+  const _AyudaClaveVecino();
+
+  @override
+  State<_AyudaClaveVecino> createState() => _AyudaClaveVecinoState();
+}
+
+class _AyudaClaveVecinoState extends State<_AyudaClaveVecino> {
+  final _celular = TextEditingController();
+  String? _err;
+  bool _cargando = false;
+
+  @override
+  void dispose() {
+    _celular.dispose();
+    super.dispose();
+  }
+
+  Future<void> _generar() async {
+    final e = validarTelefono(_celular.text, obligatorio: true);
+    setState(() => _err = e);
+    if (e != null) return;
+    final st = context.read<AppState>();
+    setState(() => _cargando = true);
+    try {
+      final codigo = await st.repo.codigoParaVecino(_celular.text.trim());
+      if (!mounted) return;
+      _celular.clear();
+      await mostrarCodigoRecuperacion(context, codigo, titulo: 'Código para el vecino');
+    } catch (e) {
+      setState(() => _err = traducirError(e));
+    } finally {
+      if (mounted) setState(() => _cargando = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            const Text('Ayudar a un vecino a recuperar su clave',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
+            const SizedBox(height: 4),
+            Text('Primero confirma en persona que es él (por ejemplo, con su DNI). '
+                'Luego dale el código para que ponga una clave nueva.',
+                style: TextStyle(color: Paleta.gris)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _celular,
+              keyboardType: TextInputType.phone,
+              inputFormatters: formatoTelefono,
+              decoration: InputDecoration(
+                labelText: 'Celular del vecino',
+                prefixIcon: const Icon(Icons.phone_android),
+                errorText: _err,
+              ),
+            ),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: _cargando ? null : _generar,
+              icon: const Icon(Icons.key_rounded),
+              label: Text(_cargando ? 'Generando...' : 'Darle un código nuevo'),
+            ),
+          ]),
+        ),
       );
 }
 
@@ -803,6 +907,7 @@ class _PanelModeradorState extends State<_PanelModerador> {
   late final TextEditingController _titulo;
   late final TextEditingController _mensaje;
   bool _cargando = false;
+  String? _errTitulo, _errMensaje;
 
   @override
   void initState() {
@@ -816,6 +921,14 @@ class _PanelModeradorState extends State<_PanelModerador> {
 
   Future<void> _cambiar(bool activar) async {
     final st = context.read<AppState>();
+    if (activar) {
+      // Todo el barrio leerá este aviso: tiene que ser claro.
+      setState(() {
+        _errTitulo = validarTitulo(_titulo.text, min: 5, max: 60, vacio: 'Escribe qué está pasando');
+        _errMensaje = validarTexto(_mensaje.text, min: 15, max: 300, obligatorio: true);
+      });
+      if (_errTitulo != null || _errMensaje != null) return;
+    }
     final ok = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
@@ -852,9 +965,24 @@ class _PanelModeradorState extends State<_PanelModerador> {
           Text(activa ? 'La emergencia está ACTIVA' : 'Sin emergencia activa',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: activa ? Paleta.rojo : null)),
           const SizedBox(height: 12),
-          TextField(controller: _titulo, decoration: const InputDecoration(labelText: 'Tipo de emergencia')),
+          TextField(
+            controller: _titulo,
+            maxLength: 60,
+            onChanged: (_) => _errTitulo != null ? setState(() => _errTitulo = null) : null,
+            decoration: InputDecoration(labelText: 'Tipo de emergencia', hintText: 'Ej: Lluvias e inundación', errorText: _errTitulo),
+          ),
           const SizedBox(height: 12),
-          TextField(controller: _mensaje, maxLines: 3, decoration: const InputDecoration(labelText: 'Mensaje para los vecinos')),
+          TextField(
+            controller: _mensaje,
+            maxLines: 3,
+            maxLength: 300,
+            onChanged: (_) => _errMensaje != null ? setState(() => _errMensaje = null) : null,
+            decoration: InputDecoration(
+              labelText: 'Mensaje para los vecinos',
+              hintText: 'Ej: Si tu casa se inundó, pide ayuda con el botón rojo',
+              errorText: _errMensaje,
+            ),
+          ),
           const SizedBox(height: 12),
           FilledButton.icon(
             style: activa ? null : FilledButton.styleFrom(backgroundColor: Paleta.rojo, foregroundColor: Colors.white),

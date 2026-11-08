@@ -18,6 +18,12 @@ String traducirError(Object e) {
   if (e is PostgrestException) {
     if (e.code == 'P0001') return e.message; // mensajes propios del servidor (anti-spam)
     if (e.code == '23505') return 'Esto ya estaba registrado.';
+    if (e.code == '23514') {
+      // Una regla de la base de datos (migración 0014) rechazó un dato.
+      if (e.message.contains('telefono')) return 'Revisa el celular: 9 dígitos que empiecen con 9.';
+      if (e.message.contains('largo')) return 'Algún texto es muy largo o muy corto. Revísalo.';
+      return 'Revisa los datos: alguno no es válido.';
+    }
     if (e.code == '42501' || e.message.contains('row-level security')) {
       return 'No tienes permiso para hacer esto.';
     }
@@ -120,9 +126,10 @@ Future<bool> dialogoVistoBueno(BuildContext context, {required String servicioId
             const SizedBox(height: 14),
             TextField(
               controller: comentario,
-              maxLength: 280,
+              maxLength: Limites.comentario,
               maxLines: 2,
               textCapitalization: TextCapitalization.sentences,
+              onChanged: (_) => error != null ? setD(() => error = null) : null,
               decoration: const InputDecoration(labelText: 'Comentario (opcional)', hintText: 'Ej: Arregló la fuga en 20 minutos'),
             ),
             if (error != null)
@@ -134,6 +141,9 @@ Future<bool> dialogoVistoBueno(BuildContext context, {required String servicioId
           FilledButton.icon(
             onPressed: () {
               if (elegidos.isEmpty) return setD(() => error = 'Toca al menos un motivo.');
+              // Validación de la rama de validaciones: comentario opcional pero con sentido.
+              final e = validarTexto(comentario.text, min: 5, max: Limites.comentario);
+              if (e != null) return setD(() => error = e);
               Navigator.pop(c, true);
             },
             icon: const Icon(Icons.thumb_up),
@@ -417,7 +427,7 @@ class _ModalSolicitarPedidoState extends State<ModalSolicitarPedido> {
   final _telefono = TextEditingController();
   String? _sector;
   bool _enviando = false;
-  String? _errDetalle, _errTelefono;
+  String? _errDetalle, _errTelefono, _errFecha;
 
   @override
   void initState() {
@@ -450,9 +460,11 @@ class _ModalSolicitarPedidoState extends State<ModalSolicitarPedido> {
     final detalle = _detalle.text.trim();
     setState(() {
       _errDetalle = validarTexto(detalle, obligatorio: true);
-      _errTelefono = validarTelefono(_telefono.text);
+      // El prestador necesita cómo contactarte.
+      _errTelefono = validarTelefono(_telefono.text, obligatorio: true);
+      _errFecha = _fecha.text.trim().length > 60 ? 'Es muy largo (máximo 60 letras)' : revisarContenido(_fecha.text);
     });
-    if (_errDetalle != null || _errTelefono != null) return;
+    if (_errDetalle != null || _errTelefono != null || _errFecha != null) return;
     if (widget.servicio.autorId == null) {
       avisar('No se puede enviar pedido a este servicio.');
       return;
@@ -566,9 +578,10 @@ class _ModalSolicitarPedidoState extends State<ModalSolicitarPedido> {
               TextField(
                 controller: _fecha,
                 maxLength: 60,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: '¿Para cuándo lo necesitas? (opcional)',
                   hintText: 'Ej. Mañana a las 10 am / Lo antes posible',
+                  errorText: _errFecha,
                 ),
               ),
               const SizedBox(height: 12),
@@ -660,6 +673,7 @@ class _PublicacionDetalleState extends State<PublicacionDetalle> {
       if (respuestas.isNotEmpty && mounted) {
         final elegidos = respuestas.map((a) => a.vecinoId).toSet();
         final mensaje = TextEditingController();
+        String? errMensaje;
         final ok = await showDialog<bool>(
           context: context,
           builder: (c) => StatefulBuilder(
@@ -682,14 +696,23 @@ class _PublicacionDetalleState extends State<PublicacionDetalle> {
                     controller: mensaje,
                     maxLength: 200,
                     textCapitalization: TextCapitalization.sentences,
-                    decoration: const InputDecoration(labelText: 'Mensaje de gracias (opcional)', hintText: 'Ej: ¡Mil gracias por venir tan rápido!'),
+                    onChanged: (_) => errMensaje != null ? setD(() => errMensaje = null) : null,
+                    decoration: InputDecoration(
+                      labelText: 'Mensaje de gracias (opcional)',
+                      hintText: 'Ej: ¡Mil gracias por venir tan rápido!',
+                      errorText: errMensaje,
+                    ),
                   ),
                 ]),
               ),
               actions: [
                 TextButton(onPressed: () => Navigator.pop(c), child: const Text('Cancelar')),
                 FilledButton.icon(
-                  onPressed: () => Navigator.pop(c, true),
+                  onPressed: () {
+                    final e = validarTexto(mensaje.text, min: 3, max: 200);
+                    if (e != null) return setD(() => errMensaje = e);
+                    Navigator.pop(c, true);
+                  },
                   icon: const Icon(Icons.favorite),
                   label: Text(elegidos.isEmpty ? 'Cerrar sin agradecer' : 'Agradecer y cerrar'),
                 ),

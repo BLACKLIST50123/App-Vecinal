@@ -9,6 +9,7 @@ import '../state/app_state.dart';
 import '../ui/tema.dart';
 import '../util.dart';
 import 'confianza.dart';
+import 'recuperar_clave.dart';
 
 String _errorAuth(Object e) {
   if (e is AuthException) {
@@ -28,7 +29,7 @@ String _errorAuth(Object e) {
 /// Muchos vecinos no usan correo: la cuenta se crea con el celular.
 /// Internamente se convierte en un identificador tipo correo, solo para
 /// Supabase Auth (dominio reservado example.com; nunca se envían correos).
-String? _identificador(String entrada, {required bool usarCorreo}) {
+String? identificadorCuenta(String entrada, {required bool usarCorreo}) {
   final t = entrada.trim();
   if (usarCorreo) return t.contains('@') ? t.toLowerCase() : null;
   final d = soloDigitos(t);
@@ -69,21 +70,28 @@ class _AuthScreenState extends State<AuthScreen> {
 
   @override
   void dispose() {
-    for (final c in [_correo, _clave, _nombre, _telefono]) {
+    for (final c in [_correo, _clave, _clave2, _nombre, _telefono]) {
       c.dispose();
     }
     super.dispose();
   }
 
+  /// Repite la clave (solo al crear cuenta) para evitar errores de tipeo.
+  final _clave2 = TextEditingController();
+
+  /// Intentos fallidos de ingreso: después de 5 se espera 30 segundos.
+  int _fallidos = 0;
+  DateTime? _esperarHasta;
+
+  String get _celular => soloDigitos(_correo.text).replaceFirst(RegExp(r'^51(?=9\d{8}$)'), '');
+
   String? _faltaPaso1() =>
       validarNombre(_nombre.text) ??
-      (_id == null
-          ? _errorId
-          : _usarCorreo && validarTelefono(_telefono.text) != null
-              ? validarTelefono(_telefono.text)
-              : _clave.text.length < 6
-                  ? (_usarCorreo ? 'La contraseña debe tener al menos 6 caracteres.' : 'La clave debe tener al menos 6 números.')
-                  : null);
+      (_usarCorreo ? validarCorreo(_correo.text) : validarTelefono(_celular, obligatorio: true)) ??
+      (_id == null ? _errorId : null) ??
+      (_usarCorreo ? validarTelefono(_telefono.text) : null) ??
+      validarClave(_clave.text, conCorreo: _usarCorreo, celular: _usarCorreo ? null : _celular) ??
+      (_clave2.text != _clave.text ? 'Las dos claves no son iguales. Escríbelas otra vez.' : null);
 
   void _siguiente() {
     final falta = _faltaPaso1();
@@ -99,7 +107,7 @@ class _AuthScreenState extends State<AuthScreen> {
     if (_gps == null && !_buscando) _verificarGps();
   }
 
-  String? get _id => _identificador(_correo.text, usarCorreo: _usarCorreo);
+  String? get _id => identificadorCuenta(_correo.text, usarCorreo: _usarCorreo);
   String get _errorId => _usarCorreo
       ? 'Escribe un correo válido.'
       : 'Escribe tu número de celular de 9 dígitos (empieza con 9).';
@@ -125,6 +133,15 @@ class _AuthScreenState extends State<AuthScreen> {
       setState(() => _error = _errorId);
       return;
     }
+    if (_clave.text.isEmpty) {
+      setState(() => _error = _usarCorreo ? 'Escribe tu contraseña.' : 'Escribe tu clave de 6 números.');
+      return;
+    }
+    final espera = _esperarHasta?.difference(DateTime.now()).inSeconds ?? 0;
+    if (espera > 0) {
+      setState(() => _error = 'Demasiados intentos. Espera $espera segundos y vuelve a intentar.');
+      return;
+    }
     setState(() {
       _cargando = true;
       _error = null;
@@ -139,6 +156,11 @@ class _AuthScreenState extends State<AuthScreen> {
       avisar('¡Bienvenido de nuevo!');
       if (mounted) Navigator.pop(context);
     } catch (e) {
+      _fallidos++;
+      if (_fallidos >= 5) {
+        _fallidos = 0;
+        _esperarHasta = DateTime.now().add(const Duration(seconds: 30));
+      }
       setState(() => _error = _errorAuth(e));
     } finally {
       if (mounted) setState(() => _cargando = false);
@@ -188,7 +210,16 @@ class _AuthScreenState extends State<AuthScreen> {
             : 'La cuenta quedó esperando confirmación. El administrador debe desactivar "Confirm email" en Supabase.');
         return;
       }
-      await context.read<AppState>().cargarPerfil();
+      final st = context.read<AppState>();
+      await st.cargarPerfil();
+      // Código para recuperar la clave si algún día la olvida (migración 0015).
+      try {
+        final codigo = await st.repo.crearCodigoRecuperacion();
+        if (mounted) await mostrarCodigoRecuperacion(context, codigo);
+      } catch (_) {
+        // Si la migración aún no está, la cuenta igual queda creada.
+      }
+      if (!mounted) return;
       avisar(_gps != null && enZona(_gps!)
           ? '¡Cuenta creada! Eres vecino verificado de ${Zona.nombre}.'
           : '¡Cuenta creada! Quedó sin la insignia de vecino verificado porque no confirmamos tu GPS en ${Zona.nombre}.');
@@ -234,11 +265,14 @@ class _AuthScreenState extends State<AuthScreen> {
           controller: _clave,
           obscureText: !_verClave,
           keyboardType: _usarCorreo ? TextInputType.visiblePassword : TextInputType.number,
-          autofillHints: const [AutofillHints.password],
+          inputFormatters: _usarCorreo ? null : [soloNumeros, LengthLimitingTextInputFormatter(6)],
+          autofillHints: [_registro ? AutofillHints.newPassword : AutofillHints.password],
           style: const TextStyle(fontSize: 18),
           decoration: InputDecoration(
-            labelText: _usarCorreo ? 'Contraseña (mínimo 6)' : 'Clave de 6 números',
-            helperText: 'Anótala en un lugar seguro',
+            labelText: _usarCorreo
+                ? (_registro ? 'Contraseña (8 o más, con letras y números)' : 'Contraseña')
+                : 'Clave de 6 números',
+            helperText: _registro ? 'No uses 123456 ni tu fecha de nacimiento' : 'Anótala en un lugar seguro',
             prefixIcon: const Icon(Icons.lock),
             suffixIcon: IconButton(
               tooltip: _verClave ? 'Ocultar contraseña' : 'Mostrar contraseña',
@@ -247,6 +281,20 @@ class _AuthScreenState extends State<AuthScreen> {
             ),
           ),
         ),
+        if (_registro) ...[
+          const SizedBox(height: 12),
+          TextField(
+            controller: _clave2,
+            obscureText: !_verClave,
+            keyboardType: _usarCorreo ? TextInputType.visiblePassword : TextInputType.number,
+            inputFormatters: _usarCorreo ? null : [soloNumeros, LengthLimitingTextInputFormatter(6)],
+            style: const TextStyle(fontSize: 18),
+            decoration: InputDecoration(
+              labelText: _usarCorreo ? 'Repite tu contraseña' : 'Repite tu clave',
+              prefixIcon: const Icon(Icons.lock_outline),
+            ),
+          ),
+        ],
       ]);
 
   Widget _mensajeError() => _error == null
@@ -328,8 +376,24 @@ class _AuthScreenState extends State<AuthScreen> {
                   const SizedBox(height: 16),
                   if (widget.mensaje != null) ...[_aviso(), const SizedBox(height: 16)],
                   _campoCorreoClave(),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton.icon(
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => RecuperarClaveScreen(
+                            celular: _usarCorreo ? _correo.text.trim() : _celular,
+                            usarCorreo: _usarCorreo,
+                          ),
+                        ),
+                      ),
+                      icon: const Icon(Icons.help_outline, size: 20),
+                      label: const Text('¿Olvidaste tu clave?'),
+                    ),
+                  ),
                   _mensajeError(),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 16),
                   SizedBox(
                     height: 58,
                     child: FilledButton.icon(

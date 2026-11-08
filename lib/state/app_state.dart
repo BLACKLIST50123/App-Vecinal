@@ -476,6 +476,34 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
+  /// Mi último pedido de "Necesito ayuda" en esta emergencia (guardado en el
+  /// celular: sirve también sin cuenta y sin señal).
+  Map<String, dynamic>? get miPedidoEmergencia {
+    final clave = emergencia.clave;
+    if (clave == null) return null;
+    final raw = prefs.getString('mi_pedido_$clave');
+    if (raw == null) return null;
+    try {
+      return Map<String, dynamic>.from(jsonDecode(raw) as Map);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> guardarMiPedido(Map<String, dynamic> datos) async {
+    final clave = emergencia.clave;
+    if (clave == null) return;
+    await prefs.setString('mi_pedido_$clave', jsonEncode(datos));
+    notifyListeners();
+  }
+
+  Future<void> olvidarMiPedido() async {
+    final clave = emergencia.clave;
+    if (clave == null) return;
+    await prefs.remove('mi_pedido_$clave');
+    notifyListeners();
+  }
+
   Future<void> _enviarEstadoPendiente() async {
     final clave = emergencia.clave;
     if (clave == null || !logueado) return;

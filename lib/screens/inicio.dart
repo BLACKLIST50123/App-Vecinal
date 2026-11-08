@@ -2,18 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../config.dart';
-import '../features/inicio/mapa_inicio.dart';
+import '../features/inicio/que_necesitas.dart';
+import '../features/inicio/ahora_barrio.dart';
 import '../features/junta/junta.dart';
 import '../features/inicio/pulso.dart';
 import '../models.dart';
 import '../state/app_state.dart';
-import '../ui/diseno.dart';
 import '../ui/tema.dart';
 import '../ui/widgets.dart';
 import '../util.dart';
 import 'confianza.dart';
 import 'detalles.dart';
-import 'publicar.dart';
+import '../features/inicio/mapa_inicio.dart';
 
 typedef IrA = void Function(int tab, {String? grupo, String? consulta});
 
@@ -27,8 +27,10 @@ class InicioScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final st = context.watch<AppState>();
 
-    // Estructura: 1) bienvenida y pulso del barrio  2) mapa con filtros
-    // 3) cerca de ti  4) ¿qué quieres hacer hoy?
+    // Estructura:
+    //   1) Logo "Conecta Vecino"  (brigadista: sus alertas SOS justo debajo)
+    //   2) Ahora en tu barrio  3) ¿Qué necesitas hoy?  4) Mapa + Cerca de ti
+    //   5) Buenas noticias del barrio  6) Invita a tus vecinos
     return RefreshIndicator(
       onRefresh: () async => st.refrescar(),
       child: ListView(
@@ -36,43 +38,15 @@ class InicioScreen extends StatelessWidget {
         children: [
           // Invitación de la junta para ser brigadista (si la hay).
           const TarjetaNombramiento(),
-          // El brigadista ve primero las alertas SOS de su zona.
-          if (st.esBrigadista) const PanelBrigadista(),
           const _Bienvenida(),
-          const PulsoBarrio(),
+          // El brigadista ve sus alertas SOS debajo del logo.
+          if (st.esBrigadista) const PanelBrigadista(),
+          const AhoraEnTuBarrio(),
+          QueNecesitas(irA: irA),
           const MapaYCercanos(),
-          const TituloDiseno('¿Qué quieres hacer hoy?'),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Expanded(
-                child: AccesoCategoria(
-                  texto: 'Pedir ayuda',
-                  icono: Icons.front_hand_outlined,
-                  colores: Paleta.morado,
-                  onTap: () => irA(2, grupo: 'pedir'),
-                ),
-              ),
-              Expanded(
-                child: AccesoCategoria(
-                  texto: 'Ofrecer servicio',
-                  icono: Icons.storefront_outlined,
-                  colores: Paleta.naranja,
-                  onTap: () => abrirFormulario(context, TipoForm.servicio),
-                ),
-              ),
-              Expanded(
-                child: AccesoCategoria(
-                  texto: 'Ver colectas',
-                  icono: Icons.diversity_1_outlined,
-                  colores: Paleta.verdeCat,
-                  onTap: () => irA(2),
-                ),
-              ),
-            ]),
-          ),
-          // Al final: invitar a más vecinos.
-          const BotonInvitarWhatsapp(),
+          const SizedBox(height: 18),
+          const PulsoBarrio(), // Buenas noticias del barrio
+          const _InvitarVecinos(),
         ],
       ),
     );
@@ -115,6 +89,97 @@ class _Bienvenida extends StatelessWidget {
           ]),
         ),
       );
+}
+/// Invitar vecinos: tarjeta mejorada con mensaje claro e impacto visual.
+class _InvitarVecinos extends StatelessWidget {
+  const _InvitarVecinos();
+
+  @override
+  Widget build(BuildContext context) {
+    final online = context.select<AppState, bool>((s) => s.online);
+    final verde = Paleta.whatsapp;
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+      decoration: BoxDecoration(
+        color: verde.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: verde.withValues(alpha: 0.30)),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        // Cabecera con gradiente suave
+        Container(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+          decoration: BoxDecoration(
+            color: verde.withValues(alpha: 0.12),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Row(children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(color: verde, shape: BoxShape.circle),
+              child: const Icon(Icons.group_add_rounded, color: Colors.white, size: 26),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('Invita a tus vecinos',
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w900,
+                      color: Paleta.tinta,
+                    )),
+                const SizedBox(height: 2),
+                Text('Más vecinos = más ayuda para todos.',
+                    style: TextStyle(fontSize: 13, color: Paleta.gris)),
+              ]),
+            ),
+          ]),
+        ),
+        // Beneficio visual: 3 puntos rápidos
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+          child: Column(children: [
+            for (final item in [
+              (Icons.flash_on_rounded, 'Ayuda llega más rápido a tu cuadra'),
+              (Icons.verified_user_rounded, 'El barrio se vuelve más seguro'),
+              (Icons.storefront_rounded, 'Más servicios y ofertas cerca'),
+            ])
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Row(children: [
+                  Icon(item.$1, size: 18, color: verde),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(item.$2,
+                        style: TextStyle(fontSize: 13.5, color: Paleta.tinta, fontWeight: FontWeight.w600)),
+                  ),
+                ]),
+              ),
+          ]),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+          child: FilledButton.icon(
+            style: FilledButton.styleFrom(
+              backgroundColor: verde,
+              foregroundColor: Colors.white,
+              disabledBackgroundColor: Paleta.lineaFuerte,
+              disabledForegroundColor: Paleta.gris,
+              minimumSize: const Size.fromHeight(52),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+            onPressed: online ? () => compartirWhatsapp(textoInvitarVecino) : null,
+            icon: const Icon(Icons.send_rounded),
+            label: Text(
+              online ? 'Enviar invitación por WhatsApp' : 'Necesitas señal para invitar',
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+            ),
+          ),
+        ),
+      ]),
+    );
+  }
 }
 
 // ============================================================== roles
@@ -179,7 +244,11 @@ class PanelBrigadista extends StatelessWidget {
             // Una sola fuente de alertas: los SOS del botón de pánico (origen 'sos',
             // vigentes y sin atender), haya o no emergencia activa.
             cargar: (st) => st.repo.alertasSos(),
-            builder: (c, alertas) {
+            builder: (c, todas) {
+              // Primero los SOS que la junta le asignó a este brigadista.
+              final uid = context.read<AppState>().uid;
+              bool mio(Publicacion p) => uid != null && p.atendidoPor == uid;
+              final alertas = [...todas]..sort((a, b) => (mio(b) ? 1 : 0) - (mio(a) ? 1 : 0));
               if (alertas.isEmpty) {
                 return Padding(
                   padding: EdgeInsets.all(14),
@@ -206,11 +275,14 @@ class PanelBrigadista extends StatelessWidget {
                       ),
                       subtitle: Text(
                         [
+                          if (mio(p)) 'ASIGNADO A TI',
                           p.autorNombre ?? 'Vecino',
                           if (p.sector != null) p.sector!,
                           haceCuanto(p.creado),
                         ].join(' · '),
+                        style: mio(p) ? TextStyle(color: Paleta.azulInfo, fontWeight: FontWeight.w700) : null,
                       ),
+                      tileColor: mio(p) ? Paleta.azulInfo.withValues(alpha: 0.08) : null,
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () => Navigator.push(
                         c,
@@ -223,19 +295,8 @@ class PanelBrigadista extends StatelessWidget {
               );
             },
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
-            child: OutlinedButton.icon(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const PanelCoordinacionScreen(),
-                ),
-              ),
-              icon: const Icon(Icons.dashboard_outlined),
-              label: const Text('Panel de coordinación'),
-            ),
-          ),
+          // La gestión de SOS (derivar, asignar, estados) es solo de la junta.
+          const SizedBox(height: 8),
         ],
       ),
     );
@@ -253,7 +314,7 @@ class TarjetaMisAportes extends StatelessWidget {
       margin: const EdgeInsets.fromLTRB(16, 14, 16, 0),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Paleta.seccion,
+        color: Paleta.acentoSuave,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
