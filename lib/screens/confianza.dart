@@ -4,13 +4,15 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../config.dart';
 import '../data/datos_iniciales.dart';
-import '../features/sos/sos_alertas.dart';
 import '../models.dart';
 import '../state/app_state.dart';
 import '../ui/widgets.dart';
 import 'auth_screen.dart';
 import 'detalles.dart';
 import '../ui/tema.dart';
+
+// El panel de coordinación vive en features/emergencia (se reexporta aquí).
+export '../features/emergencia/panel_coordinacion.dart' show PanelCoordinacionScreen;
 
 // ================================================================ compartir
 
@@ -152,16 +154,16 @@ class AvisoAutoridades extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Row(children: [
+            Row(children: [
               Icon(Icons.info, color: Paleta.ambar),
               SizedBox(width: 8),
               Expanded(
                 child: Text('Esta app coordina ayuda entre vecinos. No reemplaza a las autoridades.',
-                    style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
+                    style: TextStyle(fontWeight: FontWeight.bold, color: Paleta.tinta)),
               ),
             ]),
             const SizedBox(height: 4),
-            const Text('Si hay riesgo de vida, llama primero:', style: TextStyle(color: Colors.black87)),
+            Text('Si hay riesgo de vida, llama primero:', style: TextStyle(color: Paleta.tinta)),
             const SizedBox(height: 8),
             BotonesNumeros(numeros: DatosIniciales.actual.numeros),
           ]),
@@ -204,7 +206,7 @@ class BotonesNumeros extends StatelessWidget {
       if (locales.isNotEmpty) ...[
         const SizedBox(height: 10),
         Text('Números de tu zona',
-            style: TextStyle(fontWeight: FontWeight.w700, color: claro ? Colors.white : Colors.black87)),
+            style: TextStyle(fontWeight: FontWeight.w700, color: claro ? Colors.white : Paleta.tinta)),
         const SizedBox(height: 6),
         Wrap(spacing: 8, runSpacing: 8, children: [for (final n in locales) boton(n)]),
       ],
@@ -212,171 +214,3 @@ class BotonesNumeros extends StatelessWidget {
   }
 }
 
-// ======================================================== panel de coordinación
-
-/// Para organizaciones y junta vecinal: indicadores de impacto, pedidos
-/// priorizados por estado y reportes por revisar.
-class PanelCoordinacionScreen extends StatefulWidget {
-  const PanelCoordinacionScreen({super.key});
-
-  @override
-  State<PanelCoordinacionScreen> createState() => _PanelCoordinacionScreenState();
-}
-
-class _PanelCoordinacionScreenState extends State<PanelCoordinacionScreen> {
-  String _filtro = 'abierta';
-  int _recarga = 0;
-
-  @override
-  Widget build(BuildContext context) {
-    final st = context.watch<AppState>();
-    final emergencia = st.modoEmergencia;
-    return Scaffold(
-      appBar: AppBar(title: const Text('Panel de coordinación')),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          setState(() => _recarga++);
-          st.refrescar();
-        },
-        child: ListView(padding: const EdgeInsets.only(bottom: 32), children: [
-          // Los SOS se atienden siempre, haya o no emergencia activa.
-          if (!emergencia) const FranjaAlertasSos(maximo: 5),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-            child: Text(emergencia ? 'Emergencia en curso' : 'Cadena de favores (día a día)',
-                style: Theme.of(context).textTheme.titleMedium),
-          ),
-          Cargador<Map<String, int>>(
-            claves: [emergencia, _recarga],
-            cargar: (st) => st.repo.indicadores(emergencia: emergencia),
-            builder: (c, i) {
-              final total = i['total']!;
-              final atendidos = i['resuelta']!;
-              final pct = total == 0 ? 0 : (atendidos * 100 / total).round();
-              return Padding(
-                padding: const EdgeInsets.all(12),
-                child: Wrap(spacing: 8, runSpacing: 8, children: [
-                  _Indicador('Pendientes', i['abierta']!, Paleta.ambar, Icons.hourglass_top),
-                  _Indicador('En atención', i['en_curso']!, Paleta.azulInfo, Icons.directions_run),
-                  _Indicador('Atendidos', atendidos, Paleta.verde, Icons.check_circle),
-                  _Indicador('No verificados', i['no_verificado']!, Paleta.gris, Icons.help),
-                  _Indicador('Verificados', i['verificadas']!, Paleta.verde, Icons.verified),
-                  _Indicador('Vecinos ayudando', i['ayudantes']!, Paleta.violeta, Icons.volunteer_activism),
-                  _Indicador('% resuelto', pct, Paleta.verde, Icons.trending_up, sufijo: '%'),
-                ]),
-              );
-            },
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: SegmentedButton<String>(
-              segments: const [
-                ButtonSegment(value: 'abierta', label: Text('Pendientes')),
-                ButtonSegment(value: 'en_curso', label: Text('En atención')),
-                ButtonSegment(value: 'no_verificado', label: Text('No verif.')),
-              ],
-              selected: {_filtro},
-              onSelectionChanged: (s) => setState(() => _filtro = s.first),
-            ),
-          ),
-          Cargador<List<Publicacion>>(
-            claves: [emergencia, _filtro, _recarga],
-            cargar: (st) => st.repo.publicaciones(emergencia: emergencia),
-            builder: (c, lista) {
-              final filtrada = lista.where((p) => p.estado == _filtro && p.esPedido).toList()
-                ..sort((a, b) {
-                  final x = b.pesoPrioridad.compareTo(a.pesoPrioridad);
-                  return x != 0 ? x : a.creado.compareTo(b.creado); // los más antiguos primero
-                });
-              if (filtrada.isEmpty) {
-                return const EstadoVacio(icono: Icons.inbox, texto: 'No hay pedidos en este estado.');
-              }
-              return Column(children: [for (final p in filtrada) TarjetaPublicacion(p)]);
-            },
-          ),
-          if (st.esModerador) ...[
-            const TituloSeccion('Reportes por revisar'),
-            Cargador<List<Map<String, dynamic>>>(
-              claves: [_recarga],
-              cargar: (st) => st.repo.reportesPendientes(),
-              builder: (c, reportes) {
-                if (reportes.isEmpty) {
-                  return const EstadoVacio(icono: Icons.verified_user, texto: 'No hay reportes pendientes.');
-                }
-                final porObjeto = <String, List<Map<String, dynamic>>>{};
-                for (final r in reportes) {
-                  porObjeto.putIfAbsent('${r['tabla']}|${r['objeto_id']}', () => []).add(r);
-                }
-                return Column(children: [
-                  for (final e in porObjeto.entries)
-                    Card(
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: e.value.length >= 3 ? Paleta.rojo : Paleta.ambarSuave,
-                          child: Text('${e.value.length}',
-                              style: TextStyle(color: e.value.length >= 3 ? Colors.white : Colors.black, fontWeight: FontWeight.bold)),
-                        ),
-                        title: Text((e.value.first['titulo'] ?? 'Publicación') as String, style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text(e.value
-                            .map((r) => motivosReporte.firstWhere((m) => m.$1 == r['motivo'], orElse: () => motivosReporte.last).$2)
-                            .toSet()
-                            .join(' · ')),
-                        trailing: PopupMenuButton<String>(
-                          tooltip: 'Acciones',
-                          onSelected: (accion) async {
-                            final (tabla, id) = (e.key.split('|')[0], e.key.split('|')[1]);
-                            try {
-                              if (accion == 'eliminar') await st.repo.eliminar(tabla, id);
-                              await st.repo.marcarReportesRevisados(tabla, id);
-                              avisar(accion == 'eliminar' ? 'Contenido eliminado' : 'Reportes descartados');
-                              setState(() => _recarga++);
-                              st.refrescar();
-                            } catch (err) {
-                              avisar(traducirError(err));
-                            }
-                          },
-                          itemBuilder: (_) => const [
-                            PopupMenuItem(value: 'eliminar', child: Text('Eliminar contenido')),
-                            PopupMenuItem(value: 'descartar', child: Text('Descartar reportes')),
-                          ],
-                        ),
-                      ),
-                    ),
-                ]);
-              },
-            ),
-          ],
-        ]),
-      ),
-    );
-  }
-}
-
-class _Indicador extends StatelessWidget {
-  const _Indicador(this.texto, this.valor, this.color, this.icono, {this.sufijo = ''});
-  final String texto;
-  final int valor;
-  final Color color;
-  final IconData icono;
-  final String sufijo;
-
-  @override
-  Widget build(BuildContext context) => Semantics(
-        label: '$texto: $valor$sufijo',
-        excludeSemantics: true,
-        child: Container(
-          width: 150,
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.10),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: color.withValues(alpha: 0.4)),
-          ),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Icon(icono, color: color),
-            Text('$valor$sufijo', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: color)),
-            Text(texto, style: const TextStyle(fontWeight: FontWeight.w600)),
-          ]),
-        ),
-      );
-}

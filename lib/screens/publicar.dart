@@ -150,8 +150,12 @@ void abrirFormulario(BuildContext context, TipoForm t) {
 }
 
 class FormularioPublicar extends StatefulWidget {
-  const FormularioPublicar({super.key, required this.tipo});
+  const FormularioPublicar({super.key, required this.tipo, this.plantilla});
   final TipoForm tipo;
+
+  /// "Publicar otro": datos del servicio anterior (celular, horario,
+  /// sector y ubicación) para no escribirlos de nuevo.
+  final Map<String, dynamic>? plantilla;
 
   @override
   State<FormularioPublicar> createState() => _FormularioPublicarState();
@@ -174,11 +178,33 @@ class _FormularioPublicarState extends State<FormularioPublicar> {
   bool _enviando = false;
   bool _editarContacto = false;
   String? _error; // error del servidor o de conexión
-  String? _errTitulo, _errDetalle, _errNombre, _errTelefono, _errPrecio;
+  String? _errTitulo, _errDetalle, _errNombre, _errTelefono, _errPrecio, _errHorario;
   bool _escuchando = false;
   bool _vozDisponible = true;
   bool _categoriaManual = false; // el vecino eligió el tipo a mano: no se cambia solo
   bool _categoriaAuto = false; // el tipo lo eligió el texto
+
+  /// Servicio o producto: precio, horario y descripción van plegados para
+  /// que la pantalla no se vea cargada (se abren si hay un error ahí).
+  bool _verDetalles = false;
+  String? _errTipo;
+
+  /// En servicios hay 16 tipos: en vez de mostrarlos todos, se ve solo el
+  /// elegido (por el texto o a mano) y se cambia en una lista aparte.
+  bool get _tipoCompacto => t.esServicio && t.categorias.length > 1;
+  bool get _tipoElegido => _categoriaManual || _categoriaAuto;
+
+  Future<void> _elegirTipo() async {
+    FocusScope.of(context).unfocus();
+    final elegido = await elegirTipoServicio(context, t.categorias, actual: _tipoElegido ? _categoria : null);
+    if (elegido == null) return;
+    setState(() {
+      _categoria = elegido;
+      _categoriaManual = true;
+      _categoriaAuto = false;
+      _errTipo = null;
+    });
+  }
 
   TipoForm get t => widget.tipo;
   List<FraseRapida> get _frases => frasesRapidas[t.name] ?? const [];
@@ -251,6 +277,17 @@ class _FormularioPublicarState extends State<FormularioPublicar> {
     if (tel != null) _telefono.text = tel;
     if (t == TipoForm.reportarVulnerable) _prioridad = 'critica';
     _gps = st.ubicacion;
+    final p = widget.plantilla;
+    if (p != null) {
+      if (p['telefono'] case final String tel when tel.isNotEmpty) _telefono.text = tel;
+      if (p['horario'] case final String h) _horario.text = h;
+      if (p['sector'] case final String sec) _sector = sec;
+      if (p['lat'] case final num lat) {
+        if (p['lng'] case final num lng) _gps = Punto(lat.toDouble(), lng.toDouble());
+      }
+      _buscandoGps = false;
+      return; // misma ubicación que el anterior: no hace falta el GPS
+    }
     _buscarGps();
   }
 
@@ -308,15 +345,34 @@ class _FormularioPublicarState extends State<FormularioPublicar> {
     final titulo = _titulo.text.trim();
     final pideNombre = _muestraNombre(st);
     setState(() {
-      _errTitulo = titulo.length < 5 ? 'Escribe en pocas palabras ${t.tipoPub == 'pido' ? 'qué necesitas' : 'qué ofreces'}.' : null;
+      _errTitulo = validarTitulo(titulo, vacio: 'Escribe en pocas palabras ${t.tipoPub == 'pido' ? 'qué necesitas' : 'qué ofreces'}.');
       _errDetalle = validarTexto(_detalle.text);
       _errNombre = pideNombre ? validarNombre(_nombre.text) : null;
       _errTelefono = validarTelefono(_telefono.text);
       _errPrecio = t == TipoForm.servicio ? validarPrecio(_precio.text) : null;
+      _errTipo = _tipoCompacto && !_tipoElegido ? 'Elige de qué tipo es, así tus vecinos lo encuentran.' : null;
+      _errHorario = t.esServicio ? validarHorario(_horario.text) : null;
+      // El mismo número en el título y en el teléfono es spam o un error.
+      if (_errTitulo == null && RegExp(r'9\d{8}').hasMatch(titulo)) {
+        _errTitulo = 'No pongas tu número en el título: va en "Teléfono o WhatsApp"';
+      }
       // Si el contacto precargado está mal, se abre para corregirlo.
       if (_errNombre != null || _errTelefono != null) _editarContacto = true;
+      // Si el error está en lo plegado, se abre para verlo.
+      if (_errPrecio != null || _errHorario != null || (t.esServicio && _errDetalle != null)) _verDetalles = true;
     });
-    if ([_errTitulo, _errDetalle, _errNombre, _errTelefono, _errPrecio].any((e) => e != null)) return;
+    if ([_errTitulo, _errDetalle, _errNombre, _errTelefono, _errPrecio, _errHorario, _errTipo].any((e) => e != null)) {
+      setState(() => _error = 'Revisa los campos marcados en rojo.');
+      return;
+    }
+    // Rangos (los botones ya los limitan; esto protege por si acaso).
+    final rango = t == TipoForm.colecta
+        ? validarRango(_meta, min: 5, max: Limites.meta, que: 'La meta')
+        : validarRango(_personas, min: 1, max: Limites.personas, que: 'El número de personas');
+    if (rango != null) {
+      setState(() => _error = rango);
+      return;
+    }
     setState(() {
       _enviando = true;
       _error = null;
@@ -377,6 +433,18 @@ class _FormularioPublicarState extends State<FormularioPublicar> {
           } catch (_) {} // no bloquea: el servicio ya quedó publicado
         }
         if (!mounted) return;
+        if (t == TipoForm.servicio && st.logueado) {
+          // ¿Ofrece algo más? Se publica otro con sus datos ya llenos.
+          final otro = await _preguntarOtro();
+          if (!mounted) return;
+          if (otro) {
+            await Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => FormularioPublicar(tipo: t, plantilla: datos)),
+            );
+            return;
+          }
+        }
         Navigator.pop(context);
         avisar('¡Publicado! Tus vecinos ya pueden verlo.');
       } else {
@@ -417,11 +485,52 @@ class _FormularioPublicarState extends State<FormularioPublicar> {
     }
   }
 
+  Future<bool> _preguntarOtro() async =>
+      await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (c) => AlertDialog(
+          icon: Icon(Icons.check_circle, color: Paleta.verde, size: 48),
+          title: const Text('¡Publicado!', textAlign: TextAlign.center),
+          content: const Text(
+            '¿Ofreces otro servicio o producto?\nTu celular, horario y ubicación ya quedan llenos.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 16, height: 1.35),
+          ),
+          actionsAlignment: MainAxisAlignment.center,
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Listo')),
+            FilledButton.icon(
+              onPressed: () => Navigator.pop(c, true),
+              icon: const Icon(Icons.add),
+              label: const Text('Publicar otro'),
+            ),
+          ],
+        ),
+      ) ??
+      false;
+
+  Widget _campoDetalle() => TextField(
+        controller: _detalle,
+        maxLines: 3,
+        maxLength: 500,
+        textCapitalization: TextCapitalization.sentences,
+        onChanged: (_) => _errDetalle != null ? setState(() => _errDetalle = null) : null,
+        decoration: InputDecoration(
+          labelText: t.esServicio ? 'Cuéntales más' : 'Cuéntales más (opcional)',
+          hintText: t.esServicio ? 'Qué incluye, experiencia, zona que atiendes...' : 'Para cuándo, cantidad, cómo ayudar...',
+          helperText: t.esServicio ? null : 'No escribas tu dirección exacta: compártela por teléfono con quien te ayude.',
+          helperMaxLines: 2,
+          errorText: _errDetalle,
+          alignLabelWithHint: true,
+        ),
+      );
+
   /// Nombre visible solo cuando hace falta (sin cuenta o pedidos de emergencia).
   bool _muestraNombre(AppState st) =>
       !st.logueado || (t.esEmergencia && t.tipoPub == 'pido') || t == TipoForm.ofrezcoRecurso;
 
-  Widget _contador(String etiqueta, int valor, int paso, int minimo, ValueChanged<int> cambiar, String menos, String mas) {
+  Widget _contador(String etiqueta, int valor, int paso, int minimo, int maximo, ValueChanged<int> cambiar, String menos, String mas) {
     return Row(children: [
       Expanded(child: Text(etiqueta, style: const TextStyle(fontWeight: FontWeight.bold))),
       IconButton.filledTonal(
@@ -436,7 +545,11 @@ class _FormularioPublicarState extends State<FormularioPublicar> {
           child: Text('$valor', style: Theme.of(context).textTheme.headlineSmall),
         ),
       ),
-      IconButton.filledTonal(tooltip: mas, onPressed: () => cambiar(valor + paso), icon: const Icon(Icons.add)),
+      IconButton.filledTonal(
+        tooltip: mas,
+        onPressed: valor + paso <= maximo ? () => cambiar(valor + paso) : null,
+        icon: const Icon(Icons.add),
+      ),
     ]);
   }
 
@@ -465,11 +578,11 @@ class _FormularioPublicarState extends State<FormularioPublicar> {
         // Abajo, espacio extra para que el botón SOS flotante no tape "Publicar ahora".
         child: ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, 120), children: [
           if (!st.online)
-            const Card(
+            Card(
               color: Paleta.oroClaro,
               child: ListTile(
-                leading: Icon(Icons.cloud_off, color: Colors.black87),
-                title: Text('Sin internet: se guardará y podrás compartirlo por QR.', style: TextStyle(color: Colors.black87)),
+                leading: Icon(Icons.cloud_off, color: Paleta.tinta),
+                title: Text('Sin internet: se guardará y podrás compartirlo por QR.', style: TextStyle(color: Paleta.tinta)),
               ),
             ),
           if (!st.logueado)
@@ -478,6 +591,21 @@ class _FormularioPublicarState extends State<FormularioPublicar> {
                 leading: Icon(Icons.info_outline),
                 title: Text('Estás publicando sin cuenta. Solo pedimos tu nombre para que te encuentren.'),
               ),
+            ),
+
+          if (widget.plantilla != null)
+            Container(
+              margin: const EdgeInsets.only(top: 4),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: Paleta.verdeSuave, borderRadius: BorderRadius.circular(14)),
+              child: Row(children: [
+                Icon(Icons.auto_awesome, color: Paleta.verde),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text('Usamos tu celular, horario y ubicación de antes. Solo cuéntanos qué más ofreces.',
+                      style: TextStyle(fontSize: 15, color: Paleta.verde, fontWeight: FontWeight.w600)),
+                ),
+              ]),
             ),
 
           // 1 ─ La pregunta principal
@@ -517,19 +645,28 @@ class _FormularioPublicarState extends State<FormularioPublicar> {
             ),
           ),
           if (_frases.isNotEmpty) ...[
-            const Text('O toca una frase:', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: Paleta.gris)),
+            Text('O toca una frase:', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: Paleta.gris)),
             const SizedBox(height: 10),
             Wrap(spacing: 8, runSpacing: 8, children: [
               for (final f in _frases)
                 _ChipFrase(frase: f, seleccionada: _titulo.text == f.texto, onTap: () => _usarFrase(f)),
             ]),
           ],
-          if (t.categorias.length > 1) ...[
+          if (_tipoCompacto) ...[
+            const SizedBox(height: 16),
+            _TipoElegido(
+              categoria: _tipoElegido ? buscarCategoria(_categoria) : null,
+              automatico: _categoriaAuto,
+              error: _errTipo,
+              onTap: _elegirTipo,
+            ),
+            espacio,
+          ] else if (t.categorias.length > 1) ...[
             const SizedBox(height: 20),
             Row(children: [
               const Expanded(child: Text('¿De qué tipo es?', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
               if (_categoriaAuto)
-                const Row(children: [
+                Row(children: [
                   Icon(Icons.auto_awesome, size: 16, color: Paleta.acentoOscuro),
                   SizedBox(width: 4),
                   Text('Elegido según tu texto',
@@ -555,7 +692,7 @@ class _FormularioPublicarState extends State<FormularioPublicar> {
 
           // 3 ─ Lo propio de cada tipo
           if (t == TipoForm.colecta) ...[
-            _contador('¿Cuántas donaciones quieren juntar?', _meta, 5, 5, (v) => setState(() => _meta = v), 'Cinco menos', 'Cinco más'),
+            _contador('¿Cuántas donaciones quieren juntar?', _meta, 5, 5, Limites.meta, (v) => setState(() => _meta = v), 'Cinco menos', 'Cinco más'),
             const Text('Los vecinos verán cuánto falta para llegar a la meta.'),
             espacio,
           ],
@@ -572,38 +709,9 @@ class _FormularioPublicarState extends State<FormularioPublicar> {
               onSelectionChanged: (s) => setState(() => _prioridad = s.first),
             ),
             const SizedBox(height: 12),
-            _contador('¿Cuántas personas?', _personas, 1, 1, (v) => setState(() => _personas = v), 'Una persona menos', 'Una persona más'),
+            _contador('¿Cuántas personas?', _personas, 1, 1, Limites.personas, (v) => setState(() => _personas = v), 'Una persona menos', 'Una persona más'),
             espacio,
           ],
-          if (t.esServicio) ...[
-            if (t == TipoForm.servicio) ...[
-              TextField(
-                controller: _precio,
-                keyboardType: TextInputType.number,
-                inputFormatters: [soloNumeros, LengthLimitingTextInputFormatter(6)],
-                onChanged: (_) => _errPrecio != null ? setState(() => _errPrecio = null) : null,
-                decoration: InputDecoration(
-                  labelText: 'Precio referencial (opcional)',
-                  hintText: '30',
-                  prefixText: 'S/ ',
-                  prefixIcon: const Icon(Icons.payments),
-                  errorText: _errPrecio,
-                ),
-              ),
-              const SizedBox(height: 12),
-            ],
-            TextField(
-              controller: _horario,
-              maxLength: 80,
-              decoration: const InputDecoration(
-                labelText: 'Horario de atención (opcional)',
-                hintText: 'Ej: Lun a Sáb, 8 am a 6 pm',
-                prefixIcon: Icon(Icons.schedule),
-              ),
-            ),
-            const SizedBox(height: 4),
-          ],
-
           // 4 ─ Contacto
           if (contactoListo)
             Card(
@@ -655,22 +763,60 @@ class _FormularioPublicarState extends State<FormularioPublicar> {
           ),
           espacio,
 
-          // 6 ─ Detalle libre
-          TextField(
-            controller: _detalle,
-            maxLines: 3,
-            maxLength: 500,
-            textCapitalization: TextCapitalization.sentences,
-            onChanged: (_) => _errDetalle != null ? setState(() => _errDetalle = null) : null,
-            decoration: InputDecoration(
-              labelText: 'Cuéntales más (opcional)',
-              hintText: t.esServicio ? 'Qué incluye, experiencia, zona que atiendes...' : 'Para cuándo, cantidad, cómo ayudar...',
-              helperText: t.esServicio ? null : 'No escribas tu dirección exacta: compártela por teléfono con quien te ayude.',
-              helperMaxLines: 2,
-              errorText: _errDetalle,
-              alignLabelWithHint: true,
-            ),
-          ),
+          // 6 ─ Servicio: precio, horario y descripción, plegados.
+          if (t.esServicio)
+            _SeccionPlegable(
+              titulo: t == TipoForm.servicio ? 'Agregar precio y horario' : 'Agregar horario y descripción',
+              subtitulo: 'Opcional · ayuda a que te elijan',
+              abierta: _verDetalles,
+              onCambio: (v) => setState(() => _verDetalles = v),
+              hijos: [
+                if (t == TipoForm.servicio) ...[
+                  TextField(
+                    controller: _precio,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [soloNumeros, LengthLimitingTextInputFormatter(6)],
+                    onChanged: (_) => _errPrecio != null ? setState(() => _errPrecio = null) : null,
+                    decoration: InputDecoration(
+                      labelText: 'Precio desde',
+                      hintText: '30',
+                      prefixText: 'S/ ',
+                      prefixIcon: const Icon(Icons.payments),
+                      helperText: 'Déjalo vacío si depende del trabajo',
+                      errorText: _errPrecio,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                const Text('¿Cuándo atiendes?', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                const SizedBox(height: 8),
+                Wrap(spacing: 8, runSpacing: 8, children: [
+                  for (final h in const ['Lun a Sáb', 'Todos los días', 'Fines de semana', 'Con cita previa'])
+                    ChoiceChip(
+                      label: Text(h),
+                      selected: _horario.text == h,
+                      showCheckmark: false,
+                      onSelected: (_) => setState(() => _horario.text = _horario.text == h ? '' : h),
+                    ),
+                ]),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: _horario,
+                  maxLength: Limites.horario,
+                  onChanged: (_) => setState(() => _errHorario = null),
+                  decoration: InputDecoration(
+                    labelText: 'U otro horario',
+                    hintText: 'Ej: Lun a Sáb, 8 am a 6 pm',
+                    prefixIcon: const Icon(Icons.schedule),
+                    errorText: _errHorario,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                _campoDetalle(),
+              ],
+            )
+          else
+            _campoDetalle(),
 
           if (_error != null)
             Padding(
@@ -738,7 +884,7 @@ class _BotonDictar extends StatelessWidget {
                         style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: escuchando ? Paleta.rojo : null)),
                     const SizedBox(height: 2),
                     Text(escuchando ? 'Habla ahora. Toca para terminar.' : 'Toca el micrófono y habla, sin escribir',
-                        style: const TextStyle(color: Paleta.gris, fontSize: 14, height: 1.3)),
+                        style: TextStyle(color: Paleta.gris, fontSize: 14, height: 1.3)),
                   ]),
                 ),
               ]),
@@ -832,7 +978,7 @@ class _ChipFrase extends StatelessWidget {
       label: 'Usar la frase: ${frase.texto}',
       excludeSemantics: true,
       child: Material(
-        color: seleccionada ? primario : Colors.white,
+        color: seleccionada ? primario : Paleta.superficie,
         shape: StadiumBorder(side: BorderSide(color: seleccionada ? primario : Paleta.linea)),
         child: InkWell(
           customBorder: const StadiumBorder(),
@@ -859,4 +1005,194 @@ class _ChipFrase extends StatelessWidget {
       ),
     );
   }
+}
+
+// ============================================================ servicio: tipo y detalles
+
+/// "Tipo: Gasfitería · Cambiar" en una línea, en vez de 16 botones.
+class _TipoElegido extends StatelessWidget {
+  const _TipoElegido({required this.categoria, required this.automatico, required this.onTap, this.error});
+  final Categoria? categoria;
+  final bool automatico;
+  final VoidCallback onTap;
+  final String? error;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = categoria;
+    final colores = c == null ? Paleta.azul : colorGrupo(grupoServicio(c.id));
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      const Text('¿De qué tipo es?', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+      const SizedBox(height: 8),
+      Semantics(
+        button: true,
+        label: c == null ? 'Elegir el tipo' : 'Tipo: ${c.nombre}. Toca para cambiar.',
+        excludeSemantics: true,
+        child: Material(
+          color: c == null ? Paleta.superficie : colores.$2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: error != null ? Paleta.rojo : (c == null ? Paleta.lineaFuerte : colores.$2), width: error != null ? 2 : 1),
+          ),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              child: Row(children: [
+                Icon(c?.icono ?? Icons.category_outlined, color: c == null ? Paleta.gris : colores.$1, size: 28),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(c?.nombre ?? 'Elegir el tipo',
+                        style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: c == null ? Paleta.tinta : colores.$1)),
+                    if (c != null && automatico)
+                      Text('Lo elegimos según lo que escribiste', style: TextStyle(fontSize: 13, color: Paleta.gris)),
+                  ]),
+                ),
+                Text(c == null ? 'Elegir' : 'Cambiar',
+                    style: TextStyle(fontWeight: FontWeight.w700, color: Theme.of(context).colorScheme.primary)),
+                Icon(Icons.chevron_right, color: Theme.of(context).colorScheme.primary),
+              ]),
+            ),
+          ),
+        ),
+      ),
+      if (error != null)
+        Padding(
+          padding: const EdgeInsets.only(top: 6, left: 4),
+          child: Text(error!, style: TextStyle(color: Paleta.rojoTexto, fontWeight: FontWeight.w600)),
+        ),
+    ]);
+  }
+}
+
+/// Lista de tipos agrupada (Servicios · Productos · Clases) con botones
+/// grandes. Devuelve el id elegido.
+Future<String?> elegirTipoServicio(BuildContext context, List<Categoria> categorias, {String? actual}) {
+  const grupos = [('servicios', 'Servicios y oficios'), ('productos', 'Productos'), ('clases', 'Clases')];
+  final porGrupo = {for (final (g, _) in grupos) g: categorias.where((c) => grupoServicio(c.id) == g).toList()};
+  final apoyo = categorias.every((c) => porGrupo.values.every((l) => !l.contains(c))); // grupos de apoyo
+  return showModalBottomSheet<String>(
+    context: context,
+    isScrollControlled: true,
+    showDragHandle: true,
+    backgroundColor: Paleta.superficie,
+    builder: (c) => DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.75,
+      maxChildSize: 0.95,
+      builder: (c, scroll) => ListView(controller: scroll, padding: const EdgeInsets.fromLTRB(16, 0, 16, 24), children: [
+        const Text('¿De qué tipo es?', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+        const SizedBox(height: 4),
+        Text('Toca el que más se parezca.', style: TextStyle(color: Paleta.gris, fontSize: 15)),
+        for (final (g, nombre) in grupos)
+          if (!apoyo && porGrupo[g]!.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Text(nombre.toUpperCase(),
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, letterSpacing: 0.6, color: Paleta.gris)),
+            const SizedBox(height: 8),
+            _GrillaTipos(categorias: porGrupo[g]!, actual: actual),
+          ],
+        if (apoyo) ...[const SizedBox(height: 16), _GrillaTipos(categorias: categorias, actual: actual)],
+      ]),
+    ),
+  );
+}
+
+class _GrillaTipos extends StatelessWidget {
+  const _GrillaTipos({required this.categorias, this.actual});
+  final List<Categoria> categorias;
+  final String? actual;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(builder: (context, caja) {
+        final ancho = (caja.maxWidth - 10) / 2;
+        return Wrap(spacing: 10, runSpacing: 10, children: [
+          for (final c in categorias)
+            SizedBox(
+              width: ancho,
+              child: Material(
+                color: c.id == actual ? Theme.of(context).colorScheme.primary : colorGrupo(grupoServicio(c.id)).$2,
+                borderRadius: BorderRadius.circular(16),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: () => Navigator.pop(context, c.id),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(minHeight: 60),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      child: Row(children: [
+                        Icon(c.icono, size: 24, color: c.id == actual ? Colors.white : colorGrupo(grupoServicio(c.id)).$1),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(c.nombre,
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                                color: c.id == actual ? Colors.white : Paleta.tinta,
+                              )),
+                        ),
+                      ]),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ]);
+      });
+}
+
+/// Sección que se abre y se cierra ("Agregar precio y horario").
+class _SeccionPlegable extends StatelessWidget {
+  const _SeccionPlegable({
+    required this.titulo,
+    required this.subtitulo,
+    required this.abierta,
+    required this.onCambio,
+    required this.hijos,
+  });
+  final String titulo, subtitulo;
+  final bool abierta;
+  final ValueChanged<bool> onCambio;
+  final List<Widget> hijos;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        decoration: BoxDecoration(
+          color: Paleta.superficie,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: Paleta.linea),
+        ),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Semantics(
+            button: true,
+            expanded: abierta,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(18),
+              onTap: () => onCambio(!abierta),
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Row(children: [
+                  Icon(abierta ? Icons.remove_circle_outline : Icons.add_circle_outline,
+                      color: Theme.of(context).colorScheme.primary, size: 26),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(titulo, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                      Text(subtitulo, style: TextStyle(fontSize: 13, color: Paleta.gris)),
+                    ]),
+                  ),
+                  Icon(abierta ? Icons.expand_less : Icons.expand_more, color: Paleta.gris),
+                ]),
+              ),
+            ),
+          ),
+          if (abierta)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: hijos),
+            ),
+        ]),
+      );
 }

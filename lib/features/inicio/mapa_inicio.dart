@@ -17,15 +17,23 @@ import '../emergencia/pedidos_emergencia.dart';
 
 /// Tipos de punto del mapa del Inicio.
 enum TipoPunto {
-  servicio('Servicios', 'Servicio', Paleta.ambar, Icons.handyman_rounded),
-  producto('Productos', 'Producto', Paleta.azulInfo, Icons.shopping_basket_rounded),
-  peticion('Peticiones', 'Petición de ayuda', Paleta.violeta, Icons.front_hand_rounded),
-  emergencia('Emergencias', 'Emergencia', Paleta.rojo, Icons.sos_rounded),
-  grupo('Grupos de apoyo', 'Grupo de apoyo', Color(0xFF0E7490), Icons.health_and_safety_rounded);
+  // El orden es el de los filtros del mapa: Emergencias, Peticiones, Servicios, Productos.
+  emergencia('Emergencias', 'Emergencia', Icons.sos_rounded),
+  peticion('Peticiones', 'Petición de ayuda', Icons.front_hand_rounded),
+  servicio('Servicios', 'Servicio', Icons.handyman_rounded),
+  producto('Productos', 'Producto', Icons.shopping_basket_rounded),
+  grupo('Grupos de apoyo', 'Grupo de apoyo', Icons.health_and_safety_rounded);
 
-  const TipoPunto(this.plural, this.singular, this.color, this.icono);
+  const TipoPunto(this.plural, this.singular, this.icono);
   final String plural, singular;
-  final Color color;
+  // Getter (no campo) para que siga el tema claro/oscuro.
+  Color get color => switch (this) {
+        servicio => Paleta.ambar,
+        producto => Paleta.azulInfo,
+        peticion => Paleta.violeta,
+        emergencia => Paleta.rojo,
+        grupo => const Color(0xFF0E7490),
+      };
   final IconData icono;
 }
 
@@ -194,22 +202,22 @@ class _HojaPuntoDeAyuda extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(g.titulo, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Paleta.tinta)),
+                Text(g.titulo, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Paleta.tinta)),
                 Text([cat.nombre, if (km != null) formatoDistancia(km)].join(' · '),
-                    style: const TextStyle(fontSize: 14, color: Paleta.gris)),
+                    style: TextStyle(fontSize: 14, color: Paleta.gris)),
               ]),
             ),
           ]),
           if (g.descripcion != null && g.descripcion!.trim().isNotEmpty) ...[
             const SizedBox(height: 10),
-            Text(g.descripcion!, style: const TextStyle(fontSize: 14, color: Paleta.tinta)),
+            Text(g.descripcion!, style: TextStyle(fontSize: 14, color: Paleta.tinta)),
           ],
           if (g.horario != null && g.horario!.trim().isNotEmpty) ...[
             const SizedBox(height: 6),
             Row(children: [
-              const Icon(Icons.schedule_rounded, size: 16, color: Paleta.gris),
+              Icon(Icons.schedule_rounded, size: 16, color: Paleta.gris),
               const SizedBox(width: 4),
-              Expanded(child: Text(g.horario!, style: const TextStyle(fontSize: 13, color: Paleta.gris))),
+              Expanded(child: Text(g.horario!, style: TextStyle(fontSize: 13, color: Paleta.gris))),
             ]),
           ],
           const SizedBox(height: 16),
@@ -308,10 +316,13 @@ class _DialogoPedidoState extends State<_DialogoPedido> {
 
 /// Mapa del barrio (con filtros) y, debajo, "Cerca de ti" con el mismo filtro.
 class MapaYCercanos extends StatefulWidget {
-  const MapaYCercanos({super.key, this.emergencia = false});
+  const MapaYCercanos({super.key, this.emergencia = false, this.pantallaCompleta = false});
 
   /// En emergencia: suma los grupos de apoyo y empieza filtrado en Emergencias.
   final bool emergencia;
+
+  /// Solo filtros + mapa a todo el alto (sin intro ni "Cerca de ti").
+  final bool pantallaCompleta;
 
   @override
   State<MapaYCercanos> createState() => _MapaYCercanosState();
@@ -354,32 +365,41 @@ class _MapaYCercanosState extends State<MapaYCercanos> {
       },
       builder: (context, todos) {
         final ref = st.referencia;
-        final conteo = {for (final t in TipoPunto.values) t: todos.where((p) => p.tipo == t).length};
+        // Mi propio pedido: se marca como "Tu pedido de ayuda", no como el de otro vecino.
+        final miPedido = st.miPedidoEmergencia?['id'];
+        bool mio(PuntoMapa p) =>
+            p.publicacion != null && ((st.uid != null && p.publicacion!.autorId == st.uid) || p.id == miPedido);
+        final conteo = {for (final t in TipoPunto.values) t: todos.where((p) => p.tipo == t && !mio(p)).length};
         final visibles = todos.where((p) => _filtro == null || p.tipo == _filtro).toList();
-        final cercanos = [...visibles]..sort((a, b) => distanciaKm(ref, a.punto).compareTo(distanciaKm(ref, b.punto)));
+        final cercanos = [...visibles]..sort((a, b) {
+            if (mio(a) != mio(b)) return mio(a) ? -1 : 1; // lo mío primero
+            return distanciaKm(ref, a.punto).compareTo(distanciaKm(ref, b.punto));
+          });
         final alto = (MediaQuery.of(context).size.height * 0.32).clamp(220.0, 300.0);
 
+        final completa = widget.pantallaCompleta;
         return Container(
-          margin: EdgeInsets.only(top: widget.emergencia ? 0 : 14),
-          padding: EdgeInsets.only(top: widget.emergencia ? 4 : 16, bottom: 18),
+          margin: EdgeInsets.only(top: widget.emergencia || completa ? 0 : 14),
+          padding: EdgeInsets.only(top: completa ? 4 : 16, bottom: completa ? 12 : 18),
           // Fondo cálido suave: separa la sección sin cortes bruscos.
-          color: Paleta.acentoSuave,
+          color: completa ? null : Paleta.seccion,
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           // ── Introducción al mapa
+          if (!completa)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               // En emergencia el título ya está en la cabecera: solo la explicación.
               if (!widget.emergencia) ...[
-                const Text('Explora tu barrio',
+                Text('Explora tu barrio',
                     style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: Paleta.tinta)),
                 const SizedBox(height: 2),
               ],
               Text(
                   widget.emergencia
                       ? 'En rojo, vecinos que piden ayuda ahora. En celeste, puntos de ayuda (albergues, postas). Toca uno para actuar.'
-                      : 'Servicios, productos, vecinos que piden ayuda y emergencias cerca de ti. Toca un punto para ver más.',
-                  style: const TextStyle(fontSize: 14, color: Paleta.gris, height: 1.3)),
+                      : 'Toca un punto para ver qué hay cerca de ti.',
+                  style: TextStyle(fontSize: 14, color: Paleta.gris, height: 1.3)),
             ]),
           ),
           // ── Filtros
@@ -417,9 +437,9 @@ class _MapaYCercanosState extends State<MapaYCercanos> {
             ),
           ),
 
-          // ── Mapa
-          Container(
-            height: alto,
+          // ── Mapa (en pantalla completa ocupa todo el alto disponible)
+          _expandirSi(completa, Container(
+            height: completa ? null : alto,
             margin: const EdgeInsets.fromLTRB(16, 6, 16, 0),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
@@ -436,8 +456,10 @@ class _MapaYCercanosState extends State<MapaYCercanos> {
                   maxZoom: 18,
                   // Con un dedo se desplaza la pantalla; el mapa se mueve y amplía con dos dedos
                   // (o en pantalla completa). Así el mapa no "atrapa" el desplazamiento.
-                  interactionOptions: const InteractionOptions(
-                    flags: InteractiveFlag.pinchZoom | InteractiveFlag.pinchMove | InteractiveFlag.doubleTapZoom,
+                  interactionOptions: InteractionOptions(
+                    flags: completa
+                        ? InteractiveFlag.all & ~InteractiveFlag.rotate
+                        : InteractiveFlag.pinchZoom | InteractiveFlag.pinchMove | InteractiveFlag.doubleTapZoom,
                   ),
                   onTap: (_, _) => setState(() => _elegido = null),
                 ),
@@ -445,6 +467,7 @@ class _MapaYCercanosState extends State<MapaYCercanos> {
                   TileLayer(
                     urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                     userAgentPackageName: 'com.alphacoders.appvecinal',
+                    tileBuilder: Paleta.oscuro ? darkModeTileBuilder : null, // mapa oscuro en modo oscuro
                   ),
                   MarkerLayer(markers: [
                     for (final p in visibles)
@@ -452,7 +475,7 @@ class _MapaYCercanosState extends State<MapaYCercanos> {
                         point: LatLng(p.punto.lat, p.punto.lng),
                         width: 44,
                         height: 44,
-                        child: _Pin(p, elegido: _elegido?.id == p.id, onTap: () => setState(() => _elegido = p)),
+                        child: _Pin(p, elegido: _elegido?.id == p.id, propio: mio(p), onTap: () => setState(() => _elegido = p)),
                       ),
                     if (st.ubicacion != null)
                       Marker(
@@ -474,10 +497,10 @@ class _MapaYCercanosState extends State<MapaYCercanos> {
                   ]),
                 ],
               ),
-              const Positioned(
+              Positioned(
                 left: 8,
                 bottom: 6,
-                child: Text('© OpenStreetMap', style: TextStyle(fontSize: 10, color: Colors.black54)),
+                child: Text('© OpenStreetMap', style: TextStyle(fontSize: 10, color: Paleta.gris)),
               ),
               if (!st.online)
                 Positioned(
@@ -487,12 +510,12 @@ class _MapaYCercanosState extends State<MapaYCercanos> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(color: Paleta.ambarSuave, borderRadius: BorderRadius.circular(10)),
-                    child: const Row(children: [
-                      Icon(Icons.cloud_off_rounded, size: 16, color: Colors.black87),
+                    child: Row(children: [
+                      Icon(Icons.cloud_off_rounded, size: 16, color: Paleta.tinta),
                       SizedBox(width: 6),
                       Expanded(
                         child: Text('Mapa sin conexión: los puntos son de la última vez',
-                            style: TextStyle(fontSize: 12, color: Colors.black87)),
+                            style: TextStyle(fontSize: 12, color: Paleta.tinta)),
                       ),
                     ]),
                   ),
@@ -511,12 +534,14 @@ class _MapaYCercanosState extends State<MapaYCercanos> {
                       _mapa.move(LatLng(u.lat, u.lng), 15);
                     },
                   ),
-                  const SizedBox(height: 8),
-                  _BotonMapa(
-                    icono: Icons.fullscreen_rounded,
-                    tooltip: 'Ver el mapa en pantalla completa',
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PantallaMapaCompleto())),
-                  ),
+                  if (!completa) ...[
+                    const SizedBox(height: 8),
+                    _BotonMapa(
+                      icono: Icons.fullscreen_rounded,
+                      tooltip: 'Ver el mapa en pantalla completa',
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PantallaMapaCompleto())),
+                    ),
+                  ],
                 ]),
               ),
               if (_elegido != null)
@@ -524,7 +549,7 @@ class _MapaYCercanosState extends State<MapaYCercanos> {
                   left: 10,
                   right: 10,
                   bottom: 22,
-                  child: _TarjetaPunto(_elegido!, km: distanciaKm(ref, _elegido!.punto), emergencia: widget.emergencia),
+                  child: _TarjetaPunto(_elegido!, km: distanciaKm(ref, _elegido!.punto), emergencia: widget.emergencia, propio: mio(_elegido!)),
                 ),
               if (visibles.isEmpty)
                 Positioned(
@@ -533,18 +558,19 @@ class _MapaYCercanosState extends State<MapaYCercanos> {
                   bottom: 22,
                   child: Container(
                     padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
+                    decoration: BoxDecoration(color: Paleta.superficie, borderRadius: BorderRadius.circular(14)),
                     child: Text(
                       _filtro == null ? (widget.emergencia ? 'Aún no hay pedidos ni puntos de ayuda en esta emergencia.' : 'Todavía no hay nada publicado en el mapa.') : (widget.emergencia ? 'Nada por ahora en esta emergencia.' : 'No hay ${_filtro!.plural.toLowerCase()} por ahora.'),
                       textAlign: TextAlign.center,
-                      style: const TextStyle(color: Paleta.gris),
+                      style: TextStyle(color: Paleta.gris),
                     ),
                   ),
                 ),
             ]),
-          ),
+          )),
 
-          const Padding(
+          if (!completa) ...[
+          Padding(
             padding: EdgeInsets.fromLTRB(20, 8, 20, 0),
             child: Row(children: [
               Icon(Icons.pinch_outlined, size: 15, color: Paleta.gris),
@@ -556,7 +582,7 @@ class _MapaYCercanosState extends State<MapaYCercanos> {
             ]),
           ),
 
-          // ── Cerca de ti
+          // ── Cerca de ti (en el día a día y en emergencia)
           TituloDiseno(
             'Cerca de ti',
             detalle: widget.emergencia || _filtro == null ? null : nombreTipo(_filtro!, emergencia: false, plural: true),
@@ -569,7 +595,7 @@ class _MapaYCercanosState extends State<MapaYCercanos> {
                 : null,
           ),
           if (cercanos.isEmpty)
-            const Padding(
+            Padding(
               padding: EdgeInsets.symmetric(horizontal: 20),
               child: Text('No hay nada cerca con este filtro.', style: TextStyle(color: Paleta.gris)),
             )
@@ -584,8 +610,8 @@ class _MapaYCercanosState extends State<MapaYCercanos> {
                       Container(
                         width: 38,
                         height: 38,
-                        decoration: BoxDecoration(color: p.tipo.color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(12)),
-                        child: Icon(p.icono, size: 20, color: p.tipo.color),
+                        decoration: BoxDecoration(color: (mio(p) ? Paleta.azulInfo : p.tipo.color).withValues(alpha: 0.12), borderRadius: BorderRadius.circular(12)),
+                        child: Icon(mio(p) ? Icons.person_pin_circle_rounded : p.icono, size: 20, color: mio(p) ? Paleta.azulInfo : p.tipo.color),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -593,22 +619,25 @@ class _MapaYCercanosState extends State<MapaYCercanos> {
                           Text(p.titulo,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: Paleta.tinta)),
-                          Text(['${nombreTipo(p.tipo, emergencia: widget.emergencia)} · ${formatoDistancia(distanciaKm(ref, p.punto))}', if (p.publicacion?.sector != null) p.publicacion!.sector!].join(' · '),
-                              style: const TextStyle(fontSize: 13, color: Paleta.gris)),
+                              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: Paleta.tinta)),
+                          Text(['${mio(p) ? 'Tu pedido de ayuda' : nombreTipo(p.tipo, emergencia: widget.emergencia)} · ${formatoDistancia(distanciaKm(ref, p.punto))}', if (p.publicacion?.sector != null) p.publicacion!.sector!].join(' · '),
+                              style: TextStyle(fontSize: 13, color: Paleta.gris)),
                         ]),
                       ),
-                      const Icon(Icons.chevron_right_rounded, color: Paleta.grisClaro),
+                      Icon(Icons.chevron_right_rounded, color: Paleta.grisClaro),
                     ]),
                   ),
                 ),
             ]),
+          ],
           ]),
         );
       },
     );
   }
 }
+
+Widget _expandirSi(bool expandir, Widget hijo) => expandir ? Expanded(child: hijo) : hijo;
 
 class _Filtro extends StatelessWidget {
   const _Filtro({required this.texto, required this.cantidad, required this.color, required this.elegido, required this.onTap, this.icono});
@@ -634,7 +663,7 @@ class _Filtro extends StatelessWidget {
               duration: const Duration(milliseconds: 160),
               padding: const EdgeInsets.symmetric(horizontal: 12),
               decoration: BoxDecoration(
-                color: elegido ? color : Colors.white,
+                color: elegido ? color : Paleta.superficie,
                 borderRadius: BorderRadius.circular(999),
                 border: Border.all(color: elegido ? color : Paleta.linea),
               ),
@@ -656,15 +685,16 @@ class _Filtro extends StatelessWidget {
 }
 
 class _Pin extends StatelessWidget {
-  const _Pin(this.p, {required this.elegido, required this.onTap});
+  const _Pin(this.p, {required this.elegido, required this.onTap, this.propio = false});
   final PuntoMapa p;
   final bool elegido;
+  final bool propio; // mi propio pedido
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) => Semantics(
         button: true,
-        label: '${p.tipo.singular}: ${p.titulo}',
+        label: propio ? 'Tu pedido de ayuda: ${p.titulo}' : '${p.tipo.singular}: ${p.titulo}',
         child: GestureDetector(
           onTap: onTap,
           child: Center(
@@ -673,12 +703,12 @@ class _Pin extends StatelessWidget {
               width: elegido ? 42 : 34,
               height: elegido ? 42 : 34,
               decoration: BoxDecoration(
-                color: p.tipo.color,
+                color: propio ? Paleta.azulInfo : p.tipo.color,
                 shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 3),
+                border: Border.all(color: Colors.white, width: propio ? 4 : 3),
                 boxShadow: const [BoxShadow(blurRadius: 4, color: Colors.black38)],
               ),
-              child: Icon(p.icono, color: Colors.white, size: elegido ? 22 : 18),
+              child: Icon(propio ? Icons.person_rounded : p.icono, color: Colors.white, size: elegido ? 22 : 18),
             ),
           ),
         ),
@@ -693,7 +723,7 @@ class _BotonMapa extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Material(
-        color: Colors.white,
+        color: Paleta.superficie,
         elevation: 2,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: IconButton(tooltip: tooltip, onPressed: onTap, icon: Icon(icono, color: Paleta.primario)),
@@ -702,8 +732,9 @@ class _BotonMapa extends StatelessWidget {
 
 /// Tarjeta corta que sube al tocar un pin: qué es, a qué distancia y "Ver".
 class _TarjetaPunto extends StatelessWidget {
-  const _TarjetaPunto(this.p, {required this.km, this.emergencia = false});
+  const _TarjetaPunto(this.p, {required this.km, this.emergencia = false, this.propio = false});
   final bool emergencia;
+  final bool propio;
   final PuntoMapa p;
   final double km;
 
@@ -713,7 +744,7 @@ class _TarjetaPunto extends StatelessWidget {
         ? (p.servicio!.vistosBuenos > 0 ? ' · ${p.servicio!.vistosBuenos} Vistos Buenos' : '')
         : (p.publicacion!.ayudantes > 0 ? ' · ${p.publicacion!.ayudantes} apoyan' : '');
     return Material(
-      color: Colors.white,
+      color: Paleta.superficie,
       elevation: 6,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
@@ -734,9 +765,9 @@ class _TarjetaPunto extends StatelessWidget {
                 Text(p.titulo,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Paleta.tinta)),
-                Text('${nombreTipo(p.tipo, emergencia: emergencia)} · ${formatoDistancia(km)}$extra',
-                    maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: Paleta.gris)),
+                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Paleta.tinta)),
+                Text('${propio ? 'Tu pedido de ayuda' : nombreTipo(p.tipo, emergencia: emergencia)} · ${formatoDistancia(km)}$extra',
+                    maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, color: Paleta.gris)),
               ]),
             ),
             FilledButton(onPressed: () => abrirPunto(context, p), child: const Text('Ver')),

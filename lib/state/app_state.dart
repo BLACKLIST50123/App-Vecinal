@@ -15,6 +15,7 @@ import '../services/notificaciones.dart';
 import '../services/push.dart';
 import '../services/ubicacion.dart';
 import '../services/voz.dart';
+import '../ui/tema.dart';
 import '../util.dart';
 
 final mensajero = GlobalKey<ScaffoldMessengerState>();
@@ -40,6 +41,8 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     escala = prefs.getDouble('escala') ?? 1.0;
     altoContraste = prefs.getBool('alto_contraste') ?? false;
+    temaOscuro = prefs.getBool('tema_oscuro') ?? false;
+    Paleta.oscuro = temaOscuro && !altoContraste;
     voz = prefs.getBool('voz') ?? true;
     tutorialVisto = prefs.getBool('tutorial_visto') ?? false;
     final b = prefs.getString('brigadista');
@@ -66,6 +69,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
 
   late double escala;
   late bool altoContraste;
+  late bool temaOscuro;
   late bool voz;
   late bool tutorialVisto;
 
@@ -472,6 +476,34 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
+  /// Mi último pedido de "Necesito ayuda" en esta emergencia (guardado en el
+  /// celular: sirve también sin cuenta y sin señal).
+  Map<String, dynamic>? get miPedidoEmergencia {
+    final clave = emergencia.clave;
+    if (clave == null) return null;
+    final raw = prefs.getString('mi_pedido_$clave');
+    if (raw == null) return null;
+    try {
+      return Map<String, dynamic>.from(jsonDecode(raw) as Map);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> guardarMiPedido(Map<String, dynamic> datos) async {
+    final clave = emergencia.clave;
+    if (clave == null) return;
+    await prefs.setString('mi_pedido_$clave', jsonEncode(datos));
+    notifyListeners();
+  }
+
+  Future<void> olvidarMiPedido() async {
+    final clave = emergencia.clave;
+    if (clave == null) return;
+    await prefs.remove('mi_pedido_$clave');
+    notifyListeners();
+  }
+
   Future<void> _enviarEstadoPendiente() async {
     final clave = emergencia.clave;
     if (clave == null || !logueado) return;
@@ -575,7 +607,26 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   void setAltoContraste(bool v) {
     altoContraste = v;
     prefs.setBool('alto_contraste', v);
+    _aplicarTema();
+  }
+
+  void setTemaOscuro(bool v) {
+    temaOscuro = v;
+    prefs.setBool('tema_oscuro', v);
+    _aplicarTema();
+  }
+
+  /// El alto contraste siempre es claro. Como muchos widgets leen [Paleta]
+  /// directo (no el tema), se reconstruye todo el árbol sin perder la pantalla.
+  void _aplicarTema() {
+    Paleta.oscuro = temaOscuro && !altoContraste;
     notifyListeners();
+    void marcar(Element e) {
+      e.markNeedsBuild();
+      e.visitChildren(marcar);
+    }
+
+    WidgetsBinding.instance.rootElement?.visitChildren(marcar);
   }
 
   // ------------------------------------------------------- notificaciones

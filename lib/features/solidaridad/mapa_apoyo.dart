@@ -18,8 +18,8 @@ class MapaApoyoScreen extends StatelessWidget {
   final List<Publicacion> peticiones; // ya filtradas y ordenadas por cercanía
   final String? categoria;
 
-  static const _naranja = Paleta.ambar;
-  static const _rojo = Paleta.rojo;
+  static Color get _naranja => Paleta.ambar;
+  static Color get _rojo => Paleta.rojo;
 
   void _ver(BuildContext context, Publicacion p) => showModalBottomSheet<void>(
         context: context,
@@ -54,6 +54,7 @@ class MapaApoyoScreen extends StatelessWidget {
             TileLayer(
               urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
               userAgentPackageName: 'com.alphacoders.appvecinal',
+              tileBuilder: Paleta.oscuro ? darkModeTileBuilder : null, // mapa oscuro en modo oscuro
             ),
             MarkerLayer(markers: [
               // Tu ubicación
@@ -101,14 +102,14 @@ class MapaApoyoScreen extends StatelessWidget {
             ]),
           ],
         ),
-        const Positioned(
+        Positioned(
           left: 8,
           bottom: 8,
           child: ColoredBox(
-            color: Colors.white70,
+            color: Paleta.superficie.withValues(alpha: 0.85),
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              child: Text('© OpenStreetMap', style: TextStyle(fontSize: 11, color: Colors.black)),
+              child: Text('© OpenStreetMap', style: TextStyle(fontSize: 11, color: Paleta.tinta)),
             ),
           ),
         ),
@@ -125,7 +126,7 @@ class MapaApoyoScreen extends StatelessWidget {
                     child: Text('No hay peticiones con ubicación en esta categoría.'),
                   )
                 : ListTile(
-                    leading: const CircleAvatar(
+                    leading: CircleAvatar(
                       backgroundColor: Paleta.oroFondo,
                       child: Icon(Icons.star, color: Paleta.oro),
                     ),

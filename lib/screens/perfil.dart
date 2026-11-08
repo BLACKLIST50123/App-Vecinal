@@ -15,6 +15,7 @@ import 'confianza.dart';
 import 'detalles.dart';
 import 'notificaciones_screen.dart';
 import 'qr_screens.dart';
+import 'recuperar_clave.dart';
 import '../features/junta/junta.dart';
 import 'tutorial.dart';
 
@@ -35,7 +36,7 @@ class PerfilScreen extends StatelessWidget {
       context: context,
       builder: (c) => AlertDialog(
         icon: const Icon(Icons.logout, size: 36),
-        title: const Text('¿Cerrar sesión?'),
+        title: Text('¿Cerrar sesión?'),
         content: Text(n > 0
             ? 'Tienes ${n == 1 ? '1 publicación' : '$n publicaciones'} sin enviar. '
                 'Si cierras sesión ahora, podrían no enviarse. Mejor espera a tener internet.'
@@ -138,11 +139,12 @@ class PerfilScreen extends StatelessWidget {
       if (st.esOrganizacion || st.esModerador) ...[
         TituloDiseno(st.esModerador ? 'Junta vecinal' : 'Organización'),
         ListaAjustes(filas: [
-          FilaAjuste(
-            icono: Icons.dashboard_outlined,
-            texto: 'Panel de coordinación',
-            onTap: () => _ir(context, const PanelCoordinacionScreen()),
-          ),
+          if (st.esModerador)
+            FilaAjuste(
+              icono: Icons.dashboard_outlined,
+              texto: 'Gestionar pedidos y SOS',
+              onTap: () => _ir(context, const PanelCoordinacionScreen()),
+            ),
           if (st.esModerador)
             FilaAjuste(
               icono: Icons.groups_2_outlined,
@@ -156,6 +158,13 @@ class PerfilScreen extends StatelessWidget {
               valor: st.modoEmergencia ? 'Activa' : 'Apagada',
               color: st.modoEmergencia ? Paleta.rojo : null,
               onTap: () => _ir(context, const JuntaVecinalScreen()),
+            ),
+          if (st.esModerador)
+            FilaAjuste(
+              icono: Icons.report_outlined,
+              texto: 'Quejas de servicios',
+              valor: 'Revisar',
+              onTap: () => _ir(context, const ServiciosConQuejasScreen()),
             ),
         ]),
       ],
@@ -192,6 +201,12 @@ class PerfilScreen extends StatelessWidget {
 
       const SizedBox(height: 12),
       ListaAjustes(filas: [
+        FilaAjuste(
+          icono: st.temaOscuro ? Icons.dark_mode_outlined : Icons.light_mode_outlined,
+          texto: 'Modo oscuro',
+          valor: st.altoContraste ? 'Usa alto contraste' : (st.temaOscuro ? 'Oscuro' : 'Claro'),
+          final_: Switch(value: st.temaOscuro, onChanged: st.altoContraste ? null : st.setTemaOscuro),
+        ),
         // Avisos de emergencia y del barrio (con puntito si faltan activar).
         FilaAjuste(
           icono: Icons.notifications_outlined,
@@ -200,7 +215,7 @@ class PerfilScreen extends StatelessWidget {
           onTap: () => _ir(context, const NotificacionesScreen()),
           final_: Row(mainAxisSize: MainAxisSize.min, children: [
             if (st.faltaActivarAvisos) const Padding(padding: EdgeInsets.only(left: 8), child: PuntoAviso()),
-            const Icon(Icons.chevron_right, color: Color(0xFF94A3B8)),
+            Icon(Icons.chevron_right, color: Paleta.grisClaro),
           ]),
         ),
         FilaAjuste(
@@ -220,15 +235,15 @@ class PerfilScreen extends StatelessWidget {
               onPressed: () => _confirmarCierre(context, st),
               style: OutlinedButton.styleFrom(
                 foregroundColor: Paleta.rojo,
-                backgroundColor: Colors.white,
-                side: const BorderSide(color: Paleta.rojo, width: 1.5),
+                backgroundColor: Paleta.superficie,
+                side: BorderSide(color: Paleta.rojo, width: 1.5),
               ),
               icon: const Icon(Icons.logout),
               label: const Text('Cerrar sesión', style: TextStyle(fontSize: 17)),
             ),
           ),
         ),
-      const Padding(
+      Padding(
         padding: EdgeInsets.all(20),
         child: Text('Conecta Vecino · Equipo AlphaCoders · Hackathon UTP 2026',
             textAlign: TextAlign.center, style: TextStyle(color: Paleta.gris)),
@@ -254,7 +269,7 @@ class _CabeceraPerfil extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 4, 16, 0),
       padding: const EdgeInsets.fromLTRB(16, 22, 16, 18),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), border: Border.all(color: Paleta.linea)),
+      decoration: BoxDecoration(color: Paleta.superficie, borderRadius: BorderRadius.circular(24), border: Border.all(color: Paleta.linea)),
       child: Column(children: [
         Semantics(
           button: true,
@@ -288,7 +303,7 @@ class _CabeceraPerfil extends StatelessWidget {
         Text(st.nombre,
             textAlign: TextAlign.center, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, letterSpacing: -0.3)),
         const SizedBox(height: 2),
-        Text(rolTexto, textAlign: TextAlign.center, style: const TextStyle(color: Paleta.gris, fontSize: 16)),
+        Text(rolTexto, textAlign: TextAlign.center, style: TextStyle(color: Paleta.gris, fontSize: 16)),
         const SizedBox(height: 10),
         Wrap(alignment: WrapAlignment.center, spacing: 8, runSpacing: 8, children: [
           _Distintivo(
@@ -302,7 +317,7 @@ class _CabeceraPerfil extends StatelessWidget {
               texto: 'Brigadista · ${st.brigadista!.especialidadNombre}',
               color: Paleta.rojo,
             ),
-          if (st.esPrestador) const _Distintivo(icono: Icons.handyman, texto: 'Ofrece servicios', color: Paleta.acentoOscuro),
+          if (st.esPrestador) _Distintivo(icono: Icons.handyman, texto: 'Ofrece servicios', color: Paleta.acentoOscuro),
         ]),
         if (sinFoto) ...[
           const SizedBox(height: 14),
@@ -352,8 +367,8 @@ class _AccesoGrande extends StatelessWidget {
         label: texto,
         excludeSemantics: true,
         child: Material(
-          color: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: const BorderSide(color: Paleta.linea)),
+          color: Paleta.superficie,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide(color: Paleta.linea)),
           child: InkWell(
             borderRadius: BorderRadius.circular(20),
             onTap: onTap,
@@ -386,14 +401,14 @@ class _TarjetaInvitado extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         margin: const EdgeInsets.fromLTRB(16, 4, 16, 0),
         padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), border: Border.all(color: Paleta.linea)),
+        decoration: BoxDecoration(color: Paleta.superficie, borderRadius: BorderRadius.circular(24), border: Border.all(color: Paleta.linea)),
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          const Center(child: Icon(Icons.account_circle, size: 84, color: Paleta.primarioSuave)),
+          Center(child: Icon(Icons.account_circle, size: 84, color: Paleta.primarioSuave)),
           const SizedBox(height: 8),
           const Text('Estás como invitado',
               textAlign: TextAlign.center, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
           const SizedBox(height: 6),
-          const Text('Crea tu cuenta gratis para publicar, ayudar, poner tu foto y ganar reconocimiento.',
+          Text('Crea tu cuenta gratis para publicar, ayudar, poner tu foto y ganar reconocimiento.',
               textAlign: TextAlign.center, style: TextStyle(color: Paleta.gris, fontSize: 16, height: 1.35)),
           const SizedBox(height: 16),
           SizedBox(
@@ -411,6 +426,29 @@ class _TarjetaInvitado extends StatelessWidget {
 /// Opciones que se usan poco: aquí no estorban en la pantalla principal.
 class MasOpcionesScreen extends StatelessWidget {
   const MasOpcionesScreen({super.key});
+
+  /// Crea un código de recuperación nuevo (el anterior deja de servir).
+  Future<void> _nuevoCodigo(BuildContext context, AppState st) async {
+    if (!st.online) return avisar('Necesitas internet para crear tu código.');
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('¿Crear un código nuevo?'),
+        content: const Text('Tu código anterior dejará de servir. Guarda bien el nuevo.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancelar')),
+          FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Crear código')),
+        ],
+      ),
+    );
+    if (ok != true || !context.mounted) return;
+    try {
+      final codigo = await st.repo.crearCodigoRecuperacion();
+      if (context.mounted) await mostrarCodigoRecuperacion(context, codigo);
+    } catch (e) {
+      avisar(traducirError(e));
+    }
+  }
 
   void _ir(BuildContext context, Widget pantalla) =>
       Navigator.push(context, MaterialPageRoute(builder: (_) => pantalla));
@@ -434,6 +472,13 @@ class MasOpcionesScreen extends StatelessWidget {
         ListaAjustes(filas: [
           FilaAjuste(icono: Icons.rule, texto: 'Normas del barrio', onTap: () => mostrarNormas(context)),
           FilaAjuste(icono: Icons.shield_outlined, texto: 'Ayudar con seguridad', onTap: () => mostrarConsejos(context)),
+          if (st.logueado)
+            FilaAjuste(
+              icono: Icons.key_rounded,
+              texto: 'Código para recuperar mi clave',
+              valor: 'Crear uno nuevo',
+              onTap: () => _nuevoCodigo(context, st),
+            ),
         ]),
         const TituloDiseno('Ayuda'),
         ListaAjustes(filas: [
@@ -461,7 +506,7 @@ class VecinosDestacadosScreen extends StatelessWidget {
           cargar: (st) => st.repo.vecinosDestacados(),
           builder: (c, destacados) => ListView(padding: const EdgeInsets.only(top: 8, bottom: 120), children: [
             if (destacados.isEmpty)
-              const Padding(
+              Padding(
                 padding: EdgeInsets.all(24),
                 child: Text('Todavía no hay ayudas confirmadas en el barrio.',
                     textAlign: TextAlign.center, style: TextStyle(color: Paleta.gris, fontSize: 16)),
@@ -492,14 +537,14 @@ class AccesibilidadScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Accesibilidad')),
       body: ListView(padding: const EdgeInsets.only(bottom: 32), children: [
-        const Padding(
+        Padding(
           padding: EdgeInsets.fromLTRB(20, 4, 20, 12),
           child: Text('Ajusta la app para leerla y usarla con comodidad.', style: TextStyle(color: Paleta.gris, fontSize: 15)),
         ),
         Container(
           margin: const EdgeInsets.symmetric(horizontal: 16),
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(19), border: Border.all(color: Paleta.linea)),
+          decoration: BoxDecoration(color: Paleta.superficie, borderRadius: BorderRadius.circular(19), border: Border.all(color: Paleta.linea)),
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             const Text('Tamaño de letra', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
             const SizedBox(height: 10),
@@ -521,6 +566,11 @@ class AccesibilidadScreen extends StatelessWidget {
             icono: Icons.contrast,
             texto: 'Alto contraste',
             final_: Switch(value: st.altoContraste, onChanged: st.setAltoContraste),
+          ),
+          FilaAjuste(
+            icono: Icons.dark_mode_outlined,
+            texto: 'Modo oscuro',
+            final_: Switch(value: st.temaOscuro, onChanged: st.altoContraste ? null : st.setTemaOscuro),
           ),
           FilaAjuste(
             icono: Icons.record_voice_over_outlined,
@@ -547,7 +597,7 @@ class ConexionScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Conexión y mensajes QR')),
       body: ListView(padding: const EdgeInsets.only(bottom: 32), children: [
-        const Padding(
+        Padding(
           padding: EdgeInsets.fromLTRB(20, 4, 20, 12),
           child: Text('Sin internet, lo que publiques se guarda y puedes compartirlo por QR para que otro vecino lo envíe.',
               style: TextStyle(color: Paleta.gris, fontSize: 15)),
@@ -581,14 +631,86 @@ class JuntaVecinalScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Scaffold(
         appBar: AppBar(title: const Text('Junta vecinal')),
-        body: ListView(padding: const EdgeInsets.only(bottom: 32), children: const [
+        body: ListView(padding: const EdgeInsets.only(bottom: 32), children: [
           Padding(
             padding: EdgeInsets.fromLTRB(20, 4, 20, 8),
             child: Text('Activa el modo emergencia cuando el barrio lo necesite. Todos los vecinos lo verán al instante.',
                 style: TextStyle(color: Paleta.gris, fontSize: 15)),
           ),
           _PanelModerador(),
+          _AyudaClaveVecino(),
         ]),
+      );
+}
+
+/// La junta da un código nuevo a un vecino que perdió su clave y su código
+/// (después de verificar en persona que es él, por ejemplo con su DNI).
+class _AyudaClaveVecino extends StatefulWidget {
+  const _AyudaClaveVecino();
+
+  @override
+  State<_AyudaClaveVecino> createState() => _AyudaClaveVecinoState();
+}
+
+class _AyudaClaveVecinoState extends State<_AyudaClaveVecino> {
+  final _celular = TextEditingController();
+  String? _err;
+  bool _cargando = false;
+
+  @override
+  void dispose() {
+    _celular.dispose();
+    super.dispose();
+  }
+
+  Future<void> _generar() async {
+    final e = validarTelefono(_celular.text, obligatorio: true);
+    setState(() => _err = e);
+    if (e != null) return;
+    final st = context.read<AppState>();
+    setState(() => _cargando = true);
+    try {
+      final codigo = await st.repo.codigoParaVecino(_celular.text.trim());
+      if (!mounted) return;
+      _celular.clear();
+      await mostrarCodigoRecuperacion(context, codigo, titulo: 'Código para el vecino');
+    } catch (e) {
+      setState(() => _err = traducirError(e));
+    } finally {
+      if (mounted) setState(() => _cargando = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            const Text('Ayudar a un vecino a recuperar su clave',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
+            const SizedBox(height: 4),
+            Text('Primero confirma en persona que es él (por ejemplo, con su DNI). '
+                'Luego dale el código para que ponga una clave nueva.',
+                style: TextStyle(color: Paleta.gris)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _celular,
+              keyboardType: TextInputType.phone,
+              inputFormatters: formatoTelefono,
+              decoration: InputDecoration(
+                labelText: 'Celular del vecino',
+                prefixIcon: const Icon(Icons.phone_android),
+                errorText: _err,
+              ),
+            ),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: _cargando ? null : _generar,
+              icon: const Icon(Icons.key_rounded),
+              label: Text(_cargando ? 'Generando...' : 'Darle un código nuevo'),
+            ),
+          ]),
+        ),
       );
 }
 
@@ -616,9 +738,9 @@ class _TarjetaReconocimiento extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(n.nombre, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black)),
+                Text(n.nombre, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Paleta.tinta)),
                 Text('$ayudas ${ayudas == 1 ? 'ayuda confirmada' : 'ayudas confirmadas'}',
-                    style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w600)),
+                    style: TextStyle(color: Paleta.tinta, fontWeight: FontWeight.w600)),
               ]),
             ),
             BotonEscuchar(texto, compacto: true),
@@ -638,12 +760,12 @@ class _TarjetaReconocimiento extends StatelessWidget {
             sig == null
                 ? '¡Llegaste al nivel más alto! Gracias por cuidar tu barrio.'
                 : 'Te ${faltan == 1 ? 'falta 1 ayuda confirmada' : 'faltan $faltan ayudas confirmadas'} para ser ${sig.nombre}',
-            style: const TextStyle(color: Colors.black87),
+            style: TextStyle(color: Paleta.tinta),
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'Una ayuda se confirma cuando la persona a la que ayudaste te agradece en la app.',
-            style: TextStyle(color: Colors.black54, fontSize: 13),
+            style: TextStyle(color: Paleta.gris, fontSize: 13),
           ),
         ]),
       ),
@@ -702,13 +824,15 @@ class HistorialScreen extends StatelessWidget {
               ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                child: Row(children: [
-                  _Dato(Icons.volunteer_activism, 'Ayudas', respondi.length),
-                  const SizedBox(width: 8),
-                  _Dato(Icons.favorite, 'Gracias', gracias),
-                  const SizedBox(width: 8),
-                  _Dato(Icons.thumb_up, 'Vistos Buenos', vbs),
-                ]),
+                child: IntrinsicHeight(
+                  child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                    _Dato(Icons.volunteer_activism, 'Ayudas', respondi.length),
+                    const SizedBox(width: 8),
+                    _Dato(Icons.favorite, 'Gracias', gracias),
+                    const SizedBox(width: 8),
+                    _Dato(Icons.thumb_up, 'Vistos Buenos', vbs),
+                  ]),
+                ),
               ),
               if (emergencias > 0 || cuidado > 0 || colectas > 0) ...[
                 const TituloSeccion('Tus distintivos'),
@@ -736,7 +860,7 @@ class HistorialScreen extends StatelessWidget {
                     trailing: e.publicacion == null
                         ? null
                         : e.publicacion!.estado == 'resuelta'
-                            ? const Icon(Icons.check_circle, color: Paleta.verde)
+                            ? Icon(Icons.check_circle, color: Paleta.verde)
                             : const Icon(Icons.chevron_right),
                     onTap: e.publicacion == null
                         ? null
@@ -766,7 +890,7 @@ class _Dato extends StatelessWidget {
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Icon(icono),
             Text('$valor', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900)),
-            Text(texto, style: const TextStyle(fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
+            Text(texto, style: const TextStyle(fontWeight: FontWeight.w600), maxLines: 2, overflow: TextOverflow.ellipsis),
           ]),
         ),
       );
@@ -783,6 +907,7 @@ class _PanelModeradorState extends State<_PanelModerador> {
   late final TextEditingController _titulo;
   late final TextEditingController _mensaje;
   bool _cargando = false;
+  String? _errTitulo, _errMensaje;
 
   @override
   void initState() {
@@ -796,6 +921,14 @@ class _PanelModeradorState extends State<_PanelModerador> {
 
   Future<void> _cambiar(bool activar) async {
     final st = context.read<AppState>();
+    if (activar) {
+      // Todo el barrio leerá este aviso: tiene que ser claro.
+      setState(() {
+        _errTitulo = validarTitulo(_titulo.text, min: 5, max: 60, vacio: 'Escribe qué está pasando');
+        _errMensaje = validarTexto(_mensaje.text, min: 15, max: 300, obligatorio: true);
+      });
+      if (_errTitulo != null || _errMensaje != null) return;
+    }
     final ok = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
@@ -832,9 +965,24 @@ class _PanelModeradorState extends State<_PanelModerador> {
           Text(activa ? 'La emergencia está ACTIVA' : 'Sin emergencia activa',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: activa ? Paleta.rojo : null)),
           const SizedBox(height: 12),
-          TextField(controller: _titulo, decoration: const InputDecoration(labelText: 'Tipo de emergencia')),
+          TextField(
+            controller: _titulo,
+            maxLength: 60,
+            onChanged: (_) => _errTitulo != null ? setState(() => _errTitulo = null) : null,
+            decoration: InputDecoration(labelText: 'Tipo de emergencia', hintText: 'Ej: Lluvias e inundación', errorText: _errTitulo),
+          ),
           const SizedBox(height: 12),
-          TextField(controller: _mensaje, maxLines: 3, decoration: const InputDecoration(labelText: 'Mensaje para los vecinos')),
+          TextField(
+            controller: _mensaje,
+            maxLines: 3,
+            maxLength: 300,
+            onChanged: (_) => _errMensaje != null ? setState(() => _errMensaje = null) : null,
+            decoration: InputDecoration(
+              labelText: 'Mensaje para los vecinos',
+              hintText: 'Ej: Si tu casa se inundó, pide ayuda con el botón rojo',
+              errorText: _errMensaje,
+            ),
+          ),
           const SizedBox(height: 12),
           FilledButton.icon(
             style: activa ? null : FilledButton.styleFrom(backgroundColor: Paleta.rojo, foregroundColor: Colors.white),
@@ -891,7 +1039,7 @@ class _RecordatorioAvisos extends StatelessWidget {
             padding: const EdgeInsets.all(14),
             child: Row(children: [
               Stack(clipBehavior: Clip.none, children: [
-                const Icon(Icons.notifications_active_outlined, color: Paleta.rojo, size: 30),
+                Icon(Icons.notifications_active_outlined, color: Paleta.rojo, size: 30),
                 const Positioned(right: -2, top: -2, child: PuntoAviso()),
               ]),
               const SizedBox(width: 12),
@@ -899,18 +1047,174 @@ class _RecordatorioAvisos extends StatelessWidget {
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(
                     bloqueadas ? 'Tu celular bloquea los avisos' : 'Activa los avisos de emergencia',
-                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Paleta.rojoOscuro),
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Paleta.rojoOscuro),
                   ),
                   const SizedBox(height: 2),
-                  const Text('Entérate al instante de sismos, inundaciones y vecinos que piden ayuda.',
+                  Text('Entérate al instante de sismos, inundaciones y vecinos que piden ayuda.',
                       style: TextStyle(fontSize: 13, color: Paleta.tinta, height: 1.3)),
                 ]),
               ),
-              const Icon(Icons.chevron_right, color: Paleta.rojo),
+              Icon(Icons.chevron_right, color: Paleta.rojo),
             ]),
           ),
         ),
       ),
     );
   }
+}
+
+/// Para la junta: servicios con varias respuestas "No me fue bien"
+/// (privadas). Permite revisar antes de que un vecino salga perjudicado.
+class ServiciosConQuejasScreen extends StatelessWidget {
+  const ServiciosConQuejasScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        appBar: AppBar(title: const Text('Quejas de servicios')),
+        body: ListView(padding: const EdgeInsets.only(bottom: 32), children: [
+          Padding(
+            padding: EdgeInsets.fromLTRB(20, 4, 20, 12),
+            child: Text(
+              'Cuando un vecino responde "No me fue bien", se guarda en privado. '
+              'Aquí ves los servicios que recibieron quejas. Con 3, dejan de salir como recomendados.\n\n'
+              'Antes de decidir algo, conversa con el vecino que ofrece el servicio.',
+              style: TextStyle(color: Paleta.gris, fontSize: 16, height: 1.4),
+            ),
+          ),
+          _ServiciosConQuejas(),
+        ]),
+      );
+}
+
+/// Llamar o escribir al vecino del servicio. El mensaje no dice quién se
+/// quejó (las quejas son privadas): invita a conversar para mejorar.
+class _Conversar extends StatelessWidget {
+  const _Conversar({required this.servicio, required this.titulo});
+  final Servicio? servicio;
+  final String titulo;
+
+  @override
+  Widget build(BuildContext context) {
+    final tel = servicio?.telefono?.replaceAll(RegExp(r'\D'), '') ?? '';
+    if (tel.isEmpty) {
+      return Padding(
+        padding: EdgeInsets.only(top: 4),
+        child: Text('Este servicio no tiene celular. Puedes buscarlo en tu sector.',
+            style: TextStyle(color: Paleta.gris, fontSize: 14)),
+      );
+    }
+    final nombre = (servicio?.autorNombre ?? '').split(' ').first;
+    final mensaje = 'Hola${nombre.isEmpty ? '' : ' $nombre'}, te escribo de la junta vecinal de Conecta Vecino '
+        'por tu servicio "$titulo". Algunos vecinos comentaron que tuvieron inconvenientes y queremos '
+        'conversar contigo para ayudarte a mejorar. ¿Cuándo podemos hablar?';
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Row(children: [
+        Expanded(
+          child: FilledButton.icon(
+            onPressed: () => llamar(tel),
+            icon: const Icon(Icons.call),
+            label: const Text('Llamar'),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: () => abrirWhatsapp(tel, mensaje),
+            icon: const Icon(Icons.chat),
+            label: const Text('WhatsApp'),
+          ),
+        ),
+      ]),
+    );
+  }
+}
+
+/// "Atención" (2 quejas) o "En revisión" (3+: sin sello ni N.º 1).
+class _Estado extends StatelessWidget {
+  const _Estado(this.total);
+  final int total;
+
+  @override
+  Widget build(BuildContext context) {
+    if (total < 2) return const SizedBox.shrink();
+    final revision = total >= Servicio.maximoQuejas;
+    final color = revision ? Paleta.rojoTexto : Paleta.ambar;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: revision ? Paleta.rojoSuave : Paleta.ambarSuave,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(revision ? 'En revisión' : 'Atención',
+          style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 13)),
+    );
+  }
+}
+
+class _ServiciosConQuejas extends StatelessWidget {
+  const _ServiciosConQuejas();
+
+  static const _motivos = {
+    'no_vino': 'No vino',
+    'cobro_de_mas': 'Cobró de más',
+    'mal_trabajo': 'Trabajo mal hecho',
+    'mal_trato': 'Mal trato',
+  };
+
+  @override
+  Widget build(BuildContext context) => Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            Cargador<(List<Map<String, dynamic>>, Map<String, Servicio>)>(
+              cargar: (st) async {
+                try {
+                  final lista = await st.repo.serviciosConQuejas();
+                  // Contacto de cada servicio, para conversar antes de decidir.
+                  final servicios = await st.repo.serviciosPorIds([for (final q in lista) '${q['servicio_id']}']);
+                  return (lista, {for (final s in servicios) s.id: s});
+                } catch (_) {
+                  return (const <Map<String, dynamic>>[], const <String, Servicio>{}); // sin migración o sin señal
+                }
+              },
+              builder: (c, datos) => datos.$1.isEmpty
+                  ? Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: Row(children: [
+                        Icon(Icons.check_circle, color: Paleta.verde),
+                        SizedBox(width: 8),
+                        Expanded(child: Text('Ningún servicio tiene quejas.')),
+                      ]),
+                    )
+                  : Column(children: [
+                      for (final (i, q) in datos.$1.indexed) ...[
+                        if (i > 0) const Divider(height: 24),
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          // Tocar abre el servicio (como lo ven los vecinos).
+                          onTap: datos.$2[q['servicio_id']] == null
+                              ? null
+                              : () => Navigator.push(context,
+                                  MaterialPageRoute(builder: (_) => ServicioDetalle(servicio: datos.$2[q['servicio_id']]!))),
+                          leading: CircleAvatar(
+                            backgroundColor: Paleta.rojoSuave,
+                            child: Text('${q['total']}', style: TextStyle(color: Paleta.rojoTexto, fontWeight: FontWeight.w800)),
+                          ),
+                          title: Text('${q['titulo']}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                          // Estado en palabras: 1 queja, Atención (2), En revisión (3+).
+                          trailing: _Estado((q['total'] as num).toInt()),
+                          subtitle: Text([
+                            '${q['autor_nombre'] ?? 'Vecino'}',
+                            (q['total'] as num) == 1 ? '1 queja' : '${q['total']} quejas',
+                            for (final m in (q['motivos'] as List?) ?? const []) _motivos['$m'] ?? '$m',
+                          ].join(' · '), style: const TextStyle(fontSize: 15)),
+                        ),
+                        _Conversar(servicio: datos.$2[q['servicio_id']], titulo: '${q['titulo']}'),
+                      ],
+                    ]),
+            ),
+          ]),
+        ),
+      );
 }

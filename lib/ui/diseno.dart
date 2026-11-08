@@ -32,7 +32,7 @@ class EncabezadoPantalla extends StatelessWidget {
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               if (subtitulo != null)
-                Text(subtitulo!, style: const TextStyle(color: Paleta.gris, fontSize: 13, fontWeight: FontWeight.w500)),
+                Text(subtitulo!, style: TextStyle(color: Paleta.gris, fontSize: 13, fontWeight: FontWeight.w500)),
               Semantics(
                 header: true,
                 child: Text(titulo,
@@ -65,8 +65,8 @@ class BotonCuadrado extends StatelessWidget {
           label: contador > 0 ? '$tooltip, $contador pendientes' : tooltip,
           excludeSemantics: true,
           child: Material(
-            color: color ?? Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15), side: const BorderSide(color: Paleta.linea)),
+            color: color ?? Paleta.superficie,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15), side: BorderSide(color: Paleta.linea)),
             child: InkWell(
               borderRadius: BorderRadius.circular(15),
               onTap: onTap,
@@ -75,7 +75,7 @@ class BotonCuadrado extends StatelessWidget {
                 height: 48,
                 child: Stack(alignment: Alignment.center, children: [
                   if (texto != null)
-                    Text(texto!, textScaler: TextScaler.noScaling, style: const TextStyle(color: Paleta.gris, fontSize: 19, fontWeight: FontWeight.w800, height: 1))
+                    Text(texto!, textScaler: TextScaler.noScaling, style: TextStyle(color: Paleta.gris, fontSize: 19, fontWeight: FontWeight.w800, height: 1))
                   else
                     Icon(icono, color: Paleta.gris),
                   if (contador > 0)
@@ -121,7 +121,7 @@ class CajaBusqueda extends StatelessWidget {
             hintText: pista,
             labelText: etiqueta,
             floatingLabelBehavior: FloatingLabelBehavior.never,
-            prefixIcon: const Icon(Icons.search, color: Paleta.grisClaro),
+            prefixIcon: Icon(Icons.search, color: Paleta.grisClaro),
             contentPadding: const EdgeInsets.symmetric(vertical: 16),
           ),
         ),
@@ -173,14 +173,14 @@ class TituloDiseno extends StatelessWidget {
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               if (ceja != null)
                 Text(ceja!.toUpperCase(),
-                    style: const TextStyle(color: Paleta.grisClaro, fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 1)),
+                    style: TextStyle(color: Paleta.grisClaro, fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 1)),
               Semantics(
                 header: true,
                 child: Text(titulo, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 19)),
               ),
             ]),
           ),
-          if (detalle != null) Text(detalle!, style: const TextStyle(color: Paleta.gris, fontSize: 13)),
+          if (detalle != null) Text(detalle!, style: TextStyle(color: Paleta.gris, fontSize: 13)),
           if (accion != null) TextButton(onPressed: accion!.$2, child: Text(accion!.$1)),
         ]),
       );
@@ -219,7 +219,7 @@ class AccesoCategoria extends StatelessWidget {
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             IconoCategoria(icono: icono, colores: colores),
             const SizedBox(height: 8),
-            Text(texto, textAlign: TextAlign.center, style: const TextStyle(color: Paleta.gris, fontSize: 13, fontWeight: FontWeight.w600)),
+            Text(texto, textAlign: TextAlign.center, style: TextStyle(color: Paleta.gris, fontSize: 13, fontWeight: FontWeight.w600)),
           ]),
         ),
       );
@@ -234,14 +234,14 @@ class BannerDegradado extends StatelessWidget {
     this.subtitulo,
     required this.colores,
     this.onTap,
-    this.colorIcono = Paleta.ambarSuave,
+    this.colorIcono,
   });
   final IconData icono;
   final String titulo;
   final String? subtitulo;
   final List<Color> colores;
   final VoidCallback? onTap;
-  final Color colorIcono;
+  final Color? colorIcono;
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -263,7 +263,7 @@ class BannerDegradado extends StatelessWidget {
                     width: 52,
                     height: 52,
                     decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(17)),
-                    child: Icon(icono, color: colorIcono, size: 30),
+                    child: Icon(icono, color: colorIcono ?? Paleta.ambarSuave, size: 30),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -293,15 +293,15 @@ class _PieServicio extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Row(children: [
         if (s.pendiente)
-          const Text('Por enviar', style: TextStyle(fontWeight: FontWeight.w700, color: Paleta.gris, fontSize: 13))
+          Text('Por enviar', style: TextStyle(fontWeight: FontWeight.w700, color: Paleta.gris, fontSize: 13))
         else
           Semantics(
             label: '${s.vistosBuenos} Vistos Buenos',
             excludeSemantics: true,
             child: Row(mainAxisSize: MainAxisSize.min, children: [
-              const Icon(Icons.thumb_up_alt_rounded, size: 16, color: Paleta.verde),
+              Icon(Icons.thumb_up_alt_rounded, size: 16, color: Paleta.verde),
               const SizedBox(width: 4),
-              Text('${s.vistosBuenos}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Paleta.verde)),
+              Text('${s.vistosBuenos}', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Paleta.verde)),
             ]),
           ),
         const SizedBox(width: 8),
@@ -345,7 +345,7 @@ class TarjetaCerca extends StatelessWidget {
                     style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, height: 1.2)),
                 const SizedBox(height: 2),
                 Text([s.autorNombre ?? 'Vecino', if (dist != null) formatoDistancia(dist)].join(' · '),
-                    maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Paleta.gris, fontSize: 13)),
+                    maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: Paleta.gris, fontSize: 13)),
                 const SizedBox(height: 6),
                 _PieServicio(s),
               ]),
@@ -359,8 +359,14 @@ class TarjetaCerca extends StatelessWidget {
 
 /// Tarjeta horizontal de "Servicios y productos": ícono, datos, precio y flecha.
 class TarjetaMercado extends StatelessWidget {
-  const TarjetaMercado(this.s, {super.key});
+  const TarjetaMercado(this.s, {super.key, this.destacado = false, this.quejas = 0});
   final Servicio s;
+
+  /// Total de "No me fue bien" (no se muestra: solo baja la insignia).
+  final int quejas;
+
+  /// El de mayor puntaje de su tipo: "El más recomendado en Gasfitería".
+  final bool destacado;
 
   @override
   Widget build(BuildContext context) {
@@ -370,7 +376,7 @@ class TarjetaMercado extends StatelessWidget {
     final colores = colorGrupo(grupo);
     final dist = s.punto == null ? null : distanciaKm(st.referencia, s.punto!);
     final apoyo = grupo == 'apoyo';
-    const naranja = Paleta.acentoOscuro;
+    final naranja = Paleta.acentoOscuro;
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -394,41 +400,77 @@ class TarjetaMercado extends StatelessWidget {
             const SizedBox(width: 14),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                if (destacado)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Row(children: [
+                      Icon(Icons.emoji_events, size: 16, color: Paleta.ambar),
+                      const SizedBox(width: 4),
+                      Flexible(
+                        // Corto para que quepa en una línea (antes se cortaba).
+                        child: Text('N.º 1 en ${cat.nombre}',
+                            maxLines: 1, overflow: TextOverflow.ellipsis,
+                            style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: Paleta.ambar)),
+                      ),
+                    ]),
+                  ),
                 Row(children: [
                   Flexible(
                     child: Text(s.titulo, maxLines: 2, overflow: TextOverflow.ellipsis,
                         style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, height: 1.2)),
                   ),
                   if (s.autorRol == 'organizacion')
-                    const Padding(
+                    Padding(
                       padding: EdgeInsets.only(left: 4),
                       child: Icon(Icons.verified, color: Paleta.azulInfo, size: 16),
                     ),
                 ]),
-                const SizedBox(height: 3),
-                Text([s.autorNombre ?? 'Vecino', if (dist != null) formatoDistancia(dist)].join(' · '),
+                const SizedBox(height: 2),
+                Text(s.autorNombre ?? 'Vecino',
                     maxLines: 1, overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Paleta.gris, fontSize: 13)),
-                const SizedBox(height: 4),
+                    style: TextStyle(color: Paleta.gris, fontSize: 14)),
+                const SizedBox(height: 6),
+                // Lo que más importa al elegir: qué tan cerca y quién lo recomienda.
+                if (dist != null)
+                  _Dato(
+                    icono: Icons.place_outlined,
+                    texto: dist < 0.1 ? 'Muy cerca de ti' : '${_primeraMayuscula(formatoDistancia(dist))} de ti',
+                    color: Paleta.tinta,
+                  ),
                 if (s.pendiente)
-                  const Text('Por enviar', style: TextStyle(fontWeight: FontWeight.w700, color: Paleta.gris, fontSize: 13))
+                  _Dato(icono: Icons.schedule, texto: 'Por enviar', color: Paleta.gris)
+                else if (apoyo)
+                  _Dato(icono: Icons.favorite_border, texto: 'Ayuda voluntaria', color: naranja)
                 else
-                  Semantics(
-                    label: apoyo ? 'Ayuda voluntaria' : '${s.vistosBuenos} Vistos Buenos',
-                    excludeSemantics: true,
-                    child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      Icon(apoyo ? Icons.favorite_border : Icons.thumb_up_alt_outlined, size: 16, color: naranja),
-                      const SizedBox(width: 4),
-                      Text(
-                        apoyo ? 'Ayuda voluntaria' : '${s.vistosBuenos} Vistos Buenos',
-                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: naranja),
+                  // Una sola insignia, según el puntaje de confianza vecinal.
+                  switch (s.nivel(st.sector, quejas: quejas)) {
+                    // 3+ vecinos VERIFICADOS de la misma zona lo recomiendan.
+                    NivelConfianza.barrio => SelloBarrio(propio: st.sector != null, total: s.vistosBuenos),
+                    NivelConfianza.muy => _Dato(
+                        icono: Icons.thumb_up_alt_rounded,
+                        texto: 'Muy recomendado · ${s.vistosBuenos} vecinos',
+                        color: Paleta.verde,
                       ),
-                    ]),
+                    NivelConfianza.recomendado => _Dato(
+                        icono: Icons.thumb_up_alt_rounded,
+                        texto: s.vistosBuenos == 1 ? '1 vecino lo recomienda' : '${s.vistosBuenos} vecinos lo recomiendan',
+                        color: Paleta.verde,
+                      ),
+                    // Sin recomendaciones todavía: no es malo, es nuevo.
+                    NivelConfianza.nuevo => _Dato(icono: Icons.eco_outlined, texto: 'Nuevo en el barrio', color: Paleta.gris),
+                  },
+                // Por qué lo recomiendan (los 2 motivos más elegidos).
+                if (!apoyo && s.motivosPrincipales().isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 22),
+                    child: Text(s.motivosPrincipales().map(textoMotivo).join(' · '),
+                        maxLines: 1, overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 13, color: Paleta.gris, fontWeight: FontWeight.w600)),
                   ),
                 if (s.precioRef != null) ...[
                   const SizedBox(height: 3),
                   Text(s.precioRef!, maxLines: 1, overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Paleta.tinta)),
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Paleta.tinta)),
                 ],
               ]),
             ),
@@ -441,13 +483,76 @@ class TarjetaMercado extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: Paleta.linea),
               ),
-              child: const Icon(Icons.chevron_right, color: Paleta.tinta),
+              child: Icon(Icons.chevron_right, color: Paleta.tinta),
             ),
           ]),
         ),
       ),
     );
   }
+}
+
+/// Sello dorado "Recomendado en tu barrio": lo dan 3 o más vecinos
+/// verificados de la misma zona. Fácil de reconocer de un vistazo.
+class SelloBarrio extends StatelessWidget {
+  const SelloBarrio({super.key, required this.propio, required this.total, this.grande = false});
+
+  /// true: zona de quien mira ("tu barrio"); false: zona del servicio.
+  final bool propio;
+  final int total;
+  final bool grande;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+        label: '${propio ? 'Recomendado en tu barrio' : 'Recomendado en su barrio'}. $total vecinos lo recomiendan.',
+        excludeSemantics: true,
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 3),
+          padding: EdgeInsets.symmetric(horizontal: grande ? 12 : 8, vertical: grande ? 8 : 4),
+          decoration: BoxDecoration(
+            color: Paleta.oroFondo,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: Paleta.oroClaro),
+          ),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Icon(Icons.workspace_premium, size: grande ? 22 : 17, color: Paleta.ambar),
+            const SizedBox(width: 5),
+            Flexible(
+              child: Text(
+                '${propio ? 'Recomendado en tu barrio' : 'Recomendado en su barrio'} · $total',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: grande ? 16 : 13, fontWeight: FontWeight.w800, color: Paleta.ambar),
+              ),
+            ),
+          ]),
+        ),
+      );
+}
+
+String _primeraMayuscula(String t) => t.isEmpty ? t : t[0].toUpperCase() + t.substring(1);
+
+/// Un dato de la tarjeta: ícono + texto corto en una línea.
+class _Dato extends StatelessWidget {
+  const _Dato({required this.icono, required this.texto, required this.color});
+  final IconData icono;
+  final String texto;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(bottom: 3),
+        child: Row(children: [
+          Icon(icono, size: 17, color: color),
+          const SizedBox(width: 5),
+          Flexible(
+            child: Text(texto,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: color)),
+          ),
+        ]),
+      );
 }
 
 /// Cuadrícula de 2 columnas con filas de IGUAL altura (se ve ordenada) y
@@ -520,20 +625,23 @@ class ListaAjustes extends StatelessWidget {
   final List<Widget> filas;
 
   @override
-  Widget build(BuildContext context) => Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(19),
-          border: Border.all(color: Paleta.linea),
+  // Material (no Container con color) para que los ListTile pinten su toque.
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Material(
+          color: Paleta.superficie,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(19),
+            side: BorderSide(color: Paleta.linea),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(children: [
+            for (var i = 0; i < filas.length; i++) ...[
+              filas[i],
+              if (i < filas.length - 1) const Divider(height: 1),
+            ],
+          ]),
         ),
-        clipBehavior: Clip.antiAlias,
-        child: Column(children: [
-          for (var i = 0; i < filas.length; i++) ...[
-            filas[i],
-            if (i < filas.length - 1) const Divider(height: 1),
-          ],
-        ]),
       );
 }
 
@@ -563,9 +671,15 @@ class FilaAjuste extends StatelessWidget {
               child: Icon(icono, size: 21, color: color ?? c.primary),
             ),
             const SizedBox(width: 12),
-            Expanded(child: Text(texto, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: color ?? Paleta.tinta))),
-            if (valor != null) Text(valor!, style: const TextStyle(color: Paleta.gris, fontSize: 13)),
-            final_ ?? (onTap != null ? const Icon(Icons.chevron_right, color: Paleta.grisClaro) : const SizedBox.shrink()),
+            // El texto principal manda; el valor cede espacio (con "…") en letra grande.
+            Expanded(flex: 3, child: Text(texto, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: color ?? Paleta.tinta))),
+            if (valor != null) const SizedBox(width: 8),
+            if (valor != null)
+              Flexible(
+                flex: 2,
+                child: Text(valor!, maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.end, style: TextStyle(color: Paleta.gris, fontSize: 13)),
+              ),
+            final_ ?? (onTap != null ? Icon(Icons.chevron_right, color: Paleta.grisClaro) : const SizedBox.shrink()),
           ]),
         ),
       ),
@@ -585,7 +699,7 @@ class ImpactoNumero extends StatelessWidget {
           excludeSemantics: true,
           child: Column(children: [
             Text(valor, style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 22, fontWeight: FontWeight.w800)),
-            Text(texto, textAlign: TextAlign.center, style: const TextStyle(color: Paleta.gris, fontSize: 13)),
+            Text(texto, textAlign: TextAlign.center, style: TextStyle(color: Paleta.gris, fontSize: 13)),
           ]),
         ),
       );

@@ -16,6 +16,7 @@ import '../../ui/tema.dart';
 import '../../ui/widgets.dart';
 import '../../util.dart';
 import '../sos/sos_alertas.dart';
+import '../inicio/guia.dart';
 import 'clasificador.dart';
 import 'mapa_apoyo.dart';
 import 'tarjeta_apoyo.dart';
@@ -25,13 +26,16 @@ import 'tarjeta_apoyo.dart';
 ///   2. Colectas del barrio (carrusel horizontal)
 ///   3. Solidaridad vecinal → [Apoyar] [Pedir ayuda]
 class SolidaridadScreen extends StatefulWidget {
-  const SolidaridadScreen({super.key, this.irAPerfil, this.iniciarEnPedir = false});
+  const SolidaridadScreen({super.key, this.irAPerfil, this.iniciarEnPedir = false, this.textoInicial});
 
   /// "Ver más" del rango lleva al perfil.
   final VoidCallback? irAPerfil;
 
   /// Abre directo en "Pedir ayuda" (acceso rápido del Inicio).
   final bool iniciarEnPedir;
+
+  /// Pedido ya escrito desde "¿Qué necesitas hoy?" del Inicio.
+  final String? textoInicial;
 
   @override
   State<SolidaridadScreen> createState() => _SolidaridadScreenState();
@@ -48,7 +52,15 @@ class _SolidaridadScreenState extends State<SolidaridadScreen> {
       onRefresh: () async => st.refrescar(),
       child: ListView(padding: const EdgeInsets.only(bottom: 110), children: [
         // Alertas SOS: solo ocupan espacio si hay una activa.
-        const FranjaAlertasSos(maximo: 2),
+        const FranjaAlertasSos(),
+        ConsejoPrimeraVez(
+          clave: 'solidaridad',
+          icono: Icons.volunteer_activism_rounded,
+          colores: Paleta.verdeCat,
+          texto: 'Pide apoyo o ayuda a tus vecinos, sin dinero.',
+          boton: 'Pedir ayuda',
+          alTocar: () => setState(() => _pedir = true),
+        ),
 
         // ─────────────────────────────── 1. Tu rango en el barrio
         Padding(
@@ -64,7 +76,7 @@ class _SolidaridadScreenState extends State<SolidaridadScreen> {
           builder: (c, todas) {
             final colectas = todas.where((p) => p.esColecta).toList()..sort((a, b) => b.progreso.compareTo(a.progreso));
             if (colectas.isEmpty) {
-              return const Padding(
+              return Padding(
                 padding: EdgeInsets.symmetric(horizontal: 20),
                 child: Text('No hay colectas activas. ¿Tu barrio necesita una? Toca "Organizar".',
                     style: TextStyle(color: Paleta.gris)),
@@ -95,7 +107,7 @@ class _SolidaridadScreenState extends State<SolidaridadScreen> {
             IconButton(
               tooltip: 'Cómo ayudar con seguridad',
               onPressed: () => mostrarConsejos(context),
-              icon: const Icon(Icons.shield_outlined, color: Paleta.gris),
+              icon: Icon(Icons.shield_outlined, color: Paleta.gris),
             ),
           ]),
         ),
@@ -105,7 +117,7 @@ class _SolidaridadScreenState extends State<SolidaridadScreen> {
         ),
         AnimatedSwitcher(
           duration: const Duration(milliseconds: 200),
-          child: _pedir ? const _PestanaPedir(key: ValueKey('pedir')) : const _PestanaApoyar(key: ValueKey('apoyar')),
+          child: _pedir ? _PestanaPedir(key: const ValueKey('pedir'), textoInicial: widget.textoInicial) : const _PestanaApoyar(key: ValueKey('apoyar')),
         ),
       ]),
     );
@@ -118,7 +130,7 @@ class _Separador extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      const Padding(padding: EdgeInsets.fromLTRB(20, 22, 20, 0), child: Divider(height: 1, color: Paleta.linea));
+      Padding(padding: EdgeInsets.fromLTRB(20, 22, 20, 0), child: Divider(height: 1, color: Paleta.linea));
 }
 
 /// Interruptor tipo pastilla: Apoyar | Pedir ayuda.
@@ -144,7 +156,7 @@ class _SelectorModo extends StatelessWidget {
               duration: const Duration(milliseconds: 180),
               height: 48,
               decoration: BoxDecoration(
-                color: sel ? Colors.white : Colors.transparent,
+                color: sel ? Paleta.superficie : Colors.transparent,
                 borderRadius: BorderRadius.circular(999),
                 boxShadow: sel ? [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 6, offset: const Offset(0, 2))] : null,
               ),
@@ -197,13 +209,13 @@ class TarjetaRango extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.fromLTRB(16, 10, 6, 16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Paleta.superficie,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: Paleta.linea),
         ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
-            const Expanded(
+            Expanded(
               child: Text('Tu rango en el barrio', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: Paleta.tinta)),
             ),
             TextButton(
@@ -328,10 +340,10 @@ class _PestanaApoyarState extends State<_PestanaApoyar> {
                       lista.isEmpty
                           ? 'Nadie está pidiendo ayuda'
                           : '${lista.length} ${lista.length == 1 ? 'petición cerca de ti' : 'peticiones cerca de ti'}',
-                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Paleta.tinta),
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Paleta.tinta),
                     ),
                     if (lista.isNotEmpty)
-                      const Text('Urgentes primero, luego las más cercanas',
+                      Text('Urgentes primero, luego las más cercanas',
                           style: TextStyle(fontSize: 13, color: Paleta.gris)),
                   ]),
                 ),
@@ -425,11 +437,11 @@ class _DesplegableCategoria extends StatelessWidget {
       decoration: InputDecoration(
         labelText: 'Elige categoría',
         filled: true,
-        fillColor: Colors.white,
+        fillColor: Paleta.superficie,
         contentPadding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Paleta.linea)),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Paleta.linea)),
         enabledBorder:
-            OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Paleta.linea)),
+            OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Paleta.linea)),
       ),
       selectedItemBuilder: (c) => [for (final o in opciones) fila(o, compacta: true)],
       items: [for (final o in opciones) DropdownMenuItem<String?>(value: o.$1, child: fila(o))],
@@ -441,7 +453,8 @@ class _DesplegableCategoria extends StatelessWidget {
 // ============================================================== Pedir ayuda
 
 class _PestanaPedir extends StatefulWidget {
-  const _PestanaPedir({super.key});
+  const _PestanaPedir({super.key, this.textoInicial});
+  final String? textoInicial;
 
   @override
   State<_PestanaPedir> createState() => _PestanaPedirState();
@@ -461,6 +474,8 @@ class _PestanaPedirState extends State<_PestanaPedir> {
   void initState() {
     super.initState();
     _texto.addListener(_alEscribir);
+    final t = widget.textoInicial?.trim();
+    if (t != null && t.isNotEmpty) _texto.text = t[0].toUpperCase() + t.substring(1);
   }
 
   @override
@@ -532,7 +547,7 @@ class _PestanaPedirState extends State<_PestanaPedir> {
                 child: Icon(cat.icono, size: 20, color: coloresPeticion(cat.id).$1),
               ),
               title: Text(cat.nombre),
-              trailing: cat.id == _categoria ? const Icon(Icons.check_rounded, color: Paleta.primario) : null,
+              trailing: cat.id == _categoria ? Icon(Icons.check_rounded, color: Paleta.primario) : null,
               onTap: () => Navigator.pop(c, cat.id),
             ),
         ]),
@@ -550,8 +565,12 @@ class _PestanaPedirState extends State<_PestanaPedir> {
   Future<void> _pedir() async {
     final st = context.read<AppState>();
     final texto = _texto.text.trim();
-    if (texto.length < 3) {
-      avisar('Escribe en pocas palabras qué necesitas.');
+    final problema = texto.isEmpty
+        ? 'Escribe en pocas palabras qué necesitas.'
+        : validarTitulo(texto.length > Limites.titulo ? texto.substring(0, Limites.titulo) : texto) ??
+            validarTexto(texto, min: 5, max: 300);
+    if (problema != null) {
+      avisar(problema);
       return;
     }
     if (!st.logueado) {
@@ -567,8 +586,8 @@ class _PestanaPedirState extends State<_PestanaPedir> {
       'id': nuevoId(),
       'tipo': 'pido',
       'categoria': _categoria,
-      'titulo': texto.length > 140 ? '${texto.substring(0, 137)}...' : texto,
-      'descripcion': texto.length > 140 ? texto : null,
+      'titulo': texto.length > Limites.titulo ? '${texto.substring(0, Limites.titulo - 3)}...' : texto,
+      'descripcion': texto.length > Limites.titulo ? texto : null,
       'contacto_nombre': st.nombre,
       'contacto_telefono': st.perfil?['telefono'],
       'prioridad': _urgente ? 'alta' : 'normal',
@@ -614,7 +633,7 @@ class _PestanaPedirState extends State<_PestanaPedir> {
       Container(
         margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: Paleta.linea)),
+        decoration: BoxDecoration(color: Paleta.superficie, borderRadius: BorderRadius.circular(20), border: Border.all(color: Paleta.linea)),
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           // ── Paso 1
           const _Paso(1, '¿Qué necesitas?', 'Escríbelo o díctalo como se lo dirías a un vecino.'),
@@ -631,11 +650,11 @@ class _PestanaPedirState extends State<_PestanaPedir> {
               filled: true,
               fillColor: Paleta.crema,
               contentPadding: const EdgeInsets.fromLTRB(14, 14, 8, 14),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Paleta.linea)),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Paleta.linea)),
               enabledBorder:
-                  OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Paleta.linea)),
+                  OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Paleta.linea)),
               focusedBorder:
-                  OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Paleta.primario, width: 1.6)),
+                  OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Paleta.primario, width: 1.6)),
               suffixIcon: Padding(
                 padding: const EdgeInsets.only(right: 4),
                 child: Align(
@@ -656,15 +675,15 @@ class _PestanaPedirState extends State<_PestanaPedir> {
             ),
           ),
           if (!hayTexto) ...[
-            const Text('Ideas rápidas', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Paleta.gris)),
+            Text('Ideas rápidas', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Paleta.gris)),
             const SizedBox(height: 6),
             Wrap(spacing: 8, runSpacing: 8, children: [
               for (final f in ideas)
                 ActionChip(
                   avatar: Icon(f.icono, size: 18, color: Paleta.primario),
                   label: Text(f.texto),
-                  backgroundColor: Colors.white,
-                  side: const BorderSide(color: Paleta.linea),
+                  backgroundColor: Paleta.superficie,
+                  side: BorderSide(color: Paleta.linea),
                   shape: const StadiumBorder(),
                   onPressed: () => _usarIdea(f),
                 ),
@@ -679,14 +698,14 @@ class _PestanaPedirState extends State<_PestanaPedir> {
                 Container(
                   width: 36,
                   height: 36,
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10)),
+                  decoration: BoxDecoration(color: Paleta.superficie, borderRadius: BorderRadius.circular(10)),
                   child: Icon(cat.icono, size: 20, color: colores.$1),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text(_detectada ? 'Lo entendimos como' : 'No identificamos la categoría',
-                        style: const TextStyle(fontSize: 12, color: Paleta.gris, fontWeight: FontWeight.w600)),
+                        style: TextStyle(fontSize: 12, color: Paleta.gris, fontWeight: FontWeight.w600)),
                     Text(_detectada ? cat.nombre : 'Otro',
                         style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: colores.$1)),
                   ]),
@@ -729,7 +748,7 @@ class _PestanaPedirState extends State<_PestanaPedir> {
             ),
           ]),
           if (_urgente && !_urgenciaManual)
-            const Padding(
+            Padding(
               padding: EdgeInsets.only(top: 6),
               child: Text('Lo marcamos por lo que escribiste. Puedes cambiarlo.',
                   style: TextStyle(fontSize: 12, color: Paleta.gris)),
@@ -776,14 +795,14 @@ class _Paso extends StatelessWidget {
             height: 24,
             margin: const EdgeInsets.only(top: 1),
             alignment: Alignment.center,
-            decoration: const BoxDecoration(color: Paleta.primario, shape: BoxShape.circle),
+            decoration: BoxDecoration(color: Paleta.primario, shape: BoxShape.circle),
             child: Text('$numero', style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w800)),
           ),
           const SizedBox(width: 10),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(titulo, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: Paleta.tinta)),
-              if (ayuda != null) Text(ayuda!, style: const TextStyle(fontSize: 13, color: Paleta.gris)),
+              Text(titulo, style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: Paleta.tinta)),
+              if (ayuda != null) Text(ayuda!, style: TextStyle(fontSize: 13, color: Paleta.gris)),
             ]),
           ),
         ]),
@@ -819,7 +838,7 @@ class _OpcionUrgencia extends StatelessWidget {
             duration: const Duration(milliseconds: 180),
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: elegida ? color.withValues(alpha: 0.08) : Colors.white,
+              color: elegida ? color.withValues(alpha: 0.08) : Paleta.superficie,
               borderRadius: BorderRadius.circular(14),
               border: Border.all(color: elegida ? color : Paleta.linea, width: elegida ? 2 : 1),
             ),
@@ -833,7 +852,7 @@ class _OpcionUrgencia extends StatelessWidget {
                 ),
               ]),
               const SizedBox(height: 2),
-              Text(detalle, style: const TextStyle(fontSize: 12, color: Paleta.gris)),
+              Text(detalle, style: TextStyle(fontSize: 12, color: Paleta.gris)),
             ]),
           ),
         ),
@@ -851,7 +870,7 @@ class _Nota extends StatelessWidget {
         child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
           Icon(icono, size: 14, color: Paleta.gris),
           const SizedBox(width: 4),
-          Flexible(child: Text(texto, style: const TextStyle(fontSize: 12, color: Paleta.gris))),
+          Flexible(child: Text(texto, style: TextStyle(fontSize: 12, color: Paleta.gris))),
         ]),
       );
 }
@@ -864,7 +883,7 @@ class _MisPeticiones extends StatelessWidget {
   Widget build(BuildContext context) {
     final st = context.watch<AppState>();
     if (!st.logueado) {
-      return const Padding(
+      return Padding(
         padding: EdgeInsets.symmetric(horizontal: 20),
         child: Text('Cuando pidas ayuda, aquí verás tus peticiones y quién te apoya.', style: TextStyle(color: Paleta.gris)),
       );
@@ -875,7 +894,7 @@ class _MisPeticiones extends StatelessWidget {
         final mias = datos.$1.where((p) => p.esPedido && !p.esColecta && !p.esEmergencia).toList()
           ..sort((a, b) => b.creado.compareTo(a.creado));
         if (mias.isEmpty) {
-          return const Padding(
+          return Padding(
             padding: EdgeInsets.symmetric(horizontal: 20),
             child: Text('Todavía no has pedido ayuda.', style: TextStyle(color: Paleta.gris)),
           );
@@ -895,7 +914,7 @@ class _MisPeticiones extends StatelessWidget {
                           style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
                       Text('${fechaHora(p.creado)} · ${buscarCategoria(p.categoria).nombre}',
                           maxLines: 1, overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(color: Paleta.gris, fontSize: 13)),
+                          style: TextStyle(color: Paleta.gris, fontSize: 13)),
                     ]),
                   ),
                   const SizedBox(width: 8),

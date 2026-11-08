@@ -88,6 +88,7 @@ class _PedirAyudaRapidoScreenState extends State<PedirAyudaRapidoScreen> {
     };
     try {
       final enLinea = await st.publicar('publicaciones', datos);
+      await st.guardarMiPedido(datos); // se muestra en la pestaña Emergencia
       if (st.logueado) st.marcarEstado('ayuda').catchError((_) {});
       if (!mounted) return;
       setState(() {
@@ -107,6 +108,7 @@ class _PedirAyudaRapidoScreenState extends State<PedirAyudaRapidoScreen> {
     if (id == null) return;
     try {
       await st.repo.eliminar('publicaciones', id);
+      await st.olvidarMiPedido();
       st.refrescar();
       if (mounted) Navigator.pop(context);
       avisar('Cancelaste tu pedido de ayuda.');
@@ -122,7 +124,7 @@ class _PedirAyudaRapidoScreenState extends State<PedirAyudaRapidoScreen> {
       );
 
   Widget _elegir() => ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 24), children: [
-        const Text('Toca lo que te pasa. Se envía al instante con tu ubicación aproximada.',
+        Text('Toca lo que te pasa. Se envía al instante con tu ubicación aproximada.',
             style: TextStyle(fontSize: 15, color: Paleta.gris)),
         const SizedBox(height: 12),
         for (final s in situacionesAyuda)
@@ -134,7 +136,7 @@ class _PedirAyudaRapidoScreenState extends State<PedirAyudaRapidoScreen> {
             onTap: () => _enviar(s.$1, s.$2, s.$4),
           ),
         const SizedBox(height: 8),
-        const Text('¿Es otra cosa? Escríbelo (también se suma a lo que elijas arriba):',
+        Text('¿Es otra cosa? Escríbelo (también se suma a lo que elijas arriba):',
             style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Paleta.tinta)),
         const SizedBox(height: 6),
         TextField(
@@ -158,7 +160,7 @@ class _PedirAyudaRapidoScreenState extends State<PedirAyudaRapidoScreen> {
           ),
         ),
         const SizedBox(height: 10),
-        const Text('Si hay riesgo de vida, llama también al 105, 106 o 116.',
+        Text('Si hay riesgo de vida, llama también al 105, 106 o 116.',
             textAlign: TextAlign.center, style: TextStyle(fontSize: 13, color: Paleta.gris)),
       ]);
 
@@ -167,12 +169,12 @@ class _PedirAyudaRapidoScreenState extends State<PedirAyudaRapidoScreen> {
     final critica = _enviado!['prioridad'] == 'critica';
     return ListView(padding: const EdgeInsets.fromLTRB(20, 24, 20, 24), children: [
       Icon(_enLinea ? Icons.check_circle_rounded : Icons.cloud_upload_outlined,
-          size: 72, color: _enLinea ? const Color(0xFF15803D) : Paleta.gris),
+          size: 72, color: _enLinea ? Paleta.verde : Paleta.gris),
       const SizedBox(height: 12),
       Text(
         _enLinea ? 'Tu pedido de ayuda fue enviado' : 'Guardado sin señal',
         textAlign: TextAlign.center,
-        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Paleta.tinta),
+        style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Paleta.tinta),
       ),
       const SizedBox(height: 6),
       Text(
@@ -180,24 +182,24 @@ class _PedirAyudaRapidoScreenState extends State<PedirAyudaRapidoScreen> {
             ? 'Tus vecinos, la junta y los brigadistas ya lo ven en el mapa.'
             : 'Se enviará apenas vuelva la señal. También puedes pasarlo por QR.',
         textAlign: TextAlign.center,
-        style: const TextStyle(fontSize: 15, color: Paleta.gris),
+        style: TextStyle(fontSize: 15, color: Paleta.gris),
       ),
       const SizedBox(height: 16),
       Center(
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
           decoration: BoxDecoration(
-            color: (critica ? Paleta.rojo : const Color(0xFFB45309)).withValues(alpha: 0.12),
+            color: (critica ? Paleta.rojo : Paleta.ambar).withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(999),
           ),
           child: Text(
             critica ? 'Prioridad: MUY URGENTE' : 'Prioridad: URGENTE',
-            style: TextStyle(fontWeight: FontWeight.w900, color: critica ? Paleta.rojo : const Color(0xFFB45309)),
+            style: TextStyle(fontWeight: FontWeight.w900, color: critica ? Paleta.rojo : Paleta.ambar),
           ),
         ),
       ),
       const SizedBox(height: 4),
-      const Text('La prioridad la calculó la app según lo que elegiste.',
+      Text('La prioridad la calculó la app según lo que elegiste.',
           textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Paleta.gris)),
       const SizedBox(height: 24),
       SizedBox(
@@ -225,11 +227,11 @@ class _Situacion extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = grave ? Paleta.rojo : const Color(0xFFB45309);
+    final color = grave ? Paleta.rojo : Paleta.ambar;
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Material(
-        color: Colors.white,
+        color: Paleta.superficie,
         borderRadius: BorderRadius.circular(16),
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
@@ -247,7 +249,7 @@ class _Situacion extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: Text(texto, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Paleta.tinta)),
+                child: Text(texto, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Paleta.tinta)),
               ),
               Icon(Icons.send_rounded, color: color),
             ]),

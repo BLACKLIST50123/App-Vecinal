@@ -12,6 +12,8 @@ import '../ui/foto_perfil.dart';
 import 'auth_screen.dart';
 import 'foro_modales.dart';
 import 'foro_widgets.dart';
+import '../util.dart';
+import 'package:flutter/services.dart';
 
 /// Pantalla de detalle de la conversación en el foro.
 class DetalleTemaForoScreen extends StatefulWidget {
@@ -154,6 +156,11 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
   Future<void> _enviarRespuesta() async {
     final texto = _respuestaCtrl.text.trim();
     if (texto.isEmpty || _enviando) return;
+    final problema = validarTexto(texto, min: 2, max: Limites.comentario);
+    if (problema != null) {
+      avisar(problema);
+      return;
+    }
 
     final st = context.read<AppState>();
     if (!st.logueado) {
@@ -348,7 +355,7 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
         actions: [
           if (esMiTema)
             PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert, color: Paleta.tinta),
+              icon: Icon(Icons.more_vert, color: Paleta.tinta),
               tooltip: 'Opciones de mi publicación',
               onSelected: (accion) async {
                 if (accion == 'eliminar') {
@@ -418,7 +425,7 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                     ],
                   ),
                 ),
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'eliminar',
                   child: Row(
                     children: [
@@ -444,7 +451,7 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                 // Publicación principal con borde seguro y franja lateral
                 Container(
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Paleta.superficie,
                     borderRadius: BorderRadius.circular(18),
                     border: Border.all(color: Paleta.linea),
                     boxShadow: [
@@ -487,7 +494,7 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                                               Flexible(
                                                 child: Text(
                                                   t.autorNombre,
-                                                  style: const TextStyle(
+                                                  style: TextStyle(
                                                     fontWeight: FontWeight.w700,
                                                     fontSize: 15,
                                                     color: Paleta.tinta,
@@ -504,7 +511,7 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                                           const SizedBox(height: 2),
                                           Text(
                                             '${t.sector} · ${t.tiempoRelativo}',
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                               color: Paleta.gris,
                                               fontSize: 12,
                                             ),
@@ -522,25 +529,25 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                                               vertical: 4,
                                             ),
                                             decoration: BoxDecoration(
-                                              color: const Color(0xFFDCFCE7),
+                                              color: Paleta.verdeSuave,
                                               borderRadius: BorderRadius.circular(8),
                                               border: Border.all(
                                                 color: const Color(0xFF86EFAC),
                                               ),
                                             ),
-                                            child: const Row(
+                                            child: Row(
                                               mainAxisSize: MainAxisSize.min,
                                               children: [
                                                 Icon(
                                                   Icons.check_circle,
                                                   size: 12,
-                                                  color: Color(0xFF16A34A),
+                                                  color: Paleta.verde,
                                                 ),
                                                 SizedBox(width: 3),
                                                 Text(
                                                   'Resuelto',
                                                   style: TextStyle(
-                                                    color: Color(0xFF166534),
+                                                    color: Paleta.verde,
                                                     fontSize: 11,
                                                     fontWeight: FontWeight.w700,
                                                   ),
@@ -585,7 +592,7 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                                 const SizedBox(height: 16),
                                 Text(
                                   t.titulo,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.w700,
                                     letterSpacing: -0.3,
@@ -596,7 +603,7 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                                 const SizedBox(height: 8),
                                 Text(
                                   t.contenido,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 15,
                                     color: Paleta.primarioClaro,
                                     height: 1.45,
@@ -618,7 +625,7 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                                     ),
                                     child: Row(
                                       children: [
-                                        const Icon(
+                                        Icon(
                                           Icons.handyman_outlined,
                                           size: 16,
                                           color: Paleta.acentoOscuro,
@@ -627,7 +634,7 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                                         Expanded(
                                           child: Text(
                                             'Oficio requerido: ${buscarCategoria(t.categoriaServicio!).nombre}',
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                               fontWeight: FontWeight.w700,
                                               color: Paleta.acentoOscuro,
                                               fontSize: 13,
@@ -639,7 +646,7 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                                   ),
                                 ],
                                 const SizedBox(height: 14),
-                                const Divider(height: 1, color: Paleta.linea),
+                                Divider(height: 1, color: Paleta.linea),
                                 const SizedBox(height: 10),
 
                                 // Botones táctiles de Me gusta y No me gusta dentro de la tarjeta
@@ -648,8 +655,8 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                                     // Botón Me gusta
                                     Material(
                                       color: t.apoyadoPorUsuario
-                                          ? const Color(0xFFEFF6FF)
-                                          : const Color(0xFFF8FAFC),
+                                          ? Paleta.azulSuave
+                                          : Paleta.grisFondo,
                                       borderRadius: BorderRadius.circular(20),
                                       child: InkWell(
                                         borderRadius: BorderRadius.circular(20),
@@ -674,7 +681,7 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                                                     : Icons.thumb_up_alt_outlined,
                                                 size: 16,
                                                 color: t.apoyadoPorUsuario
-                                                    ? const Color(0xFF2563EB)
+                                                    ? Paleta.azulInfo
                                                     : Paleta.gris,
                                               ),
                                               const SizedBox(width: 6),
@@ -684,7 +691,7 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                                                   fontSize: 12.5,
                                                   fontWeight: FontWeight.w700,
                                                   color: t.apoyadoPorUsuario
-                                                      ? const Color(0xFF2563EB)
+                                                      ? Paleta.azulInfo
                                                       : Paleta.tinta,
                                                 ),
                                               ),
@@ -697,8 +704,8 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                                     // Botón No me gusta
                                     Material(
                                       color: t.dislikePorUsuario
-                                          ? const Color(0xFFFEF2F2)
-                                          : const Color(0xFFF8FAFC),
+                                          ? Paleta.rojoSuave
+                                          : Paleta.grisFondo,
                                       borderRadius: BorderRadius.circular(20),
                                       child: InkWell(
                                         borderRadius: BorderRadius.circular(20),
@@ -723,7 +730,7 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                                                     : Icons.thumb_down_alt_outlined,
                                                 size: 16,
                                                 color: t.dislikePorUsuario
-                                                    ? const Color(0xFFDC2626)
+                                                    ? Paleta.rojo
                                                     : Paleta.gris,
                                               ),
                                               const SizedBox(width: 6),
@@ -733,7 +740,7 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                                                   fontSize: 12.5,
                                                   fontWeight: FontWeight.w700,
                                                   color: t.dislikePorUsuario
-                                                      ? const Color(0xFFDC2626)
+                                                      ? Paleta.rojo
                                                       : Paleta.tinta,
                                                 ),
                                               ),
@@ -756,7 +763,7 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                 const SizedBox(height: 20),
 
                 // Subtítulo de respuestas
-                const Text(
+                Text(
                   'Respuestas y comentarios',
                   style: TextStyle(
                     fontSize: 16,
@@ -790,7 +797,7 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                         child: Container(
                           padding: const EdgeInsets.all(20),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: Paleta.superficie,
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(color: Paleta.linea),
                           ),
@@ -803,14 +810,14 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                                   color: Paleta.ambarSuave,
                                   borderRadius: BorderRadius.circular(16),
                                 ),
-                                child: const Icon(
+                                child: Icon(
                                   Icons.handyman_rounded,
                                   size: 26,
                                   color: Paleta.ambar,
                                 ),
                               ),
                               const SizedBox(height: 12),
-                              const Text(
+                              Text(
                                 '¿Conoces a un especialista para este caso?',
                                 style: TextStyle(
                                   fontWeight: FontWeight.w700,
@@ -820,7 +827,7 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                                 textAlign: TextAlign.center,
                               ),
                               const SizedBox(height: 4),
-                              const Text(
+                              Text(
                                 'Recomienda a un prestador de confianza o deja su contacto para ayudar al vecino.',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
@@ -883,7 +890,7 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                           margin: const EdgeInsets.only(bottom: 12),
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: Paleta.superficie,
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(color: Paleta.linea),
                           ),
@@ -961,15 +968,15 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                                         Container(
                                           width: 24,
                                           height: 1,
-                                          color: const Color(0xFF94A3B8),
+                                          color: Paleta.grisClaro,
                                         ),
                                         const SizedBox(width: 8),
                                         Text(
                                           estaExpandido
                                               ? 'Ocultar respuestas'
                                               : 'Ver respuestas (${hijos.length})',
-                                          style: const TextStyle(
-                                            color: Color(0xFF64748B),
+                                          style: TextStyle(
+                                            color: Paleta.gris,
                                             fontSize: 12.5,
                                             fontWeight: FontWeight.w600,
                                           ),
@@ -985,9 +992,9 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                                 Container(
                                   margin: const EdgeInsets.only(left: 12, top: 8),
                                   padding: const EdgeInsets.only(left: 12),
-                                  decoration: const BoxDecoration(
+                                  decoration: BoxDecoration(
                                     border: Border(
-                                      left: BorderSide(color: Color(0xFFE2E8F0), width: 2),
+                                      left: BorderSide(color: Paleta.linea, width: 2),
                                     ),
                                   ),
                                   child: Column(
@@ -1062,20 +1069,20 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: const Color(0xFFEFF6FF),
+                color: Paleta.azulSuave,
                 border: Border(top: BorderSide(color: Colors.blue.shade100)),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.reply_rounded, size: 16, color: Color(0xFF1D4ED8)),
+                  Icon(Icons.reply_rounded, size: 16, color: Paleta.azulInfo),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Respondiendo a @$_respondiendoA',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12.5,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF1D4ED8),
+                        color: Paleta.azulInfo,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -1086,7 +1093,7 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                       _respuestaAPadreId = null;
                     }),
                     borderRadius: BorderRadius.circular(12),
-                    child: const Padding(
+                    child: Padding(
                       padding: EdgeInsets.all(4),
                       child: Icon(Icons.close_rounded, size: 18, color: Paleta.gris),
                     ),
@@ -1099,11 +1106,11 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
           if (t.tipo == TipoPublicacionForo.servicio)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              decoration: const BoxDecoration(
-                color: Color(0xFFFFFBEB),
+              decoration: BoxDecoration(
+                color: Paleta.ambarSuave,
                 border: Border(
                   top: BorderSide(color: Color(0xFFFDE68A)),
-                  bottom: BorderSide(color: Color(0xFFFEF3C7)),
+                  bottom: BorderSide(color: Paleta.ambarSuave),
                 ),
               ),
               child: Row(
@@ -1111,22 +1118,22 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                   Container(
                     padding: const EdgeInsets.all(5),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFEF3C7),
+                      color: Paleta.ambarSuave,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.handyman_rounded,
                       size: 15,
-                      color: Color(0xFFB45309),
+                      color: Paleta.ambar,
                     ),
                   ),
                   const SizedBox(width: 10),
-                  const Expanded(
+                  Expanded(
                     child: Text(
                       '¿Conoces a un especialista? Comparte su teléfono para que el vecino pueda llamarlo.',
                       style: TextStyle(
                         fontSize: 11.5,
-                        color: Color(0xFF92400E),
+                        color: Paleta.ambar,
                         fontWeight: FontWeight.w600,
                         height: 1.25,
                       ),
@@ -1135,7 +1142,7 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                   const SizedBox(width: 8),
                   FilledButton.icon(
                     style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFFD97706),
+                      backgroundColor: Paleta.ambar,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                       minimumSize: Size.zero,
@@ -1161,8 +1168,8 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
           // Caja fija inferior para responder
           Container(
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
-            decoration: const BoxDecoration(
-              color: Colors.white,
+            decoration: BoxDecoration(
+              color: Paleta.superficie,
               border: Border(top: BorderSide(color: Paleta.linea)),
             ),
             child: Row(
@@ -1173,6 +1180,10 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                     focusNode: _nodoFoco,
                     minLines: 1,
                     maxLines: 4,
+                    maxLength: Limites.comentario,
+                    maxLengthEnforcement: MaxLengthEnforcement.enforced,
+                    buildCounter: (_, {required currentLength, required isFocused, maxLength}) => null,
+                    textCapitalization: TextCapitalization.sentences,
                     decoration: InputDecoration(
                       hintText: _respondiendoA != null
                           ? 'Respondiendo a @$_respondiendoA...'
@@ -1183,21 +1194,21 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                       ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(24),
-                        borderSide: const BorderSide(color: Paleta.linea),
+                        borderSide: BorderSide(color: Paleta.linea),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(24),
-                        borderSide: const BorderSide(color: Paleta.linea),
+                        borderSide: BorderSide(color: Paleta.linea),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(24),
-                        borderSide: const BorderSide(
+                        borderSide: BorderSide(
                           color: Paleta.primario,
                           width: 1.5,
                         ),
                       ),
                       filled: true,
-                      fillColor: const Color(0xFFF8FAFC),
+                      fillColor: Paleta.grisFondo,
                     ),
                   ),
                 ),

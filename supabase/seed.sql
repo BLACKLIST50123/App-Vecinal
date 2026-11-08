@@ -134,3 +134,19 @@ update public.emergencia
        mensaje = 'Hay calles inundadas en Chimbote. Si necesitas ayuda, toca NECESITO AYUDA. Si no tienes internet, guarda tu pedido y compártelo por QR.',
        actualizado_en = now()
  where id = 1;
+
+-- ---------------- Recomendaciones de la misma zona (migración 0016) ----
+-- Los vecinos de demo recomiendan servicios de su propio sector, con los
+-- motivos que se deducen de su comentario.
+update public.vistos_buenos vb
+   set autor_sector = s.sector,
+       motivos = coalesce(nullif(array_remove(array[
+         case when vb.comentario ilike any (array['%puntual%', '%rápid%', '%minutos%', '%2 am%', '%domingo%']) then 'puntual' end,
+         case when vb.comentario ilike '%justo%' then 'precio_justo' end,
+         case when vb.comentario ilike any (array['%amable%', '%pacien%', '%cuida%']) then 'amable' end,
+         case when vb.comentario ilike any (array['%honrad%', '%seguro%', '%profesional%']) then 'confiable' end,
+         case when vb.comentario ilike any (array['%mejor%', '%perfecto%', '%excelente%', '%arregl%', '%rico%', '%riquísim%', '%sazón%', '%notas%'])
+              or vb.comentario is null then 'buen_trabajo' end
+       ], null), '{}'), array['buen_trabajo'])
+  from public.servicios s
+ where s.id = vb.servicio_id and vb.autor_id is null;

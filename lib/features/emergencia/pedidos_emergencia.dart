@@ -59,7 +59,7 @@ class PedidosEmergenciaScreen extends StatelessWidget {
             onRefresh: () async => st.refrescar(),
             child: ListView(padding: const EdgeInsets.fromLTRB(16, 8, 16, 40), children: [
               Text('${lista.length} ${lista.length == 1 ? 'pedido' : 'pedidos'} en esta emergencia · los más graves primero',
-                  style: const TextStyle(fontSize: 14, color: Paleta.gris)),
+                  style: TextStyle(fontSize: 14, color: Paleta.gris)),
               const SizedBox(height: 10),
               for (final p in lista) _FilaPedido(p, km: p.punto == null ? null : d(p)),
             ]),
@@ -77,13 +77,15 @@ class _FilaPedido extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final st = context.watch<AppState>();
+    final propio = (st.uid != null && p.autorId == st.uid) || p.id == st.miPedidoEmergencia?['id'];
     final critica = p.prioridad == 'critica';
-    final color = critica ? Paleta.rojo : const Color(0xFFB45309);
+    final color = propio ? Paleta.azulInfo : (critica ? Paleta.rojo : Paleta.ambar);
     final cat = buscarCategoria(p.categoria, emergencia: true);
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Paleta.superficie,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: critica ? Paleta.rojo.withValues(alpha: 0.5) : Paleta.linea, width: critica ? 1.5 : 1),
       ),
@@ -106,14 +108,14 @@ class _FilaPedido extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(999)),
-                    child: Text(critica ? 'MUY URGENTE' : 'URGENTE',
+                    child: Text(propio ? 'TU PEDIDO' : (critica ? 'MUY URGENTE' : 'URGENTE'),
                         style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: color, letterSpacing: 0.3)),
                   ),
                   const SizedBox(height: 4),
                   Text(p.titulo,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Paleta.tinta)),
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Paleta.tinta)),
                   const SizedBox(height: 2),
                   Text(
                     [
@@ -122,11 +124,11 @@ class _FilaPedido extends StatelessWidget {
                       haceCuanto(p.creado),
                       if (p.origen == 'sos') 'SOS',
                     ].join(' · '),
-                    style: const TextStyle(fontSize: 13, color: Paleta.gris),
+                    style: TextStyle(fontSize: 13, color: Paleta.gris),
                   ),
                   if (p.ayudantes > 0)
                     Text('${p.ayudantes} ${p.ayudantes == 1 ? 'vecino va' : 'vecinos van'} a ayudar',
-                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF15803D))),
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Paleta.verde)),
                 ]),
               ),
             ]),
@@ -168,7 +170,11 @@ class MapaPedidoScreen extends StatelessWidget {
             interactionOptions: const InteractionOptions(flags: InteractiveFlag.all & ~InteractiveFlag.rotate),
           ),
           children: [
-            TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', userAgentPackageName: 'com.alphacoders.appvecinal'),
+            TileLayer(
+              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              userAgentPackageName: 'com.alphacoders.appvecinal',
+              tileBuilder: Paleta.oscuro ? darkModeTileBuilder : null, // mapa oscuro en modo oscuro
+            ),
             // Zona aproximada (±200 m): no se muestra la casa exacta.
             CircleLayer(circles: [
               CircleMarker(
@@ -216,7 +222,7 @@ class MapaPedidoScreen extends StatelessWidget {
           right: 12,
           bottom: 16,
           child: Material(
-            color: Colors.white,
+            color: Paleta.superficie,
             elevation: 6,
             borderRadius: BorderRadius.circular(16),
             child: Padding(
@@ -228,7 +234,7 @@ class MapaPedidoScreen extends StatelessWidget {
                     Text(
                       [formatoDistancia(distanciaKm(st.referencia, punto)), if (p.sector != null) p.sector!, 'zona aproximada']
                           .join(' · '),
-                      style: const TextStyle(fontSize: 12, color: Paleta.gris),
+                      style: TextStyle(fontSize: 12, color: Paleta.gris),
                     ),
                   ]),
                 ),

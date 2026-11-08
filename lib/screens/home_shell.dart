@@ -4,7 +4,9 @@ import 'package:provider/provider.dart';
 
 import '../config.dart';
 import '../features/emergencia/emergencia_screen.dart';
+import '../features/emergencia/panel_coordinacion.dart';
 import '../features/inicio/mapa_inicio.dart';
+import '../features/recomendar/contactos_pendientes.dart';
 import '../features/solidaridad/solidaridad_screen.dart';
 import '../services/voz.dart';
 import '../state/app_state.dart';
@@ -30,8 +32,35 @@ class HomeShell extends StatefulWidget {
   State<HomeShell> createState() => _HomeShellState();
 }
 
-class _HomeShellState extends State<HomeShell> {
+class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   int _tab = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    // Al abrir la app: ¿hay algún servicio que contactó y puede recomendar?
+    WidgetsBinding.instance.addPostFrameCallback((_) => _preguntarRecomendacion());
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  /// Al volver a la app (por ejemplo, después de llamar al gasfitero).
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState estado) {
+    if (estado == AppLifecycleState.resumed) _preguntarRecomendacion();
+  }
+
+  void _preguntarRecomendacion() {
+    if (!mounted) return;
+    final st = context.read<AppState>();
+    if (st.modoEmergencia) return; // en emergencia no se interrumpe
+    ContactosPendientes.revisar(context, st.prefs, logueado: st.logueado);
+  }
   bool? _modoAnterior;
   bool _fabVisible = true;
   String? _grupo; // filtro inicial para Servicios (desde Inicio)
@@ -67,7 +96,13 @@ class _HomeShellState extends State<HomeShell> {
     //   Emergencia (actuar ya) · Mapa de ayuda (quién necesita ayuda y puntos
     //   de ayuda, un solo mapa) · Perfil (siempre).
     final paginas = e
-        ? <Widget>[EmergenciaScreen(irA: (i) => _irA(i)), const _MapaEmergencia(), const PerfilScreen()]
+        ? <Widget>[
+            EmergenciaScreen(irA: (i) => _irA(i)),
+            const _MapaEmergencia(),
+            // Solo la junta (moderador): gestionar los pedidos y SOS.
+            if (st.esModerador) const PanelSos(),
+            const PerfilScreen(),
+          ]
         : <Widget>[
             InicioScreen(irA: _irA),
             ServiciosScreen(
@@ -77,12 +112,13 @@ class _HomeShellState extends State<HomeShell> {
               consultaInicial: _consulta,
             ),
             SolidaridadScreen(
-              key: ValueKey('sol-$_grupo'),
+              key: ValueKey('sol-$_grupo-$_consulta'),
               irAPerfil: () => _irA(4),
               iniciarEnPedir: _grupo == 'pedir',
+              textoInicial: _grupo == 'pedir' ? _consulta : null,
             ),
             // Mis aportes vive en Perfil.
-            const ForoScreen(),
+            ForoScreen(key: ValueKey('foro-$_consulta'), consultaInicial: _tab == 3 ? _consulta : null),
             const PerfilScreen(),
           ];
     if (_tab >= paginas.length) _tab = 0;
@@ -91,10 +127,12 @@ class _HomeShellState extends State<HomeShell> {
         ? <(String, String?)>[
             ('Emergencia', st.emergencia.titulo),
             ('Mapa de ayuda', 'Solo esta emergencia'),
+            if (st.esModerador) ('Pedidos y SOS', 'Deriva y asigna cada aviso'),
             ('Mi perfil', st.logueado ? null : 'Estás como visitante'),
           ]
         : <(String, String?)>[
-            ('Hola, ${st.logueado ? st.nombre.split(' ').first : 'vecino'}', fechaLarga(DateTime.now())),
+            ('Hola, ${st.logueado ? st.nombre.split(' ').first : 'vecino'}',
+                [if (st.sector != null) st.sector!, 'Conecta Vecino'].join(' · ')),
             ('Servicios y productos', 'Compra local en ${Zona.nombre}'),
             ('Solidaridad', 'Juntos hacemos más'),
             ('Foro Vecinal', 'Preguntas, servicios y diálogo de barrio'),
@@ -121,7 +159,20 @@ class _HomeShellState extends State<HomeShell> {
     final destinos = e
         ? <NavigationDestination>[
             const NavigationDestination(icon: Icon(Icons.sos_outlined), selectedIcon: Icon(Icons.sos), label: 'Emergencia'),
-            const NavigationDestination(icon: Icon(Icons.map_outlined), selectedIcon: Icon(Icons.map), label: 'Mapa de ayuda'),
+            NavigationDestination(
+              icon: const Icon(Icons.map_outlined),
+              selectedIcon: const Icon(Icons.map),
+              // Con 4 pestañas (moderador) el texto corto no se parte.
+              label: st.esModerador ? 'Mapa' : 'Mapa de ayuda',
+              tooltip: 'Mapa de ayuda',
+            ),
+            if (st.esModerador)
+              const NavigationDestination(
+                icon: Icon(Icons.dashboard_customize_outlined),
+                selectedIcon: Icon(Icons.dashboard_customize),
+                label: 'SOS',
+                tooltip: 'Pedidos de ayuda y SOS',
+              ),
             perfil,
           ]
         : <NavigationDestination>[
@@ -139,14 +190,16 @@ class _HomeShellState extends State<HomeShell> {
     final resumenes = e
         ? <String>[
             'Emergencia. ${st.emergencia.titulo ?? ''}. ${st.emergencia.mensaje ?? ''}. Avisa si estás bien o toca Necesito ayuda. '
-                'Abajo está tu punto de ayuda más cercano. Si hay riesgo de vida, llama al 105, 106 o 116.',
+                'Si hay riesgo de vida, llama al 105, 106 o 116.',
             'Mapa de ayuda. Solo lo de esta emergencia: vecinos que necesitan ayuda y puntos de ayuda como albergues o postas. '
                 'Toca un punto para ayudar, llamar o ver cómo llegar.',
+            if (st.esModerador)
+              'Pedidos y SOS. Cada aviso de esta emergencia con fecha y hora. Tócalo para derivarlo a las autoridades, asignarlo a un brigadista o cambiar su estado.',
             resumenPerfil,
           ]
         : <String>[
-            'Inicio. Arriba ves lo último que pasó en tu barrio. Luego el mapa con servicios, productos, peticiones y emergencias: '
-                'usa los filtros o toca un punto. Para una emergencia, toca el botón rojo SOS arriba.',
+            'Inicio. Arriba, escribe o di lo que necesitas y te llevamos al lugar correcto. Luego ves lo más recomendado '
+                'cerca de ti, las buenas noticias del barrio y el mapa. Para una emergencia, toca el botón rojo SOS arriba.',
             'Servicios y productos de tu barrio. Usa el buscador o los filtros. Cada tarjeta muestra sus Vistos Buenos y el precio.',
             'Solidaridad. Aquí los vecinos se ayudan sin dinero. Puedes pedir una mano, dar algo o aportar a una colecta.',
             'Foro vecinal. Conversa con tus vecinos, pide recomendaciones o pregunta por servicios que necesitas en tu barrio.',

@@ -7,6 +7,7 @@ import '../../screens/detalles.dart';
 import '../../state/app_state.dart';
 import '../../ui/diseno.dart';
 import '../../ui/tema.dart';
+import '../../util.dart';
 import '../../ui/widgets.dart';
 
 // ======================================================= panel de la junta
@@ -97,7 +98,7 @@ class _TabVecinosState extends State<_TabVecinos> {
       Padding(
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
         child: Text('${widget.miembros.length} vecinos registrados en ${widget.sector}',
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Paleta.tinta)),
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Paleta.tinta)),
       ),
       Padding(
         padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
@@ -116,7 +117,7 @@ class _TabVecinosState extends State<_TabVecinos> {
               child: Row(children: [
                 CircleAvatar(
                   backgroundColor: Paleta.primarioSuave,
-                  child: Text(iniciales(m.nombre), style: const TextStyle(fontWeight: FontWeight.w800, color: Paleta.primario)),
+                  child: Text(iniciales(m.nombre), style: TextStyle(fontWeight: FontWeight.w800, color: Paleta.primario)),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -124,14 +125,14 @@ class _TabVecinosState extends State<_TabVecinos> {
                     Text(m.nombre, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
                     Row(children: [
                       Icon(m.verificado ? Icons.verified_user : Icons.gpp_maybe_outlined,
-                          size: 14, color: m.verificado ? const Color(0xFF2E7D32) : Paleta.gris),
+                          size: 14, color: m.verificado ? Paleta.verde : Paleta.gris),
                       const SizedBox(width: 3),
                       Flexible(
                         child: Text(
                           '${m.verificado ? 'Verificado' : 'Sin verificar'} · ${Nivel.de(m.ayudas).nombre}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 12, color: Paleta.gris),
+                          style: TextStyle(fontSize: 12, color: Paleta.gris),
                         ),
                       ),
                     ]),
@@ -176,7 +177,7 @@ class _Estado extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = b.activo ? const Color(0xFF2E7D32) : const Color(0xFFB45309);
+    final color = b.activo ? Paleta.verde : Paleta.ambar;
     return Container(
       margin: const EdgeInsets.only(right: 6),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -236,7 +237,7 @@ class _TabBrigadistas extends StatelessWidget {
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(b.nombre ?? 'Vecino', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
                   Text('${b.especialidadNombre} · ${b.activo ? 'Activo' : 'Esperando que acepte'}',
-                      style: TextStyle(fontSize: 12, color: b.activo ? const Color(0xFF2E7D32) : const Color(0xFFB45309))),
+                      style: TextStyle(fontSize: 12, color: b.activo ? Paleta.verde : Paleta.ambar)),
                 ]),
               ),
               TextButton(
@@ -288,7 +289,7 @@ class _TabCanales extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ListView(padding: const EdgeInsets.only(top: 10, bottom: 40), children: [
-        const Padding(
+        Padding(
           padding: EdgeInsets.fromLTRB(16, 4, 16, 10),
           child: Text(
             'Los canales públicos los ven todos los vecinos del sector. Los de brigadistas solo los ven ellos: '
@@ -360,12 +361,16 @@ class _FormCanalState extends State<_FormCanal> {
     String? error;
     if (etiqueta.length < 2) {
       error = 'Escribe un nombre para el canal.';
+    } else if (revisarContenido(etiqueta) case final e?) {
+      error = e;
     } else if (_tipo == 'whatsapp' && !(valor.startsWith('https://chat.whatsapp.com/') || valor.startsWith('https://wa.me/'))) {
       error = 'Pega el enlace de invitación del grupo de WhatsApp.';
     } else if (_tipo == 'telegram' && !valor.startsWith('https://t.me/')) {
       error = 'Pega el enlace de Telegram (https://t.me/...).';
-    } else if (_tipo == 'telefono' && !RegExp(r'^\+?\d{6,12}$').hasMatch(valor.replaceAll(' ', ''))) {
-      error = 'Escribe un número válido.';
+    } else if (_tipo == 'telefono' && validarTelefono(valor.replaceAll(' ', ''), obligatorio: true) != null) {
+      error = validarTelefono(valor.replaceAll(' ', ''), obligatorio: true);
+    } else if (_tipo == 'reunion' && revisarContenido(valor) != null) {
+      error = revisarContenido(valor);
     } else if (valor.length < 2) {
       error = 'Completa el dato del canal.';
     }
@@ -397,6 +402,7 @@ class _FormCanalState extends State<_FormCanal> {
           ),
           TextField(
             controller: _valor,
+            maxLength: 200,
             keyboardType: _tipo == 'telefono' ? TextInputType.phone : TextInputType.text,
             decoration: InputDecoration(labelText: 'Enlace o dato', hintText: _pista, errorText: _error),
           ),
@@ -464,18 +470,18 @@ class _TarjetaNombramientoState extends State<TarjetaNombramiento> {
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Row(children: [
-          const Icon(Icons.health_and_safety_rounded, color: Paleta.rojo, size: 28),
+          Icon(Icons.health_and_safety_rounded, color: Paleta.rojo, size: 28),
           const SizedBox(width: 10),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text('La junta vecinal de ${b.sector} te nombró brigadista',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Paleta.tinta)),
-              Text('Especialidad: ${b.especialidadNombre}', style: const TextStyle(fontSize: 13, color: Paleta.gris)),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Paleta.tinta)),
+              Text('Especialidad: ${b.especialidadNombre}', style: TextStyle(fontSize: 13, color: Paleta.gris)),
             ]),
           ),
         ]),
         const SizedBox(height: 8),
-        const Text(
+        Text(
           'Como brigadista verás las alertas SOS de tu zona y los canales de coordinación de la junta.',
           style: TextStyle(fontSize: 13, color: Paleta.tinta),
         ),
@@ -523,7 +529,7 @@ class TarjetaMiJunta extends StatelessWidget {
       builder: (context, canales) => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         TituloDiseno('Tu junta vecinal', detalle: sector),
         if (canales.isEmpty)
-          const Padding(
+          Padding(
             padding: EdgeInsets.symmetric(horizontal: 20),
             child: Text('Tu junta aún no ha publicado sus canales de comunicación.', style: TextStyle(color: Paleta.gris)),
           )
@@ -553,13 +559,13 @@ class InsigniaBrigadista extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
         decoration: BoxDecoration(color: Paleta.rojoSuave, borderRadius: BorderRadius.circular(8)),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
-          const Icon(Icons.health_and_safety_rounded, size: 13, color: Paleta.rojo),
+          Icon(Icons.health_and_safety_rounded, size: 13, color: Paleta.rojo),
           const SizedBox(width: 4),
           Flexible(
             child: Text('Brigadista de ${b.sector} · ${b.especialidadNombre}',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFFB71C1C))),
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Paleta.rojoTexto)),
           ),
         ]),
       );

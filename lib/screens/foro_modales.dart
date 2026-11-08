@@ -1,18 +1,20 @@
-import 'package:flutter/services.dart';
-
-import '../util.dart';
-
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../config.dart';
+import '../data/sugerencias.dart';
 import '../models.dart';
 import '../state/app_state.dart';
 import '../ui/tema.dart';
+import '../util.dart';
 
 /// Modal para publicar una nueva consulta o tema en el foro vecinal.
 class ModalNuevoTema extends StatefulWidget {
-  const ModalNuevoTema({super.key});
+  const ModalNuevoTema({super.key, this.textoInicial});
+
+  /// Pregunta ya escrita desde "¿Qué necesitas hoy?" del Inicio.
+  final String? textoInicial;
 
   @override
   State<ModalNuevoTema> createState() => _ModalNuevoTemaState();
@@ -32,6 +34,11 @@ class _ModalNuevoTemaState extends State<ModalNuevoTema> {
     super.initState();
     final st = context.read<AppState>();
     _sector = st.sector ?? 'Bellamar';
+    final t = widget.textoInicial?.trim();
+    if (t != null && t.isNotEmpty) {
+      _tituloCtrl.text = t.length > 80 ? t.substring(0, 80) : t;
+      _categoriaServicio = sugerirCategoria(t, [for (final c in categoriasServicio) c.id]) ?? _categoriaServicio;
+    }
   }
 
   @override
@@ -66,7 +73,7 @@ class _ModalNuevoTemaState extends State<ModalNuevoTema> {
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text('Tu consulta se ha publicado en el foro.'),
             behavior: SnackBarBehavior.floating,
             backgroundColor: Paleta.primario,
@@ -96,8 +103,8 @@ class _ModalNuevoTemaState extends State<ModalNuevoTema> {
         right: 20,
         bottom: MediaQuery.of(context).viewInsets.bottom + 20,
       ),
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: Paleta.superficie,
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       child: Form(
@@ -203,10 +210,10 @@ class _ModalNuevoTemaState extends State<ModalNuevoTema> {
                         offset: const Offset(0, 4),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
-                          side: const BorderSide(color: Paleta.linea),
+                          side: BorderSide(color: Paleta.linea),
                         ),
                         elevation: 8,
-                        color: Colors.white,
+                        color: Paleta.superficie,
                         constraints: BoxConstraints(
                           maxHeight: 270,
                           minWidth: ancho,
@@ -230,7 +237,7 @@ class _ModalNuevoTemaState extends State<ModalNuevoTema> {
                                       decoration: BoxDecoration(
                                         color: seleccionado
                                             ? Paleta.acentoSuave
-                                            : const Color(0xFFF1F5F9),
+                                            : Paleta.grisFondo,
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: Icon(
@@ -238,7 +245,7 @@ class _ModalNuevoTemaState extends State<ModalNuevoTema> {
                                         size: 15,
                                         color: seleccionado
                                             ? Paleta.acentoOscuro
-                                            : const Color(0xFF64748B),
+                                            : Paleta.gris,
                                       ),
                                     ),
                                     const SizedBox(width: 10),
@@ -252,12 +259,12 @@ class _ModalNuevoTemaState extends State<ModalNuevoTema> {
                                               : FontWeight.w500,
                                           color: seleccionado
                                               ? Paleta.acentoOscuro
-                                              : const Color(0xFF1E293B),
+                                              : Paleta.tinta,
                                         ),
                                       ),
                                     ),
                                     if (seleccionado)
-                                      const Icon(
+                                      Icon(
                                         Icons.check_rounded,
                                         size: 18,
                                         color: Paleta.acentoOscuro,
@@ -274,7 +281,7 @@ class _ModalNuevoTemaState extends State<ModalNuevoTema> {
                             vertical: 12,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF8FAFC),
+                            color: Paleta.grisFondo,
                             borderRadius: BorderRadius.circular(14),
                             border: Border.all(color: Paleta.linea),
                           ),
@@ -296,14 +303,14 @@ class _ModalNuevoTemaState extends State<ModalNuevoTema> {
                               Expanded(
                                 child: Text(
                                   catActual.nombre,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontWeight: FontWeight.w600,
                                     fontSize: 14,
                                     color: Paleta.tinta,
                                   ),
                                 ),
                               ),
-                              const Icon(
+                              Icon(
                                 Icons.keyboard_arrow_down_rounded,
                                 color: Paleta.gris,
                                 size: 22,
@@ -337,10 +344,10 @@ class _ModalNuevoTemaState extends State<ModalNuevoTema> {
                       offset: const Offset(0, 4),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
-                        side: const BorderSide(color: Paleta.linea),
+                        side: BorderSide(color: Paleta.linea),
                       ),
                       elevation: 8,
-                      color: Colors.white,
+                      color: Paleta.superficie,
                       constraints: BoxConstraints(
                         maxHeight: 280,
                         minWidth: ancho,
@@ -363,15 +370,15 @@ class _ModalNuevoTemaState extends State<ModalNuevoTema> {
                                   vertical: 4,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFF1F5F9),
+                                  color: Paleta.grisFondo,
                                   borderRadius: BorderRadius.circular(6),
                                   border: Border.all(
-                                    color: const Color(0xFFE2E8F0),
+                                    color: Paleta.linea,
                                   ),
                                 ),
                                 child: Row(
                                   children: [
-                                    const Icon(
+                                    Icon(
                                       Icons.location_city_rounded,
                                       size: 13,
                                       color: Paleta.primario,
@@ -379,7 +386,7 @@ class _ModalNuevoTemaState extends State<ModalNuevoTema> {
                                     const SizedBox(width: 6),
                                     Text(
                                       entry.key.toUpperCase(),
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 11,
                                         fontWeight: FontWeight.w800,
                                         color: Paleta.primario,
@@ -403,8 +410,8 @@ class _ModalNuevoTemaState extends State<ModalNuevoTema> {
                                       Icons.location_on_outlined,
                                       size: 16,
                                       color: seleccionado
-                                          ? const Color(0xFF16A34A)
-                                          : const Color(0xFF94A3B8),
+                                          ? Paleta.verde
+                                          : Paleta.grisClaro,
                                     ),
                                     const SizedBox(width: 8),
                                     Expanded(
@@ -416,16 +423,16 @@ class _ModalNuevoTemaState extends State<ModalNuevoTema> {
                                               ? FontWeight.w700
                                               : FontWeight.w500,
                                           color: seleccionado
-                                              ? const Color(0xFF166534)
-                                              : const Color(0xFF1E293B),
+                                              ? Paleta.verde
+                                              : Paleta.tinta,
                                         ),
                                       ),
                                     ),
                                     if (seleccionado)
-                                      const Icon(
+                                      Icon(
                                         Icons.check_rounded,
                                         size: 18,
-                                        color: Color(0xFF16A34A),
+                                        color: Paleta.verde,
                                       ),
                                   ],
                                 ),
@@ -441,13 +448,13 @@ class _ModalNuevoTemaState extends State<ModalNuevoTema> {
                           vertical: 12,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF8FAFC),
+                          color: Paleta.grisFondo,
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(color: Paleta.linea),
                         ),
                         child: Row(
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.location_on_rounded,
                               size: 18,
                               color: Paleta.primario,
@@ -456,14 +463,14 @@ class _ModalNuevoTemaState extends State<ModalNuevoTema> {
                             Expanded(
                               child: Text(
                                 _sector,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontWeight: FontWeight.w600,
                                   fontSize: 14,
                                   color: Paleta.tinta,
                                 ),
                               ),
                             ),
-                            const Icon(
+                            Icon(
                               Icons.keyboard_arrow_down_rounded,
                               color: Paleta.gris,
                               size: 22,
@@ -483,6 +490,7 @@ class _ModalNuevoTemaState extends State<ModalNuevoTema> {
               const SizedBox(height: 6),
               TextFormField(
                 controller: _tituloCtrl,
+                maxLength: Limites.titulo,
                 textCapitalization: TextCapitalization.sentences,
                 decoration: InputDecoration(
                   hintText: 'Ej: ¿Alguien conoce un buen gasfitero para tubería rota?',
@@ -494,9 +502,7 @@ class _ModalNuevoTemaState extends State<ModalNuevoTema> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                validator: (v) => (v == null || v.trim().isEmpty)
-                    ? 'Ingresa un título claro'
-                    : null,
+                validator: (v) => validarTitulo(v ?? '', min: 8, vacio: 'Ingresa un título claro'),
               ),
 
               const SizedBox(height: 14),
@@ -508,6 +514,7 @@ class _ModalNuevoTemaState extends State<ModalNuevoTema> {
               TextFormField(
                 controller: _contenidoCtrl,
                 maxLines: 3,
+                maxLength: Limites.texto,
                 textCapitalization: TextCapitalization.sentences,
                 decoration: InputDecoration(
                   hintText: 'Describe el problema, urgencia o lo que buscas consultar con los vecinos...',
@@ -519,9 +526,7 @@ class _ModalNuevoTemaState extends State<ModalNuevoTema> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                validator: (v) => (v == null || v.trim().isEmpty)
-                    ? 'Describe tu consulta'
-                    : null,
+                validator: (v) => validarTexto(v ?? '', obligatorio: true),
               ),
 
               const SizedBox(height: 20),
@@ -614,7 +619,7 @@ class _ModalRecomendarPrestadorState extends State<ModalRecomendarPrestador> {
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text('¡Recomendación compartida con éxito!'),
             behavior: SnackBarBehavior.floating,
             backgroundColor: Paleta.verde,
@@ -644,8 +649,8 @@ class _ModalRecomendarPrestadorState extends State<ModalRecomendarPrestador> {
         right: 20,
         bottom: MediaQuery.of(context).viewInsets.bottom + 20,
       ),
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: Paleta.superficie,
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       child: Form(
@@ -674,14 +679,14 @@ class _ModalRecomendarPrestadorState extends State<ModalRecomendarPrestador> {
                       color: Paleta.ambarSuave,
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.recommend_rounded,
                       color: Paleta.ambar,
                       size: 22,
                     ),
                   ),
                   const SizedBox(width: 10),
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -709,6 +714,7 @@ class _ModalRecomendarPrestadorState extends State<ModalRecomendarPrestador> {
               const SizedBox(height: 6),
               TextFormField(
                 controller: _nombreCtrl,
+                maxLength: Limites.nombre,
                 textCapitalization: TextCapitalization.words,
                 decoration: InputDecoration(
                   hintText: 'Ej: Maestro Carlos Gasfitería',
@@ -721,9 +727,7 @@ class _ModalRecomendarPrestadorState extends State<ModalRecomendarPrestador> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                validator: (v) => (v == null || v.trim().isEmpty)
-                    ? 'Ingresa el nombre'
-                    : null,
+                validator: (v) => validarTitulo(v ?? '', min: 3, max: Limites.nombre, vacio: 'Ingresa el nombre'),
               ),
               const SizedBox(height: 14),
               const Text(
@@ -734,6 +738,7 @@ class _ModalRecomendarPrestadorState extends State<ModalRecomendarPrestador> {
               TextFormField(
                 controller: _telefonoCtrl,
                 keyboardType: TextInputType.phone,
+                inputFormatters: formatoTelefono,
                 decoration: InputDecoration(
                   hintText: 'Ej: 943123456',
                   prefixIcon: const Icon(Icons.phone_outlined, size: 20),
@@ -745,9 +750,7 @@ class _ModalRecomendarPrestadorState extends State<ModalRecomendarPrestador> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                validator: (v) => (v == null || v.trim().length < 6)
-                    ? 'Ingresa un número válido'
-                    : null,
+                validator: (v) => validarTelefono(v ?? '', obligatorio: true),
               ),
               const SizedBox(height: 14),
               const Text(
@@ -758,6 +761,7 @@ class _ModalRecomendarPrestadorState extends State<ModalRecomendarPrestador> {
               TextFormField(
                 controller: _comentarioCtrl,
                 maxLines: 2,
+                maxLength: Limites.comentario,
                 textCapitalization: TextCapitalization.sentences,
                 decoration: InputDecoration(
                   hintText: 'Ej: Muy puntual, me reparó una fuga en 30 minutos y cobra justo.',
@@ -769,9 +773,7 @@ class _ModalRecomendarPrestadorState extends State<ModalRecomendarPrestador> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                validator: (v) => (v == null || v.trim().isEmpty)
-                    ? 'Escribe tu recomendación'
-                    : null,
+                validator: (v) => validarTexto(v ?? '', min: 10, max: Limites.comentario, obligatorio: true),
               ),
               const SizedBox(height: 20),
               SizedBox(

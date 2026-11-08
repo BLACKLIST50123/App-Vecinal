@@ -9,70 +9,108 @@ import '../../state/app_state.dart';
 import '../../ui/tema.dart';
 import '../../util.dart';
 
-/// Un movimiento del barrio para el pulso (sin nombres).
-class EventoPulso {
-  const EventoPulso(this.cuando, this.icono, this.texto, {this.propio = false});
-  final DateTime cuando;
-  final IconData icono;
-  final String texto;
+/// Tipo de caso de éxito: define el ícono, el color y la etiqueta.
+enum TipoExito {
+  servicio('Servicios y productos', Icons.storefront_rounded),
+  solidaridad('Solidaridad', Icons.volunteer_activism_rounded),
+  sos('Emergencia atendida', Icons.health_and_safety_rounded);
 
-  /// Algo tuyo que aún no se envía (sin señal).
-  final bool propio;
+  const TipoExito(this.etiqueta, this.icono);
+  final String etiqueta;
+  final IconData icono;
+
+  Color get color => switch (this) {
+        TipoExito.servicio => Paleta.acentoOscuro,
+        TipoExito.solidaridad => Paleta.verde,
+        TipoExito.sos => Paleta.rojo,
+      };
 }
 
-/// Arma los mensajes del pulso a partir de lo que devuelve `Repo.pulso`.
-/// Es una función pura para poder probarla.
+/// Un caso de éxito del barrio (sin nombres de vecinos).
+class EventoPulso {
+  const EventoPulso(this.cuando, this.tipo, this.texto);
+  final DateTime cuando;
+  final TipoExito tipo;
+  final String texto;
+}
+
+/// Arma los casos de éxito con textos cortos y los INTERCALA:
+/// servicios y productos → solidaridad → emergencia → servicios...
+/// Función pura para poder probarla.
 List<EventoPulso> armarPulso({
-  required List<Map<String, dynamic>> apoyos,
-  required List<Map<String, dynamic>> publicaciones,
-  required List<Map<String, dynamic>> servicios,
-  List<String> pendientes = const [],
+  required List<Map<String, dynamic>> recomendaciones,
+  required List<Map<String, dynamic>> agradecimientos,
+  required List<Map<String, dynamic>> atendidos,
+  Set<String> brigadistas = const {},
 }) {
   DateTime fecha(dynamic v) => DateTime.tryParse('$v')?.toLocal() ?? DateTime.now();
-  String de(dynamic sector) => sector == null || '$sector'.isEmpty ? 'del barrio' : 'de $sector';
-  String en(dynamic sector) => sector == null || '$sector'.isEmpty ? '' : ' en $sector';
+  String vecino(dynamic sector) => sector == null || '$sector'.isEmpty ? 'Un vecino' : 'Vecino de $sector';
   String cat(dynamic c, {bool emergencia = false}) => buscarCategoria('$c', emergencia: emergencia).nombre.toLowerCase();
+  bool esEmergencia(Map m) => m['origen'] == 'sos' || m['es_emergencia'] == true;
+  Map mapa(dynamic v) => v is Map ? v : const {};
 
-  final eventos = <EventoPulso>[
-    for (final t in pendientes)
-      EventoPulso(DateTime.now(), Icons.cloud_upload_outlined, 'Tu publicación "$t" se enviará cuando vuelva la señal',
-          propio: true),
-    for (final a in apoyos)
-      if (a['publicaciones'] is Map)
+  // Quién atendió: un brigadista, una organización, la junta o vecinos.
+  String quien(Map p) {
+    final rol = mapa(p['atendio'])['rol'];
+    if (p['atendido_por'] != null && brigadistas.contains(p['atendido_por'])) return 'un brigadista';
+    if (rol == 'organizacion') return 'una organización';
+    if (rol == 'moderador') return 'la junta vecinal';
+    return 'vecinos';
+  }
+
+  final servicios = <EventoPulso>[
+    for (final r in recomendaciones)
+      if (r['servicios'] is Map)
         EventoPulso(
-          fecha(a['created_at']),
-          Icons.volunteer_activism_rounded,
-          (a['publicaciones'] as Map)['es_emergencia'] == true
-              ? 'un vecino ${de((a['publicaciones'] as Map)['sector'])} recibió apoyo en la emergencia'
-              : 'un vecino ${de((a['publicaciones'] as Map)['sector'])} recibió apoyo: '
-                  '${cat((a['publicaciones'] as Map)['categoria'])}',
+          fecha(r['created_at']),
+          TipoExito.servicio,
+          '${vecino(mapa(r['autor'])['sector'])} compró un '
+          '${grupoServicio('${(r['servicios'] as Map)['categoria']}') == 'productos' ? 'producto' : 'servicio'} '
+          'de ${cat((r['servicios'] as Map)['categoria'])}',
         ),
-    for (final p in publicaciones)
-      if (p['es_emergencia'] == true || p['origen'] == 'sos')
-        EventoPulso(fecha(p['created_at']), Icons.sos_rounded, 'se reportó una emergencia${en(p['sector'])}')
-      else if (p['categoria'] == 'colecta')
-        EventoPulso(fecha(p['created_at']), Icons.diversity_1_rounded, 'comenzó una colecta solidaria${en(p['sector'])}')
-      else if (p['tipo'] == 'pido')
-        EventoPulso(fecha(p['created_at']), Icons.front_hand_rounded,
-            'alguien ${de(p['sector'])} pidió ayuda: ${cat(p['categoria'])}')
-      else
-        EventoPulso(fecha(p['created_at']), Icons.redeem_rounded,
-            'un vecino ${de(p['sector'])} ofreció ayuda: ${cat(p['categoria'])}'),
-    for (final s in servicios)
-      if (s['es_emergencia'] != true)
-        EventoPulso(fecha(s['created_at']), Icons.storefront_rounded,
-            'se publicó un nuevo servicio: ${cat(s['categoria'])}${en(s['sector'])}'),
   ];
-  eventos.sort((a, b) {
-    if (a.propio != b.propio) return a.propio ? -1 : 1;
-    return b.cuando.compareTo(a.cuando);
-  });
-  return eventos.take(8).toList();
+  final solidaridad = <EventoPulso>[
+    for (final a in agradecimientos)
+      if (a['publicaciones'] is Map && !esEmergencia(a['publicaciones'] as Map))
+        EventoPulso(fecha(a['created_at']), TipoExito.solidaridad,
+            '${vecino((a['publicaciones'] as Map)['sector'])} recibió ayuda: ${cat((a['publicaciones'] as Map)['categoria'])}'),
+    for (final p in atendidos)
+      if (!esEmergencia(p))
+        EventoPulso(fecha(p['created_at']), TipoExito.solidaridad,
+            '${vecino(p['sector'])} recibió ayuda: ${cat(p['categoria'])}'),
+  ];
+  String deVecino(dynamic sector) => sector == null || '$sector'.isEmpty ? 'de un vecino' : 'de un vecino de $sector';
+  final emergencias = <EventoPulso>[
+    for (final p in atendidos)
+      if (esEmergencia(p))
+        EventoPulso(fecha(p['created_at']), TipoExito.sos,
+            '${p['origen'] == 'sos' ? 'El SOS' : 'El pedido de ayuda'} ${deVecino(p['sector'])} fue atendido por ${quien(p)}'),
+    for (final a in agradecimientos)
+      if (a['publicaciones'] is Map && esEmergencia(a['publicaciones'] as Map))
+        EventoPulso(fecha(a['created_at']), TipoExito.sos,
+            'El pedido de ayuda ${deVecino((a['publicaciones'] as Map)['sector'])} fue atendido por vecinos'),
+  ];
+  for (final l in [servicios, solidaridad, emergencias]) {
+    l.sort((a, b) => b.cuando.compareTo(a.cuando));
+  }
+  // Intercalar: uno de cada tipo, en orden, hasta 9.
+  final r = <EventoPulso>[];
+  for (var i = 0; r.length < 9; i++) {
+    var agregado = false;
+    for (final l in [servicios, solidaridad, emergencias]) {
+      if (i < l.length && r.length < 9) {
+        r.add(l[i]);
+        agregado = true;
+      }
+    }
+    if (!agregado) break;
+  }
+  return r;
 }
 
-/// "Hace 2 min, un vecino de Bellamar recibió apoyo: préstamo de herramientas".
-/// Muestra lo de las últimas 2 horas y se renueva solo cada 2 horas; con señal,
-/// lo nuevo entra al instante (tiempo real). Debajo: invitar por WhatsApp.
+/// "Buenas noticias del barrio": solo casos de éxito, intercalados por tipo.
+/// Muestra las últimas 48 h, se renueva sola cada 2 horas y, con señal, lo
+/// nuevo entra al instante (tiempo real).
 class PulsoBarrio extends StatefulWidget {
   const PulsoBarrio({super.key});
 
@@ -81,7 +119,6 @@ class PulsoBarrio extends StatefulWidget {
 }
 
 class _PulsoBarrioState extends State<PulsoBarrio> {
-  static const _horas = 2;
   Timer? _renovar, _rotar;
   int _indice = 0;
   int _version = -1;
@@ -91,8 +128,8 @@ class _PulsoBarrioState extends State<PulsoBarrio> {
   @override
   void initState() {
     super.initState();
-    _renovar = Timer.periodic(const Duration(hours: _horas), (_) => setState(() => _vuelta++));
-    _rotar = Timer.periodic(const Duration(seconds: 5), (_) {
+    _renovar = Timer.periodic(const Duration(hours: 2), (_) => setState(() => _vuelta++));
+    _rotar = Timer.periodic(const Duration(seconds: 6), (_) {
       if (mounted) setState(() => _indice++);
     });
   }
@@ -105,12 +142,12 @@ class _PulsoBarrioState extends State<PulsoBarrio> {
   }
 
   Future<_DatosPulso> _cargar(AppState st) async {
-    final r = await st.repo.pulso(horas: _horas);
+    final r = await st.repo.pulso();
     final eventos = armarPulso(
-      apoyos: r.apoyos,
-      publicaciones: r.publicaciones,
-      servicios: r.servicios,
-      pendientes: [for (final e in st.repo.pendientes) e.titulo],
+      recomendaciones: r.recomendaciones,
+      agradecimientos: r.agradecimientos,
+      atendidos: r.atendidos,
+      brigadistas: r.brigadistas,
     );
     return _DatosPulso(eventos, r.actualizado, r.enVivo);
   }
@@ -127,80 +164,132 @@ class _PulsoBarrioState extends State<PulsoBarrio> {
       margin: const EdgeInsets.fromLTRB(16, 4, 16, 0),
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Paleta.primario, Paleta.primarioClaro],
-        ),
+        // Fondo suave de la paleta (se adapta al modo oscuro).
+        color: Paleta.primarioSuave,
         borderRadius: BorderRadius.circular(18),
       ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        const Row(children: [
-          Icon(Icons.sensors_rounded, size: 16, color: Paleta.verdeClaro),
-          SizedBox(width: 6),
-          Text('AHORA EN TU BARRIO',
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1, color: Paleta.lineaFuerte)),
-        ]),
-        const SizedBox(height: 8),
-        FutureBuilder<_DatosPulso>(
-          future: _futuro,
-          builder: (context, s) {
-            final d = s.data;
-            final eventos = d?.eventos ?? const <EventoPulso>[];
-            final enVivo = st.online && (d?.enVivo ?? true);
-            Widget linea;
-            if (d == null) {
-              linea = const _LineaPulso(
-                key: ValueKey('cargando'),
-                icono: Icons.sensors_rounded,
-                texto: 'Mirando qué pasa en tu barrio...',
-                activo: false,
-              );
-            } else if (eventos.isEmpty) {
-              linea = const _LineaPulso(
-                key: ValueKey('vacio'),
-                icono: Icons.wb_sunny_outlined,
-                texto: 'Tu barrio está tranquilo. ¡Sé el primero en ayudar!',
-                activo: false,
-              );
-            } else {
-              final e = eventos[_indice % eventos.length];
-              final texto = e.propio ? e.texto : '${_mayuscula(haceCuanto(e.cuando))}, ${e.texto}';
-              linea = _LineaPulso(key: ValueKey('${e.cuando}${e.texto}'), icono: e.icono, texto: texto, activo: enVivo && !e.propio);
-            }
-            return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Semantics(
-                liveRegion: true,
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 350),
-                  transitionBuilder: (child, a) => FadeTransition(
-                    opacity: a,
-                    child: SlideTransition(position: Tween(begin: const Offset(0, 0.25), end: Offset.zero).animate(a), child: child),
+      child: FutureBuilder<_DatosPulso>(
+        future: _futuro,
+        builder: (context, s) {
+          final d = s.data;
+          final eventos = d?.eventos ?? const <EventoPulso>[];
+          final enVivo = st.online && (d?.enVivo ?? true);
+          final i = eventos.isEmpty ? 0 : _indice % eventos.length;
+          return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            Row(children: [
+              Icon(Icons.auto_awesome_rounded, size: 16, color: Paleta.acento),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text('Buenas noticias del barrio',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Paleta.gris)),
+              ),
+              // Puntitos: cuántos casos hay y cuál se ve.
+              for (var k = 0; k < eventos.length; k++)
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 250),
+                  margin: const EdgeInsets.only(left: 4),
+                  width: k == i ? 14 : 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: k == i ? eventos[i].tipo.color : Paleta.superficie,
+                    borderRadius: BorderRadius.circular(3),
                   ),
-                  child: linea,
+                ),
+            ]),
+            const SizedBox(height: 12),
+            Semantics(
+              liveRegion: true,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 380),
+                transitionBuilder: (child, a) => FadeTransition(
+                  opacity: a,
+                  child: SlideTransition(position: Tween(begin: const Offset(0.06, 0), end: Offset.zero).animate(a), child: child),
+                ),
+                child: d == null
+                    ? const _Vacio(key: ValueKey('cargando'), texto: 'Buscando buenas noticias...')
+                    : eventos.isEmpty
+                        ? const _Vacio(key: ValueKey('vacio'), texto: 'Aún no hay buenas noticias. ¡La próxima puede ser gracias a ti!')
+                        : _CasoExito(key: ValueKey('${eventos[i].cuando}${eventos[i].texto}'), evento: eventos[i], enVivo: enVivo),
+              ),
+            ),
+            if (d != null && !enVivo)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  d.actualizado == null ? 'Sin señal' : 'Sin señal · actualizado ${haceCuanto(d.actualizado!)}',
+                  style: TextStyle(fontSize: 12, color: Paleta.gris),
                 ),
               ),
-              if (d != null && !enVivo)
-                Padding(
-                  padding: const EdgeInsets.only(top: 6, left: 30),
-                  child: Text(
-                    d.actualizado == null ? 'Sin señal' : 'Sin señal · actualizado ${haceCuanto(d.actualizado!)}',
-                    style: const TextStyle(fontSize: 12, color: Paleta.lineaFuerte),
-                  ),
-                ),
-            ]);
-          },
-        ),
-      ]),
+          ]);
+        },
+      ),
     );
   }
+}
+
+/// Un caso de éxito: ícono en un círculo suave del color de su tipo,
+/// etiqueta, texto corto y hace cuánto.
+class _CasoExito extends StatelessWidget {
+  const _CasoExito({super.key, required this.evento, required this.enVivo});
+  final EventoPulso evento;
+  final bool enVivo;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = evento.tipo;
+    return Row(children: [
+      Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(color: Paleta.superficie, shape: BoxShape.circle),
+        child: Icon(t.icono, color: t.color, size: 24),
+      ),
+      const SizedBox(width: 12),
+      Expanded(
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(evento.texto,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 15, height: 1.3, fontWeight: FontWeight.w700, color: Paleta.tinta)),
+          const SizedBox(height: 3),
+          Row(children: [
+            Text(t.etiqueta, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: t.color)),
+            Text(' · ${haceCuanto(evento.cuando)}', style: TextStyle(fontSize: 12, color: Paleta.gris)),
+            if (enVivo) ...[
+              const SizedBox(width: 6),
+              Container(width: 6, height: 6, decoration: BoxDecoration(color: Paleta.verde, shape: BoxShape.circle)),
+            ],
+          ]),
+        ]),
+      ),
+    ]);
+  }
+}
+
+class _Vacio extends StatelessWidget {
+  const _Vacio({super.key, required this.texto});
+  final String texto;
+
+  @override
+  Widget build(BuildContext context) => Row(children: [
+        Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(color: Paleta.acentoSuave, shape: BoxShape.circle),
+          child: Icon(Icons.wb_sunny_outlined, color: Paleta.acentoOscuro, size: 22),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(texto, style: TextStyle(fontSize: 14, height: 1.3, fontWeight: FontWeight.w600, color: Paleta.tinta)),
+        ),
+      ]);
 }
 
 /// Botón verde para invitar a un vecino por WhatsApp (va al final del Inicio).
 class BotonInvitarWhatsapp extends StatelessWidget {
   const BotonInvitarWhatsapp({super.key});
 
-  static const _verde = Paleta.whatsapp;
+  static Color get _verde => Paleta.whatsapp;
 
   @override
   Widget build(BuildContext context) {
@@ -227,7 +316,6 @@ class BotonInvitarWhatsapp extends StatelessWidget {
   }
 }
 
-String _mayuscula(String s) => s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
 
 /// Mensaje para invitar a un vecino (sin números, solo la propuesta).
 const textoInvitarVecino = 'Estoy usando Conecta Vecino para ayudarnos entre vecinos de ${Zona.nombre}, '
@@ -238,46 +326,4 @@ class _DatosPulso {
   final List<EventoPulso> eventos;
   final DateTime? actualizado;
   final bool enVivo;
-}
-
-class _LineaPulso extends StatelessWidget {
-  const _LineaPulso({super.key, required this.icono, required this.texto, required this.activo});
-  final IconData icono;
-  final String texto;
-  final bool activo;
-
-  @override
-  Widget build(BuildContext context) => Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Padding(
-          padding: const EdgeInsets.only(top: 1),
-          child: Stack(clipBehavior: Clip.none, children: [
-            Container(
-              width: 22,
-              height: 22,
-              decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.16), borderRadius: BorderRadius.circular(7)),
-              child: Icon(icono, size: 15, color: Colors.white),
-            ),
-            if (activo)
-              Positioned(
-                right: -2,
-                top: -2,
-                child: Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: Paleta.verde,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Paleta.primario, width: 1.5),
-                  ),
-                ),
-              ),
-          ]),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(texto,
-              maxLines: 3,
-              style: const TextStyle(fontSize: 16, height: 1.3, fontWeight: FontWeight.w700, color: Colors.white)),
-        ),
-      ]);
 }

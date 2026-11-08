@@ -29,6 +29,9 @@ class Servicio {
     this.esEmergencia = false,
     this.activo = true,
     this.vistosBuenos = 0,
+    this.verificadosPorSector = const {},
+    this.motivos = const {},
+    this.recos = const [],
     this.respondiendoA,
     this.pendiente = false,
     DateTime? creado,
@@ -42,17 +45,98 @@ class Servicio {
   final bool esEmergencia;
   final bool activo;
   final int vistosBuenos;
+
+  /// Vistos Buenos de vecinos VERIFICADOS, contados por su sector.
+  final Map<String, int> verificadosPorSector;
+
+  /// Cuántas veces se eligió cada motivo ("puntual", "precio_justo"...).
+  final Map<String, int> motivos;
+
+  /// Cada Visto Bueno (sector, verificado, fecha) para el puntaje de confianza.
+  final List<Reco> recos;
   final String? respondiendoA;
   final bool pendiente;
   final DateTime creado;
 
   Punto? get punto => lat != null && lng != null ? Punto(lat!, lng!) : null;
 
+  /// Recomendaciones de vecinos verificados de [sector] (si no se sabe el
+  /// sector de quien mira, se usa el del propio servicio).
+  int recomendacionesDeZona(String? sector) => verificadosPorSector[sector ?? this.sector] ?? 0;
+
+  /// Sello "Recomendado en tu barrio": 3 o más vecinos verificados de la zona.
+  static const minimoSello = 3;
+  bool tieneSello(String? sector) => recomendacionesDeZona(sector) >= minimoSello;
+
+  // ------------------------------------------------ puntaje de confianza
+
+  /// Recomendaciones de los últimos 3 meses (pesan completo).
+  static const diasRecientes = 90;
+
+  /// Puntaje de confianza vecinal (no se muestra: ordena la lista).
+  /// Cada Visto Bueno: verificado 1 · no verificado 0,5 · de la zona de
+  /// quien mira +0,5 · si tiene más de 3 meses, vale la mitad.
+  /// Sin el detalle (migración 0016 pendiente) vale el conteo simple.
+  /// Cada "No me fue bien" (privado, migración 0017) resta 1.
+  double puntaje(String? miSector, {int quejas = 0}) => _base(miSector) - quejas;
+
+  /// Con 3 o más quejas no recibe sello ni "N.º 1" hasta que la junta revise.
+  static const maximoQuejas = 3;
+
+  double _base(String? miSector) {
+    if (recos.isEmpty) return vistosBuenos.toDouble();
+    final zona = miSector ?? sector;
+    final ahora = DateTime.now();
+    var p = 0.0;
+    for (final r in recos) {
+      var v = r.verificado ? 1.0 : 0.5;
+      if (r.verificado && r.sector != null && r.sector == zona) v += 0.5;
+      if (r.fecha != null && ahora.difference(r.fecha!).inDays > diasRecientes) v /= 2;
+      p += v;
+    }
+    return p;
+  }
+
+  int get recientes => recos.where((r) => r.fecha != null && DateTime.now().difference(r.fecha!).inDays <= diasRecientes).length;
+
+  /// Nivel que se muestra (una sola insignia por tarjeta).
+  NivelConfianza nivel(String? miSector, {int quejas = 0}) {
+    final enRevision = quejas >= maximoQuejas;
+    if (!enRevision && tieneSello(miSector)) return NivelConfianza.barrio;
+    if (!enRevision && puntaje(miSector, quejas: quejas) >= 3) return NivelConfianza.muy;
+    if (vistosBuenos > 0) return NivelConfianza.recomendado;
+    return NivelConfianza.nuevo;
+  }
+
+  /// Los [n] motivos más elegidos (al menos 1 vez), del más al menos.
+  List<String> motivosPrincipales([int n = 2]) {
+    final l = motivos.entries.where((e) => e.value > 0).toList()..sort((a, b) => b.value.compareTo(a.value));
+    return [for (final e in l.take(n)) e.key];
+  }
+
   factory Servicio.fromMap(Map<String, dynamic> m, {bool pendiente = false}) {
     var vb = 0;
+    final porSector = <String, int>{};
+    final motivos = <String, int>{};
+    final recos = <Reco>[];
     final x = m['vistos_buenos'];
-    if (x is List && x.isNotEmpty && x.first is Map) {
+    if (x is List && x.isNotEmpty && x.first is Map && (x.first as Map).containsKey('count')) {
       vb = ((x.first as Map)['count'] as num?)?.toInt() ?? 0;
+    } else if (x is List) {
+      // Lista de Vistos Buenos con sector, verificación y motivos (0016).
+      vb = x.length;
+      for (final f in x.whereType<Map>()) {
+        final sec = f['autor_sector'] as String?;
+        if (f['autor_verificado'] == true && sec != null) porSector[sec] = (porSector[sec] ?? 0) + 1;
+        recos.add((
+          sector: sec,
+          verificado: f['autor_verificado'] == true,
+          fecha: f['created_at'] == null ? null : DateTime.tryParse('${f['created_at']}'),
+        ));
+        for (final mo in (f['motivos'] as List?) ?? const []) {
+          motivos['$mo'] = (motivos['$mo'] ?? 0) + 1;
+        }
+      }
     }
     return Servicio(
       id: m['id'] as String,
@@ -71,6 +155,9 @@ class Servicio {
       esEmergencia: m['es_emergencia'] == true,
       activo: m['activo'] != false,
       vistosBuenos: vb,
+      verificadosPorSector: porSector,
+      motivos: motivos,
+      recos: recos,
       pendiente: pendiente,
       creado: _fecha(m['created_at']),
     );
@@ -129,9 +216,12 @@ class Publicacion {
     this.verificada = false,
     this.meta,
     this.avance = 0,
+    this.autorFoto,
     DateTime? creado,
   }) : creado = creado ?? DateTime.now();
 
+  /// Foto de perfil de quien publica (si la tiene).
+  final String? autorFoto;
   final int ayudantes; // vecinos que respondieron (ayudo / aporto / me interesa)
   final bool verificada; // verificada por organización o junta vecinal
   final int? meta; // colectas: cuántas donaciones se buscan
@@ -207,6 +297,7 @@ class Publicacion {
         verificada: m['verificada'] == true,
         meta: (m['meta'] as num?)?.toInt(),
         avance: (m['avance'] as num?)?.toInt() ?? 0,
+        autorFoto: (m['autor'] is Map) ? (m['autor'] as Map)['foto_url'] as String? : null,
         creado: _fecha(m['created_at'] ?? m['creado_offline_en']),
       );
 
@@ -224,11 +315,58 @@ class Publicacion {
       ].join('. ');
 }
 
+/// Un Visto Bueno resumido para calcular el puntaje de confianza.
+typedef Reco = ({String? sector, bool verificado, DateTime? fecha});
+
+/// Insignia de confianza de un servicio (de más a menos).
+enum NivelConfianza { barrio, muy, recomendado, nuevo }
+
+/// "El más recomendado" de cada tipo: el de mayor puntaje, solo si hay al
+/// menos 2 servicios de ese tipo (competencia real) y tiene 2+ Vistos Buenos.
+Set<String> masRecomendadosPorTipo(List<Servicio> servicios, String? miSector, {Map<String, int> quejas = const {}}) {
+  double p(Servicio s) => s.puntaje(miSector, quejas: quejas[s.id] ?? 0);
+  final porTipo = <String, List<Servicio>>{};
+  for (final s in servicios) {
+    porTipo.putIfAbsent(s.categoria, () => []).add(s);
+  }
+  final ids = <String>{};
+  for (final l in porTipo.values) {
+    if (l.length < 2) continue;
+    l.sort((a, b) => p(b).compareTo(p(a)));
+    final primero = l.first;
+    final empate = p(l[1]) == p(primero);
+    final enRevision = (quejas[primero.id] ?? 0) >= Servicio.maximoQuejas;
+    if (primero.vistosBuenos >= 2 && !empate && !enRevision) ids.add(primero.id);
+  }
+  return ids;
+}
+
+/// Motivos de un toque al dar el Visto Bueno: (id, texto, ícono).
+const motivosVistoBueno = <(String, String, IconData)>[
+  ('puntual', 'Puntual', Icons.schedule),
+  ('precio_justo', 'Precio justo', Icons.payments_outlined),
+  ('buen_trabajo', 'Buen trabajo', Icons.handyman_outlined),
+  ('amable', 'Amable', Icons.sentiment_satisfied_alt),
+  ('confiable', 'De confianza', Icons.verified_user_outlined),
+];
+
+String textoMotivo(String id) => motivosVistoBueno.firstWhere((m) => m.$1 == id, orElse: () => (id, id, Icons.check)).$2;
+
 class VistoBueno {
-  VistoBueno({required this.id, this.autorId, this.autorNombre, this.comentario, this.verificado = false, required this.creado});
+  VistoBueno({
+    required this.id,
+    this.autorId,
+    this.autorNombre,
+    this.comentario,
+    this.verificado = false,
+    this.sector,
+    this.motivos = const [],
+    required this.creado,
+  });
   final String id;
-  final String? autorId, autorNombre, comentario;
+  final String? autorId, autorNombre, comentario, sector;
   final bool verificado;
+  final List<String> motivos;
   final DateTime creado;
 
   factory VistoBueno.fromMap(Map<String, dynamic> m) => VistoBueno(
@@ -237,6 +375,8 @@ class VistoBueno {
         autorNombre: m['autor_nombre'] as String?,
         comentario: m['comentario'] as String?,
         verificado: m['autor_verificado'] == true,
+        sector: m['autor_sector'] as String?,
+        motivos: [for (final x in (m['motivos'] as List?) ?? const []) '$x'],
         creado: _fecha(m['created_at']),
       );
 }
@@ -259,21 +399,28 @@ class Ayuda {
 
 /// Reconocimiento vecinal según ayudas CONFIRMADAS por quien fue ayudado.
 class Nivel {
-  const Nivel(this.nombre, this.corto, this.icono, this.color, this.minimo, this.descripcion);
+  const Nivel(this.nombre, this.corto, this.icono, this.minimo, this.descripcion);
   final String nombre, corto, descripcion;
   final IconData icono;
-  final Color color;
+  // Getter para que siga el tema claro/oscuro.
+  Color get color => switch (minimo) {
+        0 => Paleta.gris,
+        1 => Paleta.verde,
+        3 => Paleta.primarioClaro,
+        7 => Paleta.acentoOscuro,
+        _ => Paleta.ambar,
+      };
   final int minimo;
 
   static const todos = [
-    Nivel('Vecino nuevo', 'Nuevo', Icons.home_rounded, Paleta.gris, 0,
+    Nivel('Vecino nuevo', 'Nuevo', Icons.home_rounded, 0,
         'Tu primera ayuda confirmada te da tu primer reconocimiento.'),
-    Nivel('Buen vecino', 'Buen vecino', Icons.eco_rounded, Paleta.verde, 1, 'Ya ayudaste a alguien del barrio.'),
-    Nivel('Vecino solidario', 'Solidario', Icons.handshake_rounded, Paleta.primarioClaro, 3,
+    Nivel('Buen vecino', 'Buen vecino', Icons.eco_rounded, 1, 'Ya ayudaste a alguien del barrio.'),
+    Nivel('Vecino solidario', 'Solidario', Icons.handshake_rounded, 3,
         'Tus vecinos saben que pueden contar contigo.'),
-    Nivel('Corazón del barrio', 'Corazón', Icons.favorite_rounded, Paleta.acentoOscuro, 7,
+    Nivel('Corazón del barrio', 'Corazón', Icons.favorite_rounded, 7,
         'Eres parte de lo que mantiene unido al barrio.'),
-    Nivel('Guardián del barrio', 'Guardián', Icons.verified_user_rounded, Paleta.ambar, 15,
+    Nivel('Guardián del barrio', 'Guardián', Icons.verified_user_rounded, 15,
         'Un ejemplo para toda la comunidad.'),
   ];
 
