@@ -9,7 +9,7 @@ import '../state/app_state.dart';
 import '../ui/diseno.dart';
 import '../ui/tema.dart';
 import '../ui/widgets.dart';
-import 'aportes.dart';
+import 'foro.dart';
 import 'inicio.dart';
 import 'listas.dart';
 import 'mapa.dart';
@@ -69,9 +69,8 @@ class _HomeShellState extends State<HomeShell> {
         grupoInicial: _grupo,
         consultaInicial: _consulta,
       ),
-      // Día a día: Solidaridad (colectas + apoyar/pedir). Emergencia: tablero.
-      e ? const FavoresScreen(emergencia: true) : SolidaridadScreen(irAPerfil: () => _irA(4)),
-      MisAportesScreen(alIrAServicios: () => _irA(1)),
+      FavoresScreen(emergencia: e),
+      const ForoScreen(),
       const PerfilScreen(),
     ];
 
@@ -88,7 +87,7 @@ class _HomeShellState extends State<HomeShell> {
       e
           ? ('Tablero de ayuda', 'Emergencia')
           : ('Solidaridad', 'Juntos hacemos más'),
-      ('Mis aportes', 'Administra tus servicios y pedidos'),
+      ('Foro Vecinal', 'Preguntas, servicios y diálogo de barrio'),
       ('Mi perfil', st.logueado ? null : 'Estás como visitante'),
     ];
 
@@ -127,9 +126,9 @@ class _HomeShellState extends State<HomeShell> {
               label: 'Solidaridad',
             ),
       const NavigationDestination(
-        icon: Icon(Icons.inventory_2_outlined),
-        selectedIcon: Icon(Icons.inventory_2),
-        label: 'Mis aportes',
+        icon: Icon(Icons.forum_outlined),
+        selectedIcon: Icon(Icons.forum),
+        label: 'Foro',
       ),
       const NavigationDestination(
         icon: Icon(Icons.person_outline),
@@ -144,12 +143,12 @@ class _HomeShellState extends State<HomeShell> {
     final resumenes = <String>[
       e
           ? 'Emergencia. ${st.emergencia.titulo ?? ''}. ${st.emergencia.mensaje ?? ''}. Para pedir ayuda, toca el botón rojo Necesito ayuda.'
-          : 'Inicio. Busca lo que necesitas, mira lo más recomendado cerca de ti y cuántos vecinos necesitan una mano. Para una emergencia, toca el botón rojo SOS arriba.',
+          : 'Inicio. Busca servicios y productos, explora tu barrio o entra a Solidaridad para pedir o dar una mano.',
       e ? 'Grupos de apoyo para la emergencia. Toca uno para llamar.' : 'Servicios y productos de tu barrio. Usa el buscador o los filtros. Cada tarjeta muestra sus Vistos Buenos y el precio.',
       e
           ? 'Tablero de ayuda. Aquí ves quién necesita ayuda y qué cosas hay para compartir.'
-          : 'Solidaridad. Aquí los vecinos se ayudan sin dinero. Toca Publicar para pedir apoyo, dar apoyo u organizar un evento solidario.',
-      'Mis aportes. Administra los pedidos que te llegan y edita tus servicios y productos.',
+          : 'Solidaridad. Aquí los vecinos se ayudan sin dinero. Puedes pedir una mano, dar algo o aportar a una colecta.',
+      'Foro vecinal. Conversa con tus vecinos, pide recomendaciones o pregunta por servicios que necesitas en tu barrio.',
       'Tu perfil: tu reconocimiento en el barrio, tu historial y los ajustes de accesibilidad.',
     ];
     // Cada pestaña publica lo suyo: Servicios → servicio; Solidaridad → apoyo/evento.
@@ -176,16 +175,30 @@ class _HomeShellState extends State<HomeShell> {
               titulo: titulo,
               subtitulo: subtitulo,
               acciones: [
-                const _BotonSOSCabecera(),
-                _MenuCabecera(
-                  pendientes: st.pendientes,
-                  voz: st.voz,
-                  alEscuchar: () => Voz.hablar(resumenes[_tab]),
-                  alCambiarLetra: () {
-                    final tamano = st.cambiarLetra();
-                    avisar('Letra $tamano');
-                    if (st.voz) Voz.hablar('Letra $tamano');
-                  },
+                BotonCuadrado(
+                  icono: Icons.map_outlined,
+                  tooltip: 'Mapa del barrio',
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const PantallaMapaCompleto(),
+                    ),
+                  ),
+                ),
+                if (st.voz)
+                  BotonCuadrado(
+                    icono: Icons.volume_up_outlined,
+                    tooltip: 'Escuchar esta página',
+                    onTap: () => Voz.hablar(resumenes[_tab]),
+                  ),
+                BotonCuadrado(
+                  icono: Icons.qr_code_scanner,
+                  tooltip: 'Llevar mensajes por QR',
+                  contador: st.pendientes,
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const PendientesScreen()),
+                  ),
                 ),
               ],
             ),
