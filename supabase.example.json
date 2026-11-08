@@ -1,4 +1,8 @@
 {
   "SUPABASE_URL": "https://TU-PROYECTO.supabase.co",
-  "SUPABASE_ANON_KEY": "sb_publishable_PEGA_AQUI_TU_KEY"
+  "SUPABASE_ANON_KEY": "sb_publishable_PEGA_AQUI_TU_KEY",
+  "FIREBASE_API_KEY": "OPCIONAL_para_push_con_app_cerrada",
+  "FIREBASE_APP_ID": "1:000000000000:android:0000000000000000",
+  "FIREBASE_SENDER_ID": "000000000000",
+  "FIREBASE_PROJECT_ID": "tu-proyecto-firebase"
 }

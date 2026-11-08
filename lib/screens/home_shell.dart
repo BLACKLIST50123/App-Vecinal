@@ -9,6 +9,7 @@ import '../features/solidaridad/solidaridad_screen.dart';
 import '../services/voz.dart';
 import '../state/app_state.dart';
 import '../ui/diseno.dart';
+import '../ui/tema.dart';
 import '../ui/widgets.dart';
 import 'foro.dart';
 import 'inicio.dart';
@@ -114,6 +115,63 @@ class _HomeShellState extends State<HomeShell> {
             NavigationDestination(icon: Icon(Icons.forum_outlined), selectedIcon: Icon(Icons.forum), label: 'Foro'),
             perfil,
           ];
+    final destinos = <NavigationDestination>[
+      e
+          ? const NavigationDestination(
+              icon: Icon(Icons.sos_outlined),
+              selectedIcon: Icon(Icons.sos),
+              label: 'Emergencia',
+            )
+          : const NavigationDestination(
+              icon: Icon(Icons.home_outlined),
+              selectedIcon: Icon(Icons.home),
+              label: 'Inicio',
+            ),
+      e
+          ? const NavigationDestination(
+              icon: Icon(Icons.health_and_safety_outlined),
+              selectedIcon: Icon(Icons.health_and_safety),
+              label: 'Apoyo',
+            )
+          : const NavigationDestination(
+              icon: Icon(Icons.storefront_outlined),
+              selectedIcon: Icon(Icons.storefront),
+              label: 'Servicios',
+            ),
+      e
+          ? const NavigationDestination(
+              icon: Icon(Icons.volunteer_activism_outlined),
+              selectedIcon: Icon(Icons.volunteer_activism),
+              label: 'Ayuda',
+            )
+          : const NavigationDestination(
+              icon: Icon(Icons.favorite_border),
+              selectedIcon: Icon(Icons.favorite),
+              label: 'Solidaridad',
+            ),
+      const NavigationDestination(
+        icon: Icon(Icons.forum_outlined),
+        selectedIcon: Icon(Icons.forum),
+        label: 'Foro',
+      ),
+      // Puntito rojo: recuerda activar los avisos de emergencia.
+      NavigationDestination(
+        icon: Badge(
+          isLabelVisible: st.faltaActivarAvisos,
+          smallSize: 10,
+          backgroundColor: Paleta.rojo,
+          child: const Icon(Icons.person_outline),
+        ),
+        selectedIcon: Badge(
+          isLabelVisible: st.faltaActivarAvisos,
+          smallSize: 10,
+          backgroundColor: Paleta.rojo,
+          child: const Icon(Icons.person),
+        ),
+        label: 'Perfil',
+        tooltip: st.faltaActivarAvisos ? 'Perfil: falta activar los avisos de emergencia' : null,
+      ),
+    ];
 
     final (titulo, subtitulo) = encabezados[_tab];
 
