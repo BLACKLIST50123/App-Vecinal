@@ -25,17 +25,20 @@ import 'tarjeta_apoyo.dart';
 ///   2. Colectas del barrio (carrusel horizontal)
 ///   3. Solidaridad vecinal → [Apoyar] [Pedir ayuda]
 class SolidaridadScreen extends StatefulWidget {
-  const SolidaridadScreen({super.key, this.irAPerfil});
+  const SolidaridadScreen({super.key, this.irAPerfil, this.iniciarEnPedir = false});
 
   /// "Ver más" del rango lleva al perfil.
   final VoidCallback? irAPerfil;
+
+  /// Abre directo en "Pedir ayuda" (acceso rápido del Inicio).
+  final bool iniciarEnPedir;
 
   @override
   State<SolidaridadScreen> createState() => _SolidaridadScreenState();
 }
 
 class _SolidaridadScreenState extends State<SolidaridadScreen> {
-  bool _pedir = false; // false = Apoyar (por defecto), true = Pedir ayuda
+  late bool _pedir = widget.iniciarEnPedir; // false = Apoyar (por defecto), true = Pedir ayuda
 
   @override
   Widget build(BuildContext context) {

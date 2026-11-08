@@ -69,7 +69,15 @@ class _HomeShellState extends State<HomeShell> {
         grupoInicial: _grupo,
         consultaInicial: _consulta,
       ),
-      FavoresScreen(emergencia: e),
+      // Día a día: Solidaridad (colectas + apoyar/pedir). Emergencia: tablero.
+      e
+          ? const FavoresScreen(emergencia: true)
+          : SolidaridadScreen(
+              key: ValueKey('sol-$_grupo'),
+              irAPerfil: () => _irA(4),
+              iniciarEnPedir: _grupo == 'pedir',
+            ),
+      // Mis aportes ahora vive en Perfil; esta pestaña es el Foro vecinal.
       const ForoScreen(),
       const PerfilScreen(),
     ];
@@ -143,7 +151,7 @@ class _HomeShellState extends State<HomeShell> {
     final resumenes = <String>[
       e
           ? 'Emergencia. ${st.emergencia.titulo ?? ''}. ${st.emergencia.mensaje ?? ''}. Para pedir ayuda, toca el botón rojo Necesito ayuda.'
-          : 'Inicio. Busca servicios y productos, explora tu barrio o entra a Solidaridad para pedir o dar una mano.',
+          : 'Inicio. Arriba ves lo último que pasó en tu barrio. Luego el mapa con servicios, productos, peticiones y emergencias: usa los filtros o toca un punto. Para una emergencia, toca el botón rojo SOS arriba.',
       e ? 'Grupos de apoyo para la emergencia. Toca uno para llamar.' : 'Servicios y productos de tu barrio. Usa el buscador o los filtros. Cada tarjeta muestra sus Vistos Buenos y el precio.',
       e
           ? 'Tablero de ayuda. Aquí ves quién necesita ayuda y qué cosas hay para compartir.'
@@ -175,30 +183,16 @@ class _HomeShellState extends State<HomeShell> {
               titulo: titulo,
               subtitulo: subtitulo,
               acciones: [
-                BotonCuadrado(
-                  icono: Icons.map_outlined,
-                  tooltip: 'Mapa del barrio',
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const PantallaMapaCompleto(),
-                    ),
-                  ),
-                ),
-                if (st.voz)
-                  BotonCuadrado(
-                    icono: Icons.volume_up_outlined,
-                    tooltip: 'Escuchar esta página',
-                    onTap: () => Voz.hablar(resumenes[_tab]),
-                  ),
-                BotonCuadrado(
-                  icono: Icons.qr_code_scanner,
-                  tooltip: 'Llevar mensajes por QR',
-                  contador: st.pendientes,
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const PendientesScreen()),
-                  ),
+                const _BotonSOSCabecera(),
+                _MenuCabecera(
+                  pendientes: st.pendientes,
+                  voz: st.voz,
+                  alEscuchar: () => Voz.hablar(resumenes[_tab]),
+                  alCambiarLetra: () {
+                    final tamano = st.cambiarLetra();
+                    avisar('Letra $tamano');
+                    if (st.voz) Voz.hablar('Letra $tamano');
+                  },
                 ),
               ],
             ),
