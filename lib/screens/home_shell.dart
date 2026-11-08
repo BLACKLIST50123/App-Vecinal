@@ -7,6 +7,7 @@ import '../features/solidaridad/solidaridad_screen.dart';
 import '../services/voz.dart';
 import '../state/app_state.dart';
 import '../ui/diseno.dart';
+import '../ui/tema.dart';
 import '../ui/widgets.dart';
 import 'foro.dart';
 import 'inicio.dart';
@@ -137,10 +138,22 @@ class _HomeShellState extends State<HomeShell> {
         selectedIcon: Icon(Icons.forum),
         label: 'Foro',
       ),
-      const NavigationDestination(
-        icon: Icon(Icons.person_outline),
-        selectedIcon: Icon(Icons.person),
+      // Puntito rojo: recuerda activar los avisos de emergencia.
+      NavigationDestination(
+        icon: Badge(
+          isLabelVisible: st.faltaActivarAvisos,
+          smallSize: 10,
+          backgroundColor: Paleta.rojo,
+          child: const Icon(Icons.person_outline),
+        ),
+        selectedIcon: Badge(
+          isLabelVisible: st.faltaActivarAvisos,
+          smallSize: 10,
+          backgroundColor: Paleta.rojo,
+          child: const Icon(Icons.person),
+        ),
         label: 'Perfil',
+        tooltip: st.faltaActivarAvisos ? 'Perfil: falta activar los avisos de emergencia' : null,
       ),
     ];
 
