@@ -541,6 +541,63 @@ class Repo {
     return r == null ? null : Map<String, dynamic>.from(r as Map);
   }
 
+  // --------------------------------------------------- junta y brigadistas
+
+  /// Mi nombramiento como brigadista (invitado o activo), si existe.
+  Future<Brigadista?> miNombramiento() async {
+    if (uid == null) return null;
+    final r = await _consultar(
+      'mi_brigadista',
+      () => db.from('brigadistas').select().eq('vecino_id', uid!).limit(1),
+    );
+    return r.isEmpty ? null : Brigadista.fromMap(r.first);
+  }
+
+  /// Vecinos registrados en un sector (para el panel de la junta).
+  Future<List<MiembroSector>> miembrosSector(String sector) async {
+    final r = await _consultar(
+      'miembros_$sector',
+      () => db
+          .from('perfiles')
+          .select('id, nombre, verificado_gps, ayudas_confirmadas')
+          .eq('sector', sector)
+          .eq('rol', 'vecino')
+          .order('nombre')
+          .limit(500),
+    );
+    return r.map(MiembroSector.fromMap).toList();
+  }
+
+  Future<List<Brigadista>> brigadistasSector(String sector) async {
+    final r = await _consultar(
+      'brigadistas_$sector',
+      () => db.from('brigadistas').select('*, perfiles!brigadistas_vecino_id_fkey(nombre)').eq('sector', sector),
+    );
+    return r.map(Brigadista.fromMap).toList();
+  }
+
+  Future<void> nombrarBrigadista({required String vecinoId, required String sector, required String especialidad}) =>
+      db.from('brigadistas').insert({'vecino_id': vecinoId, 'sector': sector, 'especialidad': especialidad, 'estado': 'invitado'});
+
+  /// La junta quita a un brigadista, o el propio vecino renuncia / dice "Ahora no".
+  Future<void> quitarBrigadista(String vecinoId) => db.from('brigadistas').delete().eq('vecino_id', vecinoId);
+
+  Future<void> aceptarNombramiento() => db
+      .from('brigadistas')
+      .update({'estado': 'activo', 'aceptado_en': DateTime.now().toUtc().toIso8601String()}).eq('vecino_id', uid!);
+
+  Future<List<CanalSector>> canalesSector(String sector) async {
+    final r = await _consultar(
+      'canales_$sector',
+      () => db.from('canales_sector').select().eq('sector', sector).order('created_at'),
+    );
+    return r.map(CanalSector.fromMap).toList();
+  }
+
+  Future<void> guardarCanal(CanalSector c) => db.from('canales_sector').insert(c.toInsert());
+
+  Future<void> borrarCanal(String id) => db.from('canales_sector').delete().eq('id', id);
+
   // ----------------------------------------------------------- escrituras
 
   Future<void> _enviar(EntradaPendiente e) => db

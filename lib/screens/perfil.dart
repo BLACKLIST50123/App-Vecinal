@@ -14,7 +14,7 @@ import 'auth_screen.dart';
 import 'confianza.dart';
 import 'detalles.dart';
 import 'qr_screens.dart';
-import 'roles.dart';
+import '../features/junta/junta.dart';
 import 'tutorial.dart';
 
 /// Pestaña "Perfil": foto y datos, reconocimiento, 4 accesos grandes y
@@ -62,6 +62,8 @@ class PerfilScreen extends StatelessWidget {
     return ListView(padding: const EdgeInsets.only(bottom: 120), children: [
       if (st.logueado) ...[
         const _CabeceraPerfil(),
+        // Invitación de la junta para ser brigadista (Aceptar / Ahora no).
+        const TarjetaNombramiento(),
         _TarjetaReconocimiento(ayudas: ayudas),
       ] else
         _TarjetaInvitado(onEntrar: () => _ir(context, const AuthScreen())),
@@ -140,12 +142,48 @@ class PerfilScreen extends StatelessWidget {
           ),
           if (st.esModerador)
             FilaAjuste(
+              icono: Icons.groups_2_outlined,
+              texto: 'Brigadistas y canales del sector',
+              onTap: () => _ir(context, const PanelJuntaScreen()),
+            ),
+          if (st.esModerador)
+            FilaAjuste(
               icono: Icons.campaign_outlined,
               texto: 'Modo emergencia',
               valor: st.modoEmergencia ? 'Activa' : 'Apagada',
               color: st.modoEmergencia ? Paleta.rojo : null,
               onTap: () => _ir(context, const JuntaVecinalScreen()),
             ),
+        ]),
+      ],
+
+      // Canales de la junta del sector (WhatsApp, teléfono, reuniones).
+      if (st.logueado) const TarjetaMiJunta(),
+
+      if (st.esBrigadista) ...[
+        const TituloDiseno('Brigadista'),
+        ListaAjustes(filas: [
+          FilaAjuste(
+            icono: Icons.health_and_safety_outlined,
+            texto: 'Dejar de ser brigadista',
+            color: Paleta.rojo,
+            onTap: () async {
+              final ok = await confirmar(
+                context,
+                titulo: '¿Dejar de ser brigadista?',
+                mensaje: 'Ya no verás el panel de alertas ni los canales privados. La junta podrá nombrarte otra vez.',
+                accion: 'Sí, dejarlo',
+                peligro: true,
+              );
+              if (!ok) return;
+              try {
+                await st.responderNombramiento(false);
+                avisar('Ya no eres brigadista.');
+              } catch (e) {
+                avisar(traducirError(e));
+              }
+            },
+          ),
         ]),
       ],
 
@@ -244,6 +282,12 @@ class _CabeceraPerfil extends StatelessWidget {
             texto: st.verificado ? 'Vecino verificado' : 'Sin verificar',
             color: st.verificado ? primario : Paleta.ambar,
           ),
+          if (st.esBrigadista)
+            _Distintivo(
+              icono: Icons.health_and_safety_rounded,
+              texto: 'Brigadista · ${st.brigadista!.especialidadNombre}',
+              color: Paleta.rojo,
+            ),
           if (st.esPrestador) const _Distintivo(icono: Icons.handyman, texto: 'Ofrece servicios', color: Paleta.acentoOscuro),
         ]),
         if (sinFoto) ...[
@@ -366,13 +410,6 @@ class MasOpcionesScreen extends StatelessWidget {
         const TituloDiseno('Mi barrio'),
         ListaAjustes(filas: [
           FilaAjuste(icono: Icons.location_on_outlined, texto: 'Mi barrio', valor: st.sector ?? Zona.nombre),
-          FilaAjuste(
-            icono: infoRol(st.rolSimulado).icono,
-            texto: '¿Quién soy hoy?',
-            valor: infoRol(st.rolSimulado).titulo.split(' /').first,
-            color: infoRol(st.rolSimulado).color,
-            onTap: () => _ir(context, const SelectorRolScreen(inicial: false)),
-          ),
           FilaAjuste(
             icono: Icons.emoji_events_outlined,
             texto: 'Vecinos que más ayudan',

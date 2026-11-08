@@ -592,3 +592,101 @@ class RespuestaForo {
     );
   }
 }
+
+// ================================================================ brigadistas
+
+/// Especialidades de un brigadista (las nombra la junta vecinal).
+const especialidadesBrigadista = <(String, String, IconData)>[
+  ('primeros_auxilios', 'Primeros auxilios', Icons.medical_services_outlined),
+  ('rescate', 'Rescate', Icons.support_outlined),
+  ('evacuacion', 'Evacuación', Icons.directions_run_rounded),
+  ('logistica', 'Víveres y logística', Icons.inventory_2_outlined),
+  ('comunicacion', 'Comunicación', Icons.campaign_outlined),
+  ('general', 'Apoyo general', Icons.volunteer_activism_outlined),
+];
+
+(String, String, IconData) especialidadBrigadista(String id) =>
+    especialidadesBrigadista.firstWhere((e) => e.$1 == id, orElse: () => especialidadesBrigadista.last);
+
+/// Un brigadista del sector: invitado (falta que acepte) o activo.
+class Brigadista {
+  Brigadista({required this.vecinoId, required this.sector, required this.especialidad, required this.estado, this.nombre, this.creado});
+  final String vecinoId, sector, especialidad, estado;
+  final String? nombre;
+  final DateTime? creado;
+
+  bool get activo => estado == 'activo';
+  bool get invitado => estado == 'invitado';
+  String get especialidadNombre => especialidadBrigadista(especialidad).$2;
+
+  factory Brigadista.fromMap(Map<String, dynamic> m) => Brigadista(
+        vecinoId: m['vecino_id'] as String,
+        sector: (m['sector'] ?? '') as String,
+        especialidad: (m['especialidad'] ?? 'general') as String,
+        estado: (m['estado'] ?? 'invitado') as String,
+        nombre: (m['perfiles'] as Map?)?['nombre'] as String?,
+        creado: DateTime.tryParse('${m['created_at']}')?.toLocal(),
+      );
+
+  Map<String, dynamic> toJson() =>
+      {'vecino_id': vecinoId, 'sector': sector, 'especialidad': especialidad, 'estado': estado, 'perfiles': {'nombre': nombre}};
+}
+
+/// Vecino del sector, para el panel de la junta (sin datos privados).
+class MiembroSector {
+  MiembroSector({required this.id, required this.nombre, required this.verificado, required this.ayudas});
+  final String id, nombre;
+  final bool verificado;
+  final int ayudas;
+
+  factory MiembroSector.fromMap(Map<String, dynamic> m) => MiembroSector(
+        id: m['id'] as String,
+        nombre: (m['nombre'] ?? 'Vecino') as String,
+        verificado: m['verificado_gps'] == true,
+        ayudas: (m['ayudas_confirmadas'] as num?)?.toInt() ?? 0,
+      );
+}
+
+/// Canal de comunicación del sector (grupo de WhatsApp, teléfono, reunión...).
+class CanalSector {
+  CanalSector({this.id, required this.sector, required this.tipo, required this.etiqueta, required this.valor, this.publico = true});
+  final String? id;
+  final String sector, tipo, etiqueta, valor;
+  final bool publico;
+
+  IconData get icono => switch (tipo) {
+        'whatsapp' => Icons.chat_rounded,
+        'telegram' => Icons.send_rounded,
+        'telefono' => Icons.call_rounded,
+        'reunion' => Icons.groups_rounded,
+        _ => Icons.link_rounded,
+      };
+
+  String get tipoNombre => switch (tipo) {
+        'whatsapp' => 'WhatsApp',
+        'telegram' => 'Telegram',
+        'telefono' => 'Teléfono',
+        'reunion' => 'Reuniones',
+        _ => 'Otro',
+      };
+
+  /// Enlace que se abre al tocar (null si es solo texto, como una reunión).
+  Uri? get enlace {
+    final v = valor.trim();
+    if (tipo == 'telefono') return Uri.parse('tel:${v.replaceAll(RegExp(r'[^0-9+]'), '')}');
+    if (v.startsWith('http://') || v.startsWith('https://')) return Uri.tryParse(v);
+    return null;
+  }
+
+  factory CanalSector.fromMap(Map<String, dynamic> m) => CanalSector(
+        id: m['id'] as String?,
+        sector: (m['sector'] ?? '') as String,
+        tipo: (m['tipo'] ?? 'otro') as String,
+        etiqueta: (m['etiqueta'] ?? '') as String,
+        valor: (m['valor'] ?? '') as String,
+        publico: m['publico'] != false,
+      );
+
+  Map<String, dynamic> toInsert() =>
+      {if (id != null) 'id': id, 'sector': sector, 'tipo': tipo, 'etiqueta': etiqueta, 'valor': valor, 'publico': publico};
+}

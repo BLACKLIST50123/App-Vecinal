@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../config.dart';
 import '../features/inicio/mapa_inicio.dart';
+import '../features/junta/junta.dart';
 import '../features/inicio/pulso.dart';
 import '../models.dart';
 import '../state/app_state.dart';
@@ -35,6 +36,8 @@ class InicioScreen extends StatelessWidget {
       child: ListView(
         padding: const EdgeInsets.only(bottom: 110),
         children: [
+          // Invitación de la junta para ser brigadista (si la hay).
+          const TarjetaNombramiento(),
           // El brigadista ve primero las alertas SOS de su zona.
           if (st.esBrigadista) const PanelBrigadista(),
           const _Bienvenida(),
