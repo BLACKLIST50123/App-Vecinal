@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models.dart';
+import '../state/app_state.dart' show SinPermiso;
 import 'datos_iniciales.dart';
 
 /// Publicación creada sin conexión (o traída por QR) que espera enviarse.
@@ -731,6 +732,26 @@ class Repo {
     await actualizarPerfil({'foto_url': url});
     return url;
   }
+
+  // ------------------------------------------- recuperar la clave (0015)
+
+  /// Código nuevo de recuperación para la cuenta con sesión (anula el anterior).
+  Future<String> crearCodigoRecuperacion() async =>
+      (await db.rpc('crear_codigo_recuperacion').timeout(const Duration(seconds: 15))) as String;
+
+  /// Cambia la clave con el código. Devuelve el código NUEVO si salió bien;
+  /// si no, lanza [SinPermiso] con el motivo para mostrarlo tal cual.
+  Future<String> recuperarClave({required String email, required String codigo, required String nueva}) async {
+    final r = await db.rpc('recuperar_clave', params: {'p_email': email, 'p_codigo': codigo, 'p_nueva': nueva})
+        .timeout(const Duration(seconds: 15));
+    final m = Map<String, dynamic>.from(r as Map);
+    if (m['ok'] == true) return m['codigo'] as String;
+    throw SinPermiso((m['mensaje'] as String?) ?? 'No se pudo cambiar la clave.');
+  }
+
+  /// La junta vecinal genera un código para un vecino que perdió el suyo.
+  Future<String> codigoParaVecino(String celular) async =>
+      (await db.rpc('codigo_para_vecino', params: {'p_celular': celular}).timeout(const Duration(seconds: 15))) as String;
 
   Future<void> quitarFotoPerfil() async {
     try {

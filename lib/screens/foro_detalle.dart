@@ -10,6 +10,8 @@ import '../ui/widgets.dart';
 import 'auth_screen.dart';
 import 'foro_modales.dart';
 import 'foro_widgets.dart';
+import '../util.dart';
+import 'package:flutter/services.dart';
 
 /// Pantalla de detalle de la conversación en el foro.
 class DetalleTemaForoScreen extends StatefulWidget {
@@ -43,6 +45,11 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
   Future<void> _enviarRespuesta() async {
     final texto = _respuestaCtrl.text.trim();
     if (texto.isEmpty || _enviando) return;
+    final problema = validarTexto(texto, min: 2, max: Limites.comentario);
+    if (problema != null) {
+      avisar(problema);
+      return;
+    }
 
     final st = context.read<AppState>();
     if (!st.logueado) {
@@ -693,6 +700,9 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                   child: TextField(
                     controller: _respuestaCtrl,
                     focusNode: _nodoFoco,
+                    maxLength: Limites.comentario,
+                    maxLengthEnforcement: MaxLengthEnforcement.enforced,
+                    buildCounter: (_, {required currentLength, required isFocused, maxLength}) => null,
                     textCapitalization: TextCapitalization.sentences,
                     decoration: InputDecoration(
                       hintText: _respondiendoA != null
