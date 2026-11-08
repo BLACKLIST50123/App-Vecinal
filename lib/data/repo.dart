@@ -244,6 +244,71 @@ class Repo {
     return filas.map(Servicio.fromMap).toList();
   }
 
+  // -------------------------------------------------------- foro vecinal
+
+  Future<List<Map<String, dynamic>>> temasForo() async {
+    try {
+      return await _consultar(
+        'foro_temas',
+        () => db
+            .from('foro_temas')
+            .select('*, foro_apoyos(usuario_id)')
+            .order('created_at', ascending: false)
+            .limit(200),
+      );
+    } on PostgrestException catch (e) {
+      if (e.code == '42P01') return [];
+      rethrow;
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> respuestasForo(String temaId) async {
+    try {
+      return await _consultar(
+        'foro_respuestas_$temaId',
+        () => db
+            .from('foro_respuestas')
+            .select()
+            .eq('tema_id', temaId)
+            .order('created_at', ascending: true)
+            .limit(300),
+      );
+    } on PostgrestException catch (e) {
+      if (e.code == '42P01') return [];
+      rethrow;
+    }
+  }
+
+  Future<void> crearTemaForo(Map<String, dynamic> datos) async {
+    await db.from('foro_temas').insert(datos);
+  }
+
+  Future<void> crearRespuestaForo(Map<String, dynamic> datos) async {
+    await db.from('foro_respuestas').insert(datos);
+  }
+
+  Future<void> toggleApoyoForo(String temaId, bool apoyar) async {
+    final u = uid;
+    if (u == null) return;
+    if (apoyar) {
+      await db.from('foro_apoyos').upsert({'tema_id': temaId, 'usuario_id': u});
+    } else {
+      await db.from('foro_apoyos').delete().eq('tema_id', temaId).eq('usuario_id', u);
+    }
+  }
+
+  Future<void> eliminarTemaForo(String id) async {
+    await db.from('foro_temas').delete().eq('id', id);
+  }
+
+  Future<void> cambiarEstadoTemaForo(String id, String estado) async {
+    await db.from('foro_temas').update({'estado': estado}).eq('id', id);
+  }
+
+  Future<void> eliminarRespuestaForo(String id) async {
+    await db.from('foro_respuestas').delete().eq('id', id);
+  }
+
   // ------------------------------------------- confianza y coordinación
 
   Future<void> reportar({

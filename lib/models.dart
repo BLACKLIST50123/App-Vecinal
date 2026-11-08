@@ -396,3 +396,198 @@ class PedidoServicio {
         'estado': estado,
       };
 }
+
+
+// ==================================================== Módulo 4 · Foro Vecinal
+
+/// Tipos de publicaciones en el foro vecinal.
+enum TipoPublicacionForo { servicio, dialogo, recomendacion, aviso }
+
+/// Publicación o consulta en el foro vecinal.
+class TemaForo {
+  TemaForo({
+    required this.id,
+    this.autorId,
+    required this.tipo,
+    required this.titulo,
+    required this.contenido,
+    required this.autorNombre,
+    this.autorRol = 'vecino',
+    this.esPrestador = false,
+    this.autorOficio,
+    required this.sector,
+    this.categoriaServicio,
+    this.lat,
+    this.lng,
+    this.apoyos = 0,
+    this.apoyadoPorUsuario = false,
+    this.respuestasCount = 0,
+    this.estado = 'abierto',
+    required this.creado,
+  });
+
+  final String id;
+  final String? autorId;
+  final TipoPublicacionForo tipo;
+  final String titulo;
+  final String contenido;
+  final String autorNombre;
+  final String autorRol;
+  final bool esPrestador;
+  final String? autorOficio;
+  final String sector;
+  final String? categoriaServicio;
+  final double? lat;
+  final double? lng;
+  int apoyos;
+  bool apoyadoPorUsuario;
+  int respuestasCount;
+  String estado; // 'abierto', 'resuelto', 'cerrado'
+  final DateTime creado;
+
+  String get tiempoRelativo {
+    final diff = DateTime.now().difference(creado);
+    if (diff.inMinutes < 60) {
+      final m = diff.inMinutes.clamp(1, 59);
+      return 'Hace $m min';
+    }
+    if (diff.inHours < 24) {
+      final h = diff.inHours;
+      return 'Hace $h ${h == 1 ? 'hora' : 'horas'}';
+    }
+    final d = diff.inDays;
+    return 'Hace $d ${d == 1 ? 'día' : 'días'}';
+  }
+
+  (String, IconData, Color, Color) get datosTipo => switch (tipo) {
+        TipoPublicacionForo.servicio => (
+            'Busca servicio',
+            Icons.handyman_rounded,
+            const Color(0xFF0284C7),
+            const Color(0xFFE0F2FE),
+          ),
+        TipoPublicacionForo.recomendacion => (
+            'Recomendación',
+            Icons.verified_rounded,
+            const Color(0xFFD97706),
+            const Color(0xFFFEF3C7),
+          ),
+        TipoPublicacionForo.aviso => (
+            'Aviso vecinal',
+            Icons.campaign_rounded,
+            const Color(0xFF7C3AED),
+            const Color(0xFFF3E8FF),
+          ),
+        TipoPublicacionForo.dialogo => (
+            'Comunidad',
+            Icons.forum_rounded,
+            const Color(0xFF059669),
+            const Color(0xFFD1FAE5),
+          ),
+      };
+
+  factory TemaForo.fromMap(Map<String, dynamic> m, {String? miUid}) {
+    final tipoStr = (m['tipo'] ?? 'dialogo') as String;
+    final t = switch (tipoStr) {
+      'servicio' => TipoPublicacionForo.servicio,
+      'recomendacion' => TipoPublicacionForo.recomendacion,
+      'aviso' => TipoPublicacionForo.aviso,
+      _ => TipoPublicacionForo.dialogo,
+    };
+
+    var apoyado = false;
+    final apoyos = m['foro_apoyos'];
+    if (miUid != null && apoyos is List) {
+      apoyado = apoyos.any((a) => a is Map && a['usuario_id'] == miUid);
+    }
+
+    return TemaForo(
+      id: m['id'] as String,
+      autorId: m['autor_id'] as String?,
+      tipo: t,
+      titulo: (m['titulo'] ?? '') as String,
+      contenido: (m['contenido'] ?? '') as String,
+      autorNombre: (m['autor_nombre'] ?? 'Vecino') as String,
+      autorRol: (m['autor_rol'] ?? 'vecino') as String,
+      esPrestador: m['es_prestador'] == true,
+      autorOficio: m['autor_oficio'] as String?,
+      sector: (m['sector'] ?? 'Chimbote') as String,
+      categoriaServicio: m['categoria_servicio'] as String?,
+      lat: (m['lat'] as num?)?.toDouble(),
+      lng: (m['lng'] as num?)?.toDouble(),
+      apoyos: (m['apoyos_count'] as num?)?.toInt() ?? 0,
+      apoyadoPorUsuario: apoyado,
+      respuestasCount: (m['respuestas_count'] as num?)?.toInt() ?? 0,
+      estado: (m['estado'] ?? 'abierto') as String,
+      creado: DateTime.tryParse(m['created_at']?.toString() ?? '')?.toLocal() ?? DateTime.now(),
+    );
+  }
+}
+
+/// Respuesta o comentario a un tema del foro vecinal.
+class RespuestaForo {
+  RespuestaForo({
+    required this.id,
+    required this.temaId,
+    this.autorId,
+    required this.contenido,
+    required this.autorNombre,
+    this.autorRol = 'vecino',
+    this.esPrestador = false,
+    this.autorOficio,
+    this.sector,
+    this.contactoTelefono,
+    this.nombreComercial,
+    this.servicioId,
+    this.vistosBuenos = 0,
+    required this.creado,
+  });
+
+  final String id;
+  final String temaId;
+  final String? autorId;
+  final String contenido;
+  final String autorNombre;
+  final String autorRol;
+  final bool esPrestador;
+  final String? autorOficio;
+  final String? sector;
+  final String? contactoTelefono;
+  final String? nombreComercial;
+  final String? servicioId;
+  final int vistosBuenos;
+  final DateTime creado;
+
+  String get tiempoRelativo {
+    final diff = DateTime.now().difference(creado);
+    if (diff.inMinutes < 60) {
+      final m = diff.inMinutes.clamp(1, 59);
+      return 'Hace $m min';
+    }
+    if (diff.inHours < 24) {
+      final h = diff.inHours;
+      return 'Hace $h ${h == 1 ? 'hora' : 'horas'}';
+    }
+    final d = diff.inDays;
+    return 'Hace $d ${d == 1 ? 'día' : 'días'}';
+  }
+
+  factory RespuestaForo.fromMap(Map<String, dynamic> m) {
+    return RespuestaForo(
+      id: m['id'] as String,
+      temaId: m['tema_id'] as String,
+      autorId: m['autor_id'] as String?,
+      contenido: (m['contenido'] ?? '') as String,
+      autorNombre: (m['autor_nombre'] ?? 'Vecino') as String,
+      autorRol: (m['autor_rol'] ?? 'vecino') as String,
+      esPrestador: m['es_prestador'] == true,
+      autorOficio: m['autor_oficio'] as String?,
+      sector: m['sector'] as String?,
+      contactoTelefono: m['contacto_telefono'] as String?,
+      nombreComercial: m['nombre_comercial'] as String?,
+      servicioId: m['servicio_id'] as String?,
+      vistosBuenos: (m['vistos_buenos'] as num?)?.toInt() ?? 0,
+      creado: DateTime.tryParse(m['created_at']?.toString() ?? '')?.toLocal() ?? DateTime.now(),
+    );
+  }
+}
