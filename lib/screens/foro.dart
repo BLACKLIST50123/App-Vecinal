@@ -219,7 +219,7 @@ class _ForoScreenState extends State<ForoScreen> {
           }).toList();
 
           return ListView(
-            padding: const EdgeInsets.only(bottom: 100),
+            padding: const EdgeInsets.only(bottom: 24),
             children: [
               ConsejoPrimeraVez(
                 clave: 'foro',

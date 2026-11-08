@@ -487,34 +487,31 @@ class TarjetaForo extends StatelessWidget {
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 14),
-                            // Expanded + ellipsis: con letra grande no se desborda la fila.
-                            Expanded(
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.chat_bubble_outline_rounded,
-                                    size: 16,
-                                    color: Paleta.gris,
-                                  ),
-                                  const SizedBox(width: 5),
-                                  Flexible(
-                                    child: Text(
-                                      '${tema.respuestasCount} ${tema.respuestasCount == 1 ? 'comentario' : 'comentarios'}',
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        color: Paleta.gris,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 6),
+                            const SizedBox(width: 8),
+                            // Comentarios (conteo limpio sin colisiones)
                             Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.chat_bubble_outline_rounded,
+                                  size: 16,
+                                  color: Paleta.gris,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${tema.respuestasCount}',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Paleta.gris,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const Spacer(),
+                            // Acción
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
                                   tema.tipo == TipoPublicacionForo.servicio
