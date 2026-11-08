@@ -24,7 +24,7 @@ arriba del perfil y en la fila **Ajustes → Notificaciones**, mientras:
 - el celular bloquee los avisos (permiso negado), o
 - tenga apagado algún aviso de emergencia.
 
-## Fase 1 (esta rama): avisos con la app abierta o en segundo plano
+## Avisos con la app abierta o en segundo plano
 - `lib/services/notificaciones.dart`: tipos de aviso y avisos del sistema
   (`flutter_local_notifications`, solo Android; en web se usan mensajes en pantalla).
 - `AppState`: preferencias guardadas en el teléfono (`shared_preferences`),
@@ -35,24 +35,7 @@ arriba del perfil y en la fila **Ajustes → Notificaciones**, mientras:
 - `lib/screens/notificaciones_screen.dart`: pantalla para activar y elegir.
 - Android: permiso `POST_NOTIFICATIONS` y desugaring en Gradle.
 
-## Avisos con la app cerrada SIN Firebase: el Vigía (activo)
-`lib/services/vigia.dart` revisa Supabase en segundo plano y muestra lo nuevo
-una sola vez (cada evento usa un id fijo, nunca sale repetido):
-
-| Mecanismo | Cuándo | Frecuencia |
-|---|---|---|
-| Revisión periódica (WorkManager) | Siempre que los avisos estén activados | ~15 min (Android puede demorarla) |
-| Modo alerta (servicio en primer plano) | Durante una emergencia, o si el vecino activa "Modo alerta permanente" | cada 30 s |
-
-- El modo alerta muestra un aviso fijo "Conecta Vecino · Modo alerta" (lo exige Android).
-- Revisa: modo emergencia, SOS a ≤ 2 km, pedidos de ayuda y foro.
-  "Pedidos a mis servicios" necesita la sesión: llega con la app abierta o en segundo plano.
-- Probado en emulador: con la app quitada de Recientes, el servicio revive solo y
-  publica "🚨 EMERGENCIA en tu barrio".
-- Algunas marcas (Xiaomi, Huawei, Oppo) cierran servicios para ahorrar batería:
-  conviene quitar la app de "Optimización de batería".
-
-## Fase 2: push con la app cerrada (código listo, falta configurar)
+## Avisos con la app cerrada: push con Firebase (activo)
 
 ### Cómo funciona
 1. La app obtiene el **token FCM** del celular (`lib/services/push.dart`) y lo
@@ -64,7 +47,8 @@ una sola vez (cada evento usa un id fijo, nunca sale repetido):
    **FCM v1**. Android lo muestra aunque la app esté cerrada.
 4. Si el push está activo, la app ya no repite el aviso local (no hay duplicados).
 
-Sin claves de Firebase la app funciona igual que antes (solo avisos locales).
+Sin claves de Firebase (por ejemplo en web) solo hay avisos locales mientras la app esté viva.
+Las claves van en `supabase.json` (FIREBASE_API_KEY, FIREBASE_APP_ID, FIREBASE_SENDER_ID, FIREBASE_PROJECT_ID), que no se sube a Git.
 
 ### Pasos para activarlo (una sola vez)
 **Firebase**

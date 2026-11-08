@@ -25,17 +25,29 @@ class Push {
   /// true cuando este celular ya está registrado para recibir push.
   static bool get activo => _listo && _token != null;
 
-  static Future<void> iniciar() async {
-    if (!configurado || _listo) return;
+  /// Se llama cuando Firebase cambia el token (hay que volver a registrarlo).
+  static VoidCallback? alRenovarToken;
+
+  static Future<void>? _iniciando;
+
+  /// Inicia Firebase una sola vez aunque se llame varias veces a la vez.
+  static Future<void> iniciar() {
+    if (!configurado || _listo) return Future.value();
+    return _iniciando ??= _iniciar().whenComplete(() => _iniciando = null);
+  }
+
+  static Future<void> _iniciar() async {
     try {
-      await Firebase.initializeApp(
-        options: const FirebaseOptions(
-          apiKey: _apiKey,
-          appId: _appId,
-          messagingSenderId: _senderId,
-          projectId: _projectId,
-        ),
-      );
+      if (Firebase.apps.isEmpty) {
+        await Firebase.initializeApp(
+          options: const FirebaseOptions(
+            apiKey: _apiKey,
+            appId: _appId,
+            messagingSenderId: _senderId,
+            projectId: _projectId,
+          ),
+        );
+      }
       // Los canales deben existir antes de que llegue un push con la app cerrada.
       await Notificaciones.crearCanales();
       // getToken() sigue siendo el token que acepta FCM v1 (message.token).
@@ -43,7 +55,10 @@ class Push {
       _token = await FirebaseMessaging.instance.getToken();
       _listo = true;
       // ignore: deprecated_member_use
-      FirebaseMessaging.instance.onTokenRefresh.listen((t) => _token = t);
+      FirebaseMessaging.instance.onTokenRefresh.listen((t) {
+        _token = t;
+        alRenovarToken?.call();
+      });
     } catch (e) {
       debugPrint('Push sin configurar: $e');
     }
@@ -74,6 +89,7 @@ class Push {
         'p_lat': lat,
         'p_lng': lng,
       });
+      debugPrint('Push: dispositivo registrado en Supabase');
     } catch (e) {
       debugPrint('No se pudo registrar el dispositivo: $e');
     }
