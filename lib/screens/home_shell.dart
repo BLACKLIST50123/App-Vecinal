@@ -7,7 +7,7 @@ import '../services/voz.dart';
 import '../state/app_state.dart';
 import '../ui/diseno.dart';
 import '../ui/widgets.dart';
-import 'aportes.dart';
+import 'foro.dart';
 import 'inicio.dart';
 import 'listas.dart';
 import 'mapa.dart';
@@ -33,11 +33,11 @@ class _HomeShellState extends State<HomeShell> {
   String? _consulta; // búsqueda inicial para Servicios (desde Inicio)
 
   void _irA(int i, {String? grupo, String? consulta}) => setState(() {
-        _tab = i;
-        _grupo = grupo;
-        _consulta = consulta;
-        _fabVisible = true;
-      });
+    _tab = i;
+    _grupo = grupo;
+    _consulta = consulta;
+    _fabVisible = true;
+  });
 
   /// El botón Publicar se esconde al bajar (no tapa contenido) y vuelve al subir.
   bool _alDesplazar(UserScrollNotification n) {
@@ -67,30 +67,71 @@ class _HomeShellState extends State<HomeShell> {
         consultaInicial: _consulta,
       ),
       FavoresScreen(emergencia: e),
-      const MisAportesScreen(),
+      const ForoScreen(),
       const PerfilScreen(),
     ];
 
     final encabezados = <(String, String?)>[
-      e ? ('Emergencia', st.emergencia.titulo) : ('Hola, ${st.logueado ? st.nombre.split(' ').first : 'vecino'}', fechaLarga(DateTime.now())),
-      e ? ('Grupos de apoyo', 'Emergencia') : ('Servicios y productos', 'Compra local en ${Zona.nombre}'),
-      e ? ('Tablero de ayuda', 'Emergencia') : ('Solidaridad', 'Juntos hacemos más'),
-      ('Mis aportes', 'Administra tus servicios y pedidos'),
+      e
+          ? ('Emergencia', st.emergencia.titulo)
+          : (
+              'Hola, ${st.logueado ? st.nombre.split(' ').first : 'vecino'}',
+              fechaLarga(DateTime.now()),
+            ),
+      e
+          ? ('Grupos de apoyo', 'Emergencia')
+          : ('Servicios y productos', 'Compra local en ${Zona.nombre}'),
+      e
+          ? ('Tablero de ayuda', 'Emergencia')
+          : ('Solidaridad', 'Juntos hacemos más'),
+      ('Foro Vecinal', 'Preguntas, servicios y diálogo de barrio'),
       ('Mi perfil', st.logueado ? null : 'Estás como visitante'),
     ];
 
     final destinos = <NavigationDestination>[
       e
-          ? const NavigationDestination(icon: Icon(Icons.sos_outlined), selectedIcon: Icon(Icons.sos), label: 'Emergencia')
-          : const NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Inicio'),
+          ? const NavigationDestination(
+              icon: Icon(Icons.sos_outlined),
+              selectedIcon: Icon(Icons.sos),
+              label: 'Emergencia',
+            )
+          : const NavigationDestination(
+              icon: Icon(Icons.home_outlined),
+              selectedIcon: Icon(Icons.home),
+              label: 'Inicio',
+            ),
       e
-          ? const NavigationDestination(icon: Icon(Icons.health_and_safety_outlined), selectedIcon: Icon(Icons.health_and_safety), label: 'Apoyo')
-          : const NavigationDestination(icon: Icon(Icons.storefront_outlined), selectedIcon: Icon(Icons.storefront), label: 'Servicios'),
+          ? const NavigationDestination(
+              icon: Icon(Icons.health_and_safety_outlined),
+              selectedIcon: Icon(Icons.health_and_safety),
+              label: 'Apoyo',
+            )
+          : const NavigationDestination(
+              icon: Icon(Icons.storefront_outlined),
+              selectedIcon: Icon(Icons.storefront),
+              label: 'Servicios',
+            ),
       e
-          ? const NavigationDestination(icon: Icon(Icons.volunteer_activism_outlined), selectedIcon: Icon(Icons.volunteer_activism), label: 'Ayuda')
-          : const NavigationDestination(icon: Icon(Icons.favorite_border), selectedIcon: Icon(Icons.favorite), label: 'Solidaridad'),
-      const NavigationDestination(icon: Icon(Icons.inventory_2_outlined), selectedIcon: Icon(Icons.inventory_2), label: 'Mis aportes'),
-      const NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Perfil'),
+          ? const NavigationDestination(
+              icon: Icon(Icons.volunteer_activism_outlined),
+              selectedIcon: Icon(Icons.volunteer_activism),
+              label: 'Ayuda',
+            )
+          : const NavigationDestination(
+              icon: Icon(Icons.favorite_border),
+              selectedIcon: Icon(Icons.favorite),
+              label: 'Solidaridad',
+            ),
+      const NavigationDestination(
+        icon: Icon(Icons.forum_outlined),
+        selectedIcon: Icon(Icons.forum),
+        label: 'Foro',
+      ),
+      const NavigationDestination(
+        icon: Icon(Icons.person_outline),
+        selectedIcon: Icon(Icons.person),
+        label: 'Perfil',
+      ),
     ];
 
     final (titulo, subtitulo) = encabezados[_tab];
@@ -100,13 +141,11 @@ class _HomeShellState extends State<HomeShell> {
       e
           ? 'Emergencia. ${st.emergencia.titulo ?? ''}. ${st.emergencia.mensaje ?? ''}. Para pedir ayuda, toca el botón rojo Necesito ayuda.'
           : 'Inicio. Busca servicios y productos, explora tu barrio o entra a Solidaridad para pedir o dar una mano.',
-      e
-          ? 'Grupos de apoyo para la emergencia. Toca uno para llamar.'
-          : 'Servicios y productos de tu barrio. Usa el buscador o los filtros. Cada tarjeta muestra sus Vistos Buenos y el precio.',
+      e ? 'Grupos de apoyo para la emergencia. Toca uno para llamar.' : 'Servicios y productos de tu barrio. Usa el buscador o los filtros. Cada tarjeta muestra sus Vistos Buenos y el precio.',
       e
           ? 'Tablero de ayuda. Aquí ves quién necesita ayuda y qué cosas hay para compartir.'
           : 'Solidaridad. Aquí los vecinos se ayudan sin dinero. Puedes pedir una mano, dar algo o aportar a una colecta.',
-      'Mis aportes. Administra los pedidos que te llegan y publica o edita tus servicios y productos.',
+      'Foro vecinal. Conversa con tus vecinos, pide recomendaciones o pregunta por servicios que necesitas en tu barrio.',
       'Tu perfil: tu reconocimiento en el barrio, tu historial y los ajustes de accesibilidad.',
     ];
     final mostrarFab = _tab != 3 && _tab != 4 && (e || _tab != 2);
@@ -114,39 +153,49 @@ class _HomeShellState extends State<HomeShell> {
     return Scaffold(
       body: SafeArea(
         bottom: false,
-        child: Column(children: [
-          if (e && _tab != 0) const BannerEmergencia(),
-          const BannerConexion(),
-          EncabezadoPantalla(
-            titulo: titulo,
-            subtitulo: subtitulo,
-            acciones: [
-              BotonCuadrado(
-                icono: Icons.map_outlined,
-                tooltip: 'Mapa del barrio',
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PantallaMapaCompleto())),
-              ),
-              if (st.voz)
+        child: Column(
+          children: [
+            if (e && _tab != 0) const BannerEmergencia(),
+            const BannerConexion(),
+            EncabezadoPantalla(
+              titulo: titulo,
+              subtitulo: subtitulo,
+              acciones: [
                 BotonCuadrado(
-                  icono: Icons.volume_up_outlined,
-                  tooltip: 'Escuchar esta página',
-                  onTap: () => Voz.hablar(resumenes[_tab]),
+                  icono: Icons.map_outlined,
+                  tooltip: 'Mapa del barrio',
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const PantallaMapaCompleto(),
+                    ),
+                  ),
                 ),
-              BotonCuadrado(
-                icono: Icons.qr_code_scanner,
-                tooltip: 'Llevar mensajes por QR',
-                contador: st.pendientes,
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PendientesScreen())),
-              ),
-            ],
-          ),
-          Expanded(
-            child: NotificationListener<UserScrollNotification>(
-              onNotification: _alDesplazar,
-              child: paginas[_tab],
+                if (st.voz)
+                  BotonCuadrado(
+                    icono: Icons.volume_up_outlined,
+                    tooltip: 'Escuchar esta página',
+                    onTap: () => Voz.hablar(resumenes[_tab]),
+                  ),
+                BotonCuadrado(
+                  icono: Icons.qr_code_scanner,
+                  tooltip: 'Llevar mensajes por QR',
+                  contador: st.pendientes,
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const PendientesScreen()),
+                  ),
+                ),
+              ],
             ),
-          ),
-        ]),
+            Expanded(
+              child: NotificationListener<UserScrollNotification>(
+                onNotification: _alDesplazar,
+                child: paginas[_tab],
+              ),
+            ),
+          ],
+        ),
       ),
       floatingActionButton: !mostrarFab
           ? null
