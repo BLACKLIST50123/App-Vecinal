@@ -206,10 +206,17 @@ class _HomeShellState extends State<HomeShell> {
                 ),
               ),
             ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _tab,
-        onDestinationSelected: (i) => _irA(i),
-        destinations: destinos,
+      // Con letra grande, las etiquetas de la barra crecen poco para no partirse
+      // ("Solidari-dad"); el resto de la pantalla sí usa el tamaño elegido.
+      bottomNavigationBar: MediaQuery(
+        data: MediaQuery.of(context).copyWith(
+          textScaler: MediaQuery.textScalerOf(context).clamp(maxScaleFactor: 1.1),
+        ),
+        child: NavigationBar(
+          selectedIndex: _tab,
+          onDestinationSelected: (i) => _irA(i),
+          destinations: destinos,
+        ),
       ),
     );
   }

@@ -6,6 +6,12 @@
       "runtimeExecutable": "flutter",
       "runtimeArgs": ["run", "-d", "web-server", "--web-port", "8085", "--dart-define-from-file=supabase.json"],
       "port": 8085
+    },
+    {
+      "name": "web-release",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8086", "--directory", "build/web"],
+      "port": 8086
     }
   ]
 }

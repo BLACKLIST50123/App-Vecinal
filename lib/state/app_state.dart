@@ -27,7 +27,11 @@ class AppState extends ChangeNotifier {
     voz = prefs.getBool('voz') ?? true;
     tutorialVisto = prefs.getBool('tutorial_visto') ?? false;
     rolSimulado = prefs.getString('rol_simulado') ?? 'vecino';
-    if (rolSimulado != 'vecino' && rolSimulado != 'brigadista') rolSimulado = 'vecino';
+    // El rol se elige una sola vez; después se cambia desde Perfil.
+    rolElegido = prefs.getBool('rol_elegido') ?? false;
+    // El modo invitado no se recuerda: cada vez que se abre la app sin
+    // cuenta se vuelve a la bienvenida (invitando a crear una cuenta).
+    invitado = false;
     especialidad = prefs.getString('especialidad');
     repo.forzarOffline = prefs.getBool('forzar_offline') ?? false;
     final p = prefs.getString('perfil');
@@ -44,10 +48,17 @@ class AppState extends ChangeNotifier {
   late bool tutorialVisto;
 
   /// Rol elegido en "¿Quién soy hoy?": 'vecino', 'prestador' o 'brigadista'.
-  /// Se recuerda la última elección, pero se pregunta en cada apertura.
+  /// Se pregunta solo la primera vez (no en cada apertura: en una
+  /// emergencia cada paso extra cuesta). Se cambia desde Perfil.
   late String rolSimulado;
   String? especialidad; // oficio del prestador (gasfitero, electricista...)
-  bool rolElegido = false;
+  late bool rolElegido;
+
+  /// Entró sin cuenta desde la pantalla de bienvenida.
+  late bool invitado;
+
+  /// Ya pasó la bienvenida: con cuenta o como invitado.
+  bool get entro => logueado || invitado;
 
   bool _red = true;
   EstadoEmergencia emergencia = const EstadoEmergencia.inactiva();
@@ -210,6 +221,59 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Botón "Aa": A → A+ → A++ → A. Devuelve el nombre del tamaño nuevo.
+  String cambiarLetra() {
+    const tamanos = [1.0, 1.3, 1.6];
+    final i = tamanos.indexWhere((t) => (t - escala).abs() < 0.05);
+    final nuevo = tamanos[(i + 1) % tamanos.length];
+    setEscala(nuevo);
+    return switch (nuevo) { 1.0 => 'normal', 1.3 => 'grande', _ => 'muy grande' };
+  }
+
+  void entrarComoInvitado() {
+    invitado = true;
+    // Los invitados ven el tutorial siempre que entran (se puede saltar).
+    tutorialVisto = false;
+    notifyListeners();
+  }
+
+  /// Inició sesión con una cuenta que ya existía: el tutorial y "¿Quién soy
+  /// hoy?" son solo para cuentas nuevas, así que se saltan (aunque sea un
+  /// celular nuevo). Si en este celular nunca eligió rol, se toma de su
+  /// perfil (prestador o vecino).
+  void entrarConCuentaExistente() {
+    if (!prefs.containsKey('rol_simulado')) {
+      rolSimulado = perfil?['es_prestador'] == true ? 'prestador' : 'vecino';
+      prefs.setString('rol_simulado', rolSimulado);
+    }
+    tutorialVisto = true;
+    rolElegido = true;
+    invitado = false;
+    prefs.setBool('tutorial_visto', true);
+    prefs.setBool('rol_elegido', true);
+    notifyListeners();
+  }
+
+  /// Emergencia en la bienvenida: entra sin cuenta y sin pasos previos,
+  /// directo a la pantalla de ayuda.
+  void entrarEnEmergencia() {
+    invitado = true;
+    tutorialVisto = true; // en emergencia no se muestra el tutorial
+    rolElegido = true;
+    prefs.setBool('tutorial_visto', true);
+    prefs.setBool('rol_elegido', true);
+    notifyListeners();
+  }
+
+  /// Cerrar sesión vuelve a la pantalla de bienvenida.
+  Future<void> cerrarSesion() async {
+    try {
+      await repo.db.auth.signOut();
+    } catch (_) {}
+    invitado = false;
+    await cargarPerfil();
+  }
+
   void setAltoContraste(bool v) {
     altoContraste = v;
     prefs.setBool('alto_contraste', v);
@@ -234,7 +298,12 @@ class AppState extends ChangeNotifier {
   void elegirRol(String rol) {
     rolSimulado = (rol == 'brigadista') ? 'brigadista' : 'vecino';
     rolElegido = true;
-    prefs.setString('rol_simulado', rolSimulado);
+    prefs.setString('rol_simulado', rol);
+    prefs.setBool('rol_elegido', true);
+    if (oficio != null && oficio.trim().isNotEmpty) {
+      especialidad = oficio.trim();
+      prefs.setString('especialidad', especialidad!);
+    }
     notifyListeners();
   }
 

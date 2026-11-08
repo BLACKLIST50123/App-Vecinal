@@ -1,4 +1,4 @@
-# App Vecinal · Chimbote
+# Conecta Vecino · Chimbote
 
 App móvil para obtener **productos y servicios recomendados por vecinos**, con **intercambios solidarios** y un **modo emergencia** para coordinar ayuda en el barrio, incluso **sin internet**.
 

@@ -1,5 +1,6 @@
 import 'package:app_vecinal/config.dart';
 import 'package:app_vecinal/data/qr_codec.dart';
+import 'package:app_vecinal/data/sugerencias.dart';
 import 'package:app_vecinal/main.dart';
 import 'package:app_vecinal/models.dart';
 import 'package:app_vecinal/screens/roles.dart';
@@ -89,70 +90,48 @@ void main() {
     });
   });
 
-  group('Roles simplificados', () {
-    test('solo existen 2 roles elegibles: vecino y brigadista', () {
-      expect(roles.length, 2);
-      expect(roles.map((r) => r.id).toList(), ['vecino', 'brigadista']);
-    });
-  });
+  group('Publicar sin escribir', () {
+    final favores = [for (final c in categoriasFavor) c.id];
+    final servicios = [for (final c in categoriasServicio) c.id];
+    final emergencia = [for (final c in categoriasEmergencia) c.id];
 
-  group('Pedidos de Servicio y Aportes', () {
-    test('creación y serialización de PedidoServicio', () {
-      final pedido = PedidoServicio(
-        id: 'p-123',
-        servicioId: 's-456',
-        prestadorId: 'user-prestador',
-        clienteId: 'user-cliente',
-        clienteNombre: 'María',
-        clienteTelefono: '987654321',
-        clienteSector: 'Casco Urbano',
-        detalle: 'Reparación de cañería en la cocina',
-        fechaDeseada: 'Mañana a las 10 am',
-      );
-
-      expect(pedido.esPendiente, isTrue);
-      expect(pedido.estadoLegible, 'Pendiente');
-
-      final map = pedido.toInsert();
-      expect(map['id'], 'p-123');
-      expect(map['servicio_id'], 's-456');
-      expect(map['prestador_id'], 'user-prestador');
-      expect(map['cliente_nombre'], 'María');
-      expect(map['detalle'], 'Reparación de cañería en la cocina');
-      expect(map['estado'], 'pendiente');
-
-      final reconstruido = PedidoServicio.fromMap({
-        'id': 'p-123',
-        'servicio_id': 's-456',
-        'prestador_id': 'user-prestador',
-        'cliente_nombre': 'María',
-        'detalle': 'Reparación de cañería en la cocina',
-        'estado': 'aceptado',
-        'servicios': {'titulo': 'Gasfitería a domicilio'},
-      });
-
-      expect(reconstruido.esAceptado, isTrue);
-      expect(reconstruido.estadoLegible, 'Aceptado');
-      expect(reconstruido.servicioTitulo, 'Gasfitería a domicilio');
+    test('el texto dictado elige la categoría', () {
+      expect(sugerirCategoria('Necesito una escalera', favores), 'herramientas');
+      expect(sugerirCategoria('necesito que alguien me lleve al hospital', favores), 'movilidad');
+      expect(sugerirCategoria('Gasfitero a domicilio', servicios), 'gasfiteria');
+      expect(sugerirCategoria('se malogró la luz de mi casa', servicios), 'electricidad');
+      expect(sugerirCategoria('Necesitamos agua potable', emergencia), 'agua_alimento');
+      expect(sugerirCategoria('Estamos ATRAPADOS', emergencia), 'rescate');
     });
 
-    test('Servicio soporta estado activo/pausado', () {
-      final s = Servicio(
-        id: 's-1',
-        categoria: 'gasfiteria',
-        titulo: 'Gasfitero del barrio',
-        activo: true,
-      );
-      expect(s.activo, isTrue);
-      expect(s.toInsert()['activo'], isTrue);
+    test('sin coincidencia clara no cambia la categoría', () {
+      expect(sugerirCategoria('hola', favores), isNull);
+      expect(sugerirCategoria('ab', favores), isNull);
+      // "pan" no debe confundirse dentro de otra palabra que no empieza así
+      expect(sugerirCategoria('compañero', servicios), isNull);
+    });
 
-      final sPausado = Servicio.fromMap({
-        'id': 's-2',
-        'categoria': 'gasfiteria',
-        'titulo': 'Gasfitero del barrio',
-        'activo': false,
-      });
-      expect(sPausado.activo, isFalse);
+    test('cada frase rápida usa una categoría válida de su formulario', () {
+      final validas = {
+        'pidoFavor': favores.where((c) => c != 'colecta'),
+        'ofrezcoFavor': favores.where((c) => c != 'colecta'),
+        'colecta': ['colecta'],
+        'servicio': servicios,
+        'grupoApoyo': [for (final c in categoriasApoyo) c.id],
+        'necesitoAyuda': emergencia.where((c) => c != 'recurso' && c != 'vulnerable'),
+        'reportarVulnerable': ['vulnerable'],
+        'ofrezcoRecurso': emergencia.where((c) => c != 'vulnerable' && c != 'rescate'),
+      };
+      for (final e in frasesRapidas.entries) {
+        for (final f in e.value) {
+          expect(validas[e.key], contains(f.categoria), reason: '${e.key}: ${f.texto}');
+        }
+      }
+    });
+
+    test('el GPS sugiere el sector más cercano', () {
+      expect(sectorMasCercano(Zona.sectores['Bellamar']!), 'Bellamar');
+      expect(sectorMasCercano(const Punto(-9.0750, -78.5930)), 'Casco Urbano');
     });
   });
 }

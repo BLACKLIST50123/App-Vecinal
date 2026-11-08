@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'data/repo.dart';
+import 'screens/bienvenida.dart';
 import 'screens/home_shell.dart';
 import 'screens/roles.dart';
 import 'screens/sos.dart';
@@ -37,7 +38,7 @@ class AppVecinal extends StatelessWidget {
   Widget build(BuildContext context) {
     final st = context.watch<AppState>();
     return MaterialApp(
-      title: 'App Vecinal',
+      title: 'Conecta Vecino',
       debugShowCheckedModeBanner: false,
       scaffoldMessengerKey: mensajero,
       navigatorKey: navegador,
@@ -53,11 +54,15 @@ class AppVecinal extends StatelessWidget {
           child: child!,
         );
       },
-      home: !st.tutorialVisto
-          ? const TutorialScreen(inicial: true)
-          : !st.rolElegido
-              ? const SelectorRolScreen()
-              : const HomeShell(),
+      // Bienvenida (iniciar sesión / crear cuenta / invitado) → tutorial y
+      // rol solo la primera vez → la app.
+      home: !st.entro
+          ? const BienvenidaScreen()
+          : !st.tutorialVisto
+              ? const TutorialScreen(inicial: true)
+              : !st.rolElegido
+                  ? const SelectorRolScreen()
+                  : const HomeShell(),
     );
   }
 }
