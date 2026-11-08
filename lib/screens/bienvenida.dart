@@ -351,7 +351,7 @@ Future<void> mostrarModoInvitado(BuildContext context) => showModalBottomSheet<v
           const SizedBox(height: 16),
           const _ListaPermisos(
             titulo: 'Sin cuenta puedes',
-            color: Color(0xFF2E7D32),
+            color: Paleta.verde,
             icono: Icons.check_circle,
             items: [
               'Ver servicios y productos con su Visto Bueno',

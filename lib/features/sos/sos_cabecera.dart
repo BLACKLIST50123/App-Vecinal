@@ -186,7 +186,7 @@ class _AvisoEmergenciaNuevaState extends State<AvisoEmergenciaNueva> {
                   Expanded(
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text('Emergencia nueva ${formatoDistancia(km)}',
-                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFFB71C1C))),
+                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Paleta.rojoTexto)),
                       Text(p.titulo,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,

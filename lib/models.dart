@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'config.dart';
+import 'ui/tema.dart';
 
 double? _d(dynamic v) => v == null ? null : (v as num).toDouble();
 int _conteo(dynamic x) =>
@@ -263,14 +264,14 @@ class Nivel {
   final int minimo;
 
   static const todos = [
-    Nivel('Vecino nuevo', 'Nuevo', Icons.home_rounded, Color(0xFF64748B), 0,
+    Nivel('Vecino nuevo', 'Nuevo', Icons.home_rounded, Paleta.gris, 0,
         'Tu primera ayuda confirmada te da tu primer reconocimiento.'),
-    Nivel('Buen vecino', 'Buen vecino', Icons.eco_rounded, Color(0xFF397158), 1, 'Ya ayudaste a alguien del barrio.'),
-    Nivel('Vecino solidario', 'Solidario', Icons.handshake_rounded, Color(0xFF334155), 3,
+    Nivel('Buen vecino', 'Buen vecino', Icons.eco_rounded, Paleta.verde, 1, 'Ya ayudaste a alguien del barrio.'),
+    Nivel('Vecino solidario', 'Solidario', Icons.handshake_rounded, Paleta.primarioClaro, 3,
         'Tus vecinos saben que pueden contar contigo.'),
-    Nivel('Corazón del barrio', 'Corazón', Icons.favorite_rounded, Color(0xFFA9532B), 7,
+    Nivel('Corazón del barrio', 'Corazón', Icons.favorite_rounded, Paleta.acentoOscuro, 7,
         'Eres parte de lo que mantiene unido al barrio.'),
-    Nivel('Guardián del barrio', 'Guardián', Icons.verified_user_rounded, Color(0xFFA67C1F), 15,
+    Nivel('Guardián del barrio', 'Guardián', Icons.verified_user_rounded, Paleta.ambar, 15,
         'Un ejemplo para toda la comunidad.'),
   ];
 
@@ -355,11 +356,11 @@ class PedidoServicio {
       };
 
   (Color, Color) get coloresEstado => switch (estado) {
-        'aceptado' => (const Color(0xFF1565C0), const Color(0xFFE3F2FD)),
-        'en_proceso' => (const Color(0xFFE65100), const Color(0xFFFFF3E0)),
-        'completado' => (const Color(0xFF2E7D32), const Color(0xFFE8F5E9)),
-        'cancelado' => (const Color(0xFF757575), const Color(0xFFEEEEEE)),
-        _ => (const Color(0xFFC2185B), const Color(0xFFFCE4EC)),
+        'aceptado' => (Paleta.azulInfo, Paleta.azulSuave),
+        'en_proceso' => (Paleta.ambar, Paleta.ambarSuave),
+        'completado' => (Paleta.verde, Paleta.verdeSuave),
+        'cancelado' => (Paleta.gris, Paleta.grisFondo),
+        _ => (Paleta.rosa, Paleta.rosaSuave),
       };
 
   factory PedidoServicio.fromMap(Map<String, dynamic> m) {
@@ -463,26 +464,26 @@ class TemaForo {
         TipoPublicacionForo.servicio => (
             'Busca servicio',
             Icons.handyman_rounded,
-            const Color(0xFF0284C7),
-            const Color(0xFFE0F2FE),
+            Paleta.azulInfo,
+            Paleta.azulSuave,
           ),
         TipoPublicacionForo.recomendacion => (
             'Recomendación',
             Icons.verified_rounded,
-            const Color(0xFFD97706),
-            const Color(0xFFFEF3C7),
+            Paleta.ambar,
+            Paleta.ambarSuave,
           ),
         TipoPublicacionForo.aviso => (
             'Aviso vecinal',
             Icons.campaign_rounded,
-            const Color(0xFF7C3AED),
-            const Color(0xFFF3E8FF),
+            Paleta.violeta,
+            Paleta.violetaSuave,
           ),
         TipoPublicacionForo.dialogo => (
             'Comunidad',
             Icons.forum_rounded,
-            const Color(0xFF059669),
-            const Color(0xFFD1FAE5),
+            Paleta.verde,
+            Paleta.verdeSuave,
           ),
       };
 

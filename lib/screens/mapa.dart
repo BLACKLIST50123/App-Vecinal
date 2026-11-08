@@ -8,6 +8,7 @@ import '../models.dart';
 import '../state/app_state.dart';
 import '../ui/widgets.dart';
 import '../util.dart';
+import '../ui/tema.dart';
 
 /// Geolocalización de servicios, recursos y necesidades de apoyo.
 /// Permite explorar el mapa, agrandar/achicar con zoom (+/-),
@@ -24,10 +25,10 @@ class _MapaScreenState extends State<MapaScreen> {
   final MapController _mapController = MapController();
   bool _servicios = true, _pedidos = true, _ofertas = true, _comoLista = false;
 
-  static const _cServicio = Color(0xFF1565C0);
-  static const _cPedido = Color(0xFFE65100);
-  static const _cOferta = Color(0xFF2E7D32);
-  static const _cCritico = Color(0xFFE53935);
+  static const _cServicio = Paleta.azulInfo;
+  static const _cPedido = Paleta.ambar;
+  static const _cOferta = Paleta.verde;
+  static const _cCritico = Paleta.rojo;
 
   void _verDetalle(Widget tarjeta) => showModalBottomSheet<void>(
         context: context,
@@ -97,7 +98,7 @@ class _MapaScreenState extends State<MapaScreen> {
             if (!widget.esPantallaCompleta) ...[
               const SizedBox(width: 8),
               ActionChip(
-                avatar: const Icon(Icons.fullscreen, color: Color(0xFF1565C0)),
+                avatar: const Icon(Icons.fullscreen, color: Paleta.azulInfo),
                 label: const Text('Pantalla completa'),
                 onPressed: () => Navigator.push(
                   context,
@@ -154,7 +155,7 @@ class _MapaScreenState extends State<MapaScreen> {
                     label: 'Tu ubicación',
                     child: Container(
                       decoration: BoxDecoration(
-                        color: const Color(0xFF2962FF),
+                        color: Paleta.azulInfo,
                         shape: BoxShape.circle,
                         border: Border.all(color: Colors.white, width: 4),
                       ),
@@ -195,7 +196,7 @@ class _MapaScreenState extends State<MapaScreen> {
                   left: 8,
                   right: 8,
                   child: Card(
-                    color: Color(0xFFFFE082),
+                    color: Paleta.oroClaro,
                     child: ListTile(
                       leading: Icon(Icons.cloud_off, color: Colors.black87),
                       title: Text('Sin internet el mapa puede no cargar. Usa "Ver como lista".',

@@ -242,7 +242,7 @@ class _CabeceraPerfil extends StatelessWidget {
           _Distintivo(
             icono: st.verificado ? Icons.verified_user : Icons.gpp_maybe_outlined,
             texto: st.verificado ? 'Vecino verificado' : 'Sin verificar',
-            color: st.verificado ? primario : const Color(0xFFB45309),
+            color: st.verificado ? primario : Paleta.ambar,
           ),
           if (st.esPrestador) const _Distintivo(icono: Icons.handyman, texto: 'Ofrece servicios', color: Paleta.acentoOscuro),
         ]),
@@ -556,7 +556,7 @@ class _TarjetaReconocimiento extends StatelessWidget {
         '${sig == null ? '¡Llegaste al nivel más alto!' : 'Te faltan $faltan ayudas confirmadas para ser ${sig.nombre}.'}';
     return Card(
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-      color: const Color(0xFFFFF8E1),
+      color: Paleta.oroFondo,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -578,8 +578,8 @@ class _TarjetaReconocimiento extends StatelessWidget {
             child: LinearProgressIndicator(
               value: progreso,
               minHeight: 12,
-              color: const Color(0xFFFFB300),
-              backgroundColor: const Color(0xFFFFE082),
+              color: Paleta.oro,
+              backgroundColor: Paleta.oroClaro,
             ),
           ),
           const SizedBox(height: 6),
@@ -605,9 +605,9 @@ class HistorialScreen extends StatelessWidget {
   const HistorialScreen({super.key});
 
   static (IconData, Color) _icono(String tipo) => switch (tipo) {
-        'agradecimiento' => (Icons.favorite, const Color(0xFFC2185B)),
-        'visto_bueno' => (Icons.thumb_up, const Color(0xFF2E7D32)),
-        _ => (Icons.volunteer_activism, const Color(0xFF1565C0)),
+        'agradecimiento' => (Icons.favorite, Paleta.rosa),
+        'visto_bueno' => (Icons.thumb_up, Paleta.verde),
+        _ => (Icons.volunteer_activism, Paleta.azulInfo),
       };
 
   static const _meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -685,7 +685,7 @@ class HistorialScreen extends StatelessWidget {
                     trailing: e.publicacion == null
                         ? null
                         : e.publicacion!.estado == 'resuelta'
-                            ? const Icon(Icons.check_circle, color: Color(0xFF2E7D32))
+                            ? const Icon(Icons.check_circle, color: Paleta.verde)
                             : const Icon(Icons.chevron_right),
                     onTap: e.publicacion == null
                         ? null
@@ -779,14 +779,14 @@ class _PanelModeradorState extends State<_PanelModerador> {
         padding: const EdgeInsets.all(16),
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Text(activa ? 'La emergencia está ACTIVA' : 'Sin emergencia activa',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: activa ? const Color(0xFFE53935) : null)),
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: activa ? Paleta.rojo : null)),
           const SizedBox(height: 12),
           TextField(controller: _titulo, decoration: const InputDecoration(labelText: 'Tipo de emergencia')),
           const SizedBox(height: 12),
           TextField(controller: _mensaje, maxLines: 3, decoration: const InputDecoration(labelText: 'Mensaje para los vecinos')),
           const SizedBox(height: 12),
           FilledButton.icon(
-            style: activa ? null : FilledButton.styleFrom(backgroundColor: const Color(0xFFE53935), foregroundColor: Colors.white),
+            style: activa ? null : FilledButton.styleFrom(backgroundColor: Paleta.rojo, foregroundColor: Colors.white),
             onPressed: _cargando ? null : () => _cambiar(!activa),
             icon: Icon(activa ? Icons.check_circle : Icons.warning),
             label: Text(activa ? 'Terminar emergencia' : 'Activar modo emergencia'),
