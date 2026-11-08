@@ -205,6 +205,35 @@ class TarjetaForo extends StatelessWidget {
                             Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
+                                if (tema.pendiente) ...[
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 3,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Paleta.ambarSuave,
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(color: Paleta.ambar.withValues(alpha: 0.5)),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.schedule, size: 10, color: Paleta.ambar),
+                                        const SizedBox(width: 2.5),
+                                        Text(
+                                          'Pendiente',
+                                          style: TextStyle(
+                                            color: Paleta.ambar,
+                                            fontSize: 9.5,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 5),
+                                ],
                                 if (tema.estado == 'resuelto') ...[
                                   Container(
                                     padding: const EdgeInsets.symmetric(
@@ -655,11 +684,12 @@ class TarjetaRespuesta extends StatelessWidget {
                     Text(
                       [
                         if (r.sector != null && r.sector!.isNotEmpty) r.sector!,
-                        r.tiempoRelativo,
+                        if (r.pendiente) 'Pendiente de envío' else r.tiempoRelativo,
                       ].join(' · '),
                       style: TextStyle(
-                        color: Paleta.gris,
+                        color: r.pendiente ? Paleta.ambar : Paleta.gris,
                         fontSize: 11.5,
+                        fontWeight: r.pendiente ? FontWeight.w600 : FontWeight.normal,
                       ),
                     ),
                   ],

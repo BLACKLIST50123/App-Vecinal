@@ -336,13 +336,12 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       if (fila['origen'] != 'sos' || fila['id'] == null) return;
       final p = Publicacion.fromMap(fila);
       if (p.autorId != null && p.autorId == uid) return;
-      if (p.punto == null) return;
-      final km = distanciaKm(referencia, p.punto!);
-      if (km > radioAlertaKm) return;
+      final punto = p.punto;
+      final km = punto != null ? distanciaKm(referencia, punto) : 0.5;
+      if (punto != null && km > radioAlertaKm) return;
       alertaEntrante.value = (p, km);
       HapticFeedback.vibrate();
-      // En pantalla ya se ve la alerta; en segundo plano, a la barra del celular.
-      notificar(TipoAviso.sosCercano, 'SOS cerca de ti', '${p.titulo} · ${formatoDistancia(km)}', mensajeInterno: false);
+      notificar(TipoAviso.sosCercano, '🆘 SOS cerca de ti', '${p.titulo} · ${formatoDistancia(km)}', mensajeInterno: true);
     } catch (_) {}
   }
 
@@ -539,6 +538,21 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     notifyListeners();
     actualizarEmergencia();
     if (logueado) cargarPerfil(); // actualiza el nivel de reconocimiento
+    if (online && pendientes > 0) {
+      unawaited(sincronizar(silencioso: true));
+    }
+  }
+
+  Future<bool> crearTemaForo(Map<String, dynamic> datos) async {
+    final enviado = await repo.crearTemaForo(datos);
+    refrescar();
+    return enviado;
+  }
+
+  Future<bool> crearRespuestaForo(Map<String, dynamic> datos) async {
+    final enviado = await repo.crearRespuestaForo(datos);
+    refrescar();
+    return enviado;
   }
 
   Future<bool> publicar(String tabla, Map<String, dynamic> datos) async {
@@ -667,7 +681,6 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   /// Envía al servidor este celular y lo que quiere recibir, para que los
   /// push lleguen aunque la app esté cerrada. La ubicación va aproximada.
   Future<void> registrarPush() async {
-    if (!avisosActivados) return;
     final p = aproximar(referencia);
     await Push.registrar(db: repo.db, avisos: avisos, sector: sector, lat: p.lat, lng: p.lng);
   }
@@ -687,7 +700,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     final enPantalla = WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
     if (enPantalla) {
       if (mensajeInterno) avisar('$titulo: $cuerpo');
-    } else if (avisosActivados && !Push.activo) {
+    } else {
       Notificaciones.mostrar(t, titulo, cuerpo);
     }
   }

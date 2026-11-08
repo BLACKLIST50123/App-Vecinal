@@ -55,8 +55,12 @@ class _ModalNuevoTemaState extends State<ModalNuevoTema> {
     setState(() => _guardando = true);
 
     try {
-      await st.repo.crearTemaForo({
+      final enviado = await st.crearTemaForo({
+        'id': nuevoId(),
         'autor_id': st.uid,
+        'autor_nombre': st.nombre,
+        'autor_rol': st.rol,
+        'es_prestador': st.esPrestador,
         'tipo': _tipo.name,
         'categoria_servicio': _tipo == TipoPublicacionForo.servicio
             ? _categoriaServicio
@@ -66,17 +70,18 @@ class _ModalNuevoTemaState extends State<ModalNuevoTema> {
         'contenido': _contenidoCtrl.text.trim(),
         'lat': st.ubicacion?.lat,
         'lng': st.ubicacion?.lng,
+        'created_at': DateTime.now().toUtc().toIso8601String(),
       });
-
-      st.refrescar();
 
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Tu consulta se ha publicado en el foro.'),
+            content: Text(enviado
+                ? 'Tu consulta se ha publicado en el foro.'
+                : 'Guardado sin conexión. Se enviará automáticamente cuando tengas internet.'),
             behavior: SnackBarBehavior.floating,
-            backgroundColor: Paleta.primario,
+            backgroundColor: enviado ? Paleta.primario : Paleta.ambar,
           ),
         );
       }
@@ -605,13 +610,18 @@ class _ModalRecomendarPrestadorState extends State<ModalRecomendarPrestador> {
     setState(() => _enviando = true);
 
     try {
-      await st.repo.crearRespuestaForo({
+      final enviado = await st.crearRespuestaForo({
+        'id': nuevoId(),
         'tema_id': widget.tema.id,
         'autor_id': st.uid,
+        'autor_nombre': st.nombre,
+        'autor_rol': st.rol,
+        'es_prestador': st.esPrestador,
         'contenido': _comentarioCtrl.text.trim(),
         'nombre_comercial': _nombreCtrl.text.trim(),
         'contacto_telefono': _telefonoCtrl.text.trim(),
         'sector': st.sector,
+        'created_at': DateTime.now().toUtc().toIso8601String(),
       });
 
       widget.onRecomendado();
@@ -620,9 +630,11 @@ class _ModalRecomendarPrestadorState extends State<ModalRecomendarPrestador> {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('¡Recomendación compartida con éxito!'),
+            content: Text(enviado
+                ? '¡Recomendación compartida con éxito!'
+                : 'Guardado sin conexión. Se enviará automáticamente cuando tengas internet.'),
             behavior: SnackBarBehavior.floating,
-            backgroundColor: Paleta.verde,
+            backgroundColor: enviado ? Paleta.verde : Paleta.ambar,
           ),
         );
       }

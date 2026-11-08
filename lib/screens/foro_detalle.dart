@@ -180,13 +180,18 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
     try {
       final aQuien = _respondiendoA;
       final padreId = _respuestaAPadreId;
-      await st.repo.crearRespuestaForo({
+      final enviado = await st.crearRespuestaForo({
+        'id': nuevoId(),
         'tema_id': widget.tema.id,
         'autor_id': st.uid,
+        'autor_nombre': st.nombre,
+        'autor_rol': st.rol,
+        'es_prestador': st.esPrestador,
         'contenido': texto,
         'sector': st.sector,
         if (aQuien != null && aQuien.isNotEmpty) 'respondiendo_a': aQuien,
         if (padreId != null && padreId.isNotEmpty) 'respuesta_a_id': padreId,
+        'created_at': DateTime.now().toUtc().toIso8601String(),
       });
 
       _respuestaCtrl.clear();
@@ -200,9 +205,12 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
       if (mounted) {
         FocusScope.of(context).unfocus();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Tu comentario ha sido publicado.'),
+          SnackBar(
+            content: Text(enviado
+                ? 'Tu comentario ha sido publicado.'
+                : 'Guardado sin conexión. Se enviará automáticamente cuando tengas internet.'),
             behavior: SnackBarBehavior.floating,
+            backgroundColor: enviado ? Paleta.primario : Paleta.ambar,
           ),
         );
       }

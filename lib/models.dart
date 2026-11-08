@@ -641,6 +641,7 @@ class TemaForo {
     this.respuestasCount = 0,
     this.estado = 'abierto',
     required this.creado,
+    this.pendiente = false,
   });
 
   final String id;
@@ -664,6 +665,7 @@ class TemaForo {
   int respuestasCount;
   String estado; // 'abierto', 'resuelto', 'cerrado'
   final DateTime creado;
+  final bool pendiente;
 
   String get tiempoRelativo {
     final diff = DateTime.now().difference(creado);
@@ -706,7 +708,7 @@ class TemaForo {
           ),
       };
 
-  factory TemaForo.fromMap(Map<String, dynamic> m, {String? miUid}) {
+  factory TemaForo.fromMap(Map<String, dynamic> m, {String? miUid, bool pendiente = false}) {
     final tipoStr = (m['tipo'] ?? 'dialogo') as String;
     final t = switch (tipoStr) {
       'servicio' => TipoPublicacionForo.servicio,
@@ -776,6 +778,7 @@ class TemaForo {
       respuestasCount: (m['respuestas_count'] as num?)?.toInt() ?? 0,
       estado: (m['estado'] ?? 'abierto') as String,
       creado: DateTime.tryParse(m['created_at']?.toString() ?? '')?.toLocal() ?? DateTime.now(),
+      pendiente: pendiente || m['pendiente'] == true,
     );
   }
 }
@@ -804,6 +807,7 @@ class RespuestaForo {
     this.respuestaAId,
     this.respondiendoA,
     required this.creado,
+    this.pendiente = false,
   });
 
   final String id;
@@ -827,6 +831,7 @@ class RespuestaForo {
   final String? respuestaAId;
   final String? respondiendoA;
   final DateTime creado;
+  final bool pendiente;
 
   String get tiempoRelativo {
     final diff = DateTime.now().difference(creado);
@@ -852,7 +857,7 @@ class RespuestaForo {
     return '$sem sem';
   }
 
-  factory RespuestaForo.fromMap(Map<String, dynamic> m, {String? miUid}) {
+  factory RespuestaForo.fromMap(Map<String, dynamic> m, {String? miUid, bool pendiente = false}) {
     var dioLike = false;
     var dioDislike = false;
     final lk = m['foro_respuestas_likes'];
@@ -916,6 +921,7 @@ class RespuestaForo {
       respuestaAId: m['respuesta_a_id'] as String?,
       respondiendoA: m['respondiendo_a'] as String?,
       creado: DateTime.tryParse(m['created_at']?.toString() ?? '')?.toLocal() ?? DateTime.now(),
+      pendiente: pendiente || m['pendiente'] == true,
     );
   }
 }

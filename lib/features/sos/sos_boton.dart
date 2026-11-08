@@ -27,10 +27,7 @@ class CapaSos extends StatelessWidget {
         listenable: Listenable.merge([alertaEntrante, sosAbierto]),
         builder: (context, _) {
           final alerta = alertaEntrante.value;
-          // En las pestañas principales el aviso va bajo la cabecera (botón SOS
-          // que late). Este aviso grande solo sale si estás en otra pantalla.
-          final enOtraPantalla = navegador.currentState?.canPop() ?? false;
-          if (alerta == null || sosAbierto.value || !enOtraPantalla) return const SizedBox.shrink();
+          if (alerta == null || sosAbierto.value) return const SizedBox.shrink();
           return Positioned(
             top: mq.padding.top + 8,
             left: 12,

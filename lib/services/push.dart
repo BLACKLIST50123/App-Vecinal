@@ -48,12 +48,48 @@ class Push {
           ),
         );
       }
+      // Permisos de notificación en Android 13+ y iOS
+      try {
+        await FirebaseMessaging.instance.requestPermission(
+          alert: true,
+          badge: true,
+          sound: true,
+          criticalAlert: true,
+        );
+      } catch (_) {}
+
+      // Mostrar avisos en primer plano cuando la app está abierta
+      try {
+        await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
+          alert: true,
+          badge: true,
+          sound: true,
+        );
+      } catch (_) {}
+
       // Los canales deben existir antes de que llegue un push con la app cerrada.
       await Notificaciones.crearCanales();
       // getToken() sigue siendo el token que acepta FCM v1 (message.token).
       // ignore: deprecated_member_use
       _token = await FirebaseMessaging.instance.getToken();
+      debugPrint('FCM Token obtenido: $_token');
       _listo = true;
+
+      // Escuchar cuando llega un push con la app abierta (Foreground)
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+        debugPrint('Push recibido en primer plano: ${message.notification?.title}');
+        final notif = message.notification;
+        if (notif != null) {
+          final esCritico = message.data['tipo'] == 'sos' || message.data['tipo'] == 'emergencia';
+          Notificaciones.mostrar(
+            esCritico ? TipoAviso.sosCercano : TipoAviso.pedidosAyuda,
+            notif.title ?? 'Aviso',
+            notif.body ?? '',
+            clave: message.messageId,
+          );
+        }
+      });
+
       // ignore: deprecated_member_use
       FirebaseMessaging.instance.onTokenRefresh.listen((t) {
         _token = t;

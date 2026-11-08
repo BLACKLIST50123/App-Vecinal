@@ -7,19 +7,20 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models.dart';
 import '../state/app_state.dart' show SinPermiso;
+import '../util.dart';
 import 'datos_iniciales.dart';
 
 /// Publicación creada sin conexión (o traída por QR) que espera enviarse.
 class EntradaPendiente {
   EntradaPendiente({required this.tabla, required this.datos, this.viaQr = false, this.error});
 
-  final String tabla; // 'publicaciones' | 'servicios'
+  final String tabla; // 'publicaciones' | 'servicios' | 'foro_temas' | 'foro_respuestas'
   final Map<String, dynamic> datos;
   final bool viaQr;
   String? error;
 
-  String get id => datos['id'] as String;
-  String get titulo => (datos['titulo'] ?? '') as String;
+  String get id => (datos['id'] ?? '') as String;
+  String get titulo => (datos['titulo'] ?? datos['contenido'] ?? '') as String;
 
   Map<String, dynamic> toJson() => {'tabla': tabla, 'datos': datos, 'via_qr': viaQr, 'error': error};
 
@@ -506,7 +507,19 @@ class Repo {
             .limit(200),
       );
       await _adjuntarFotosPerfiles(filas);
-      return filas;
+      final idsExistentes = {for (final f in filas) f['id'] as String?};
+      final temasLocales = pendientes
+          .where((p) => p.tabla == 'foro_temas' && !idsExistentes.contains(p.id))
+          .map((p) => {
+                ...p.datos,
+                'pendiente': true,
+                'respuestas_count': 0,
+                'apoyos_count': 0,
+                'dislikes_count': 0,
+                'foro_apoyos': [],
+              })
+          .toList();
+      return [...temasLocales, ...filas];
     } on PostgrestException catch (e) {
       if (e.code == '42P01') return [];
       rethrow;
@@ -538,7 +551,23 @@ class Repo {
         );
       }
       await _adjuntarFotosPerfiles(filas);
-      return filas;
+      final idsExistentes = {for (final f in filas) f['id'] as String?};
+      final respuestasLocales = pendientes
+          .where((p) =>
+              p.tabla == 'foro_respuestas' &&
+              p.datos['tema_id'] == temaId &&
+              !idsExistentes.contains(p.id))
+          .map((p) => {
+                ...p.datos,
+                'pendiente': true,
+                'created_at': p.datos['created_at'] ?? DateTime.now().toIso8601String(),
+                'likes_count': 0,
+                'dislikes_count': 0,
+                'vistos_buenos': 0,
+                'foro_respuestas_likes': [],
+              })
+          .toList();
+      return [...filas, ...respuestasLocales];
     } on PostgrestException catch (e) {
       if (e.code == '42P01') return [];
       rethrow;
@@ -572,12 +601,16 @@ class Repo {
     await toggleReaccionRespuestaForo(respuestaId, tipo: 'like', activar: darLike);
   }
 
-  Future<void> crearTemaForo(Map<String, dynamic> datos) async {
-    await db.from('foro_temas').insert(datos);
+  Future<bool> crearTemaForo(Map<String, dynamic> datos) async {
+    datos['id'] ??= nuevoId();
+    datos['created_at'] ??= DateTime.now().toUtc().toIso8601String();
+    return publicar('foro_temas', datos);
   }
 
-  Future<void> crearRespuestaForo(Map<String, dynamic> datos) async {
-    await db.from('foro_respuestas').insert(datos);
+  Future<bool> crearRespuestaForo(Map<String, dynamic> datos) async {
+    datos['id'] ??= nuevoId();
+    datos['created_at'] ??= DateTime.now().toUtc().toIso8601String();
+    return publicar('foro_respuestas', datos);
   }
 
   Future<void> toggleReaccionTemaForo(String temaId, {required String tipo, required bool activar}) async {
@@ -608,7 +641,11 @@ class Repo {
   }
 
   Future<void> eliminarTemaForo(String id) async {
-    await db.from('foro_temas').delete().eq('id', id);
+    pendientes.removeWhere((p) => p.tabla == 'foro_temas' && p.id == id);
+    await _guardarCola();
+    try {
+      await db.from('foro_temas').delete().eq('id', id);
+    } catch (_) {}
   }
 
   Future<void> cambiarEstadoTemaForo(String id, String estado) async {
@@ -616,7 +653,11 @@ class Repo {
   }
 
   Future<void> eliminarRespuestaForo(String id) async {
-    await db.from('foro_respuestas').delete().eq('id', id);
+    pendientes.removeWhere((p) => p.tabla == 'foro_respuestas' && p.id == id);
+    await _guardarCola();
+    try {
+      await db.from('foro_respuestas').delete().eq('id', id);
+    } catch (_) {}
   }
 
   // ------------------------------------------- confianza y coordinación
@@ -848,10 +889,15 @@ class Repo {
 
   // ----------------------------------------------------------- escrituras
 
-  Future<void> _enviar(EntradaPendiente e) => db
-      .from(e.tabla)
-      .upsert(e.datos, onConflict: 'id', ignoreDuplicates: true)
-      .timeout(const Duration(seconds: 12));
+  Future<void> _enviar(EntradaPendiente e) {
+    final payload = Map<String, dynamic>.from(e.datos)
+      ..remove('pendiente')
+      ..remove('autor_foto_url');
+    return db
+        .from(e.tabla)
+        .upsert(payload, onConflict: 'id', ignoreDuplicates: true)
+        .timeout(const Duration(seconds: 12));
+  }
 
   /// Devuelve true si se publicó ya; false si quedó guardada para después.
   Future<bool> publicar(String tabla, Map<String, dynamic> datos) async {
