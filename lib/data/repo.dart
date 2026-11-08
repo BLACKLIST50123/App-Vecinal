@@ -169,16 +169,21 @@ class Repo {
   }
 
   Future<List<Publicacion>> publicaciones({required bool emergencia}) async {
-    final filas = await _consultar(
-      'publicaciones_$emergencia',
-      () => db
-          .from('publicaciones')
-          .select('*, ayudas(count)')
-          .eq('es_emergencia', emergencia)
-          .neq('estado', 'resuelta')
-          .order('created_at', ascending: false)
-          .limit(300),
-    );
+    Future<List<Map<String, dynamic>>> consulta(String campos) => db
+        .from('publicaciones')
+        .select(campos)
+        .eq('es_emergencia', emergencia)
+        .neq('estado', 'resuelta')
+        .order('created_at', ascending: false)
+        .limit(300);
+    final filas = await _consultar('publicaciones_$emergencia', () async {
+      try {
+        // Con la foto de perfil de quien publica (migración 0010_foto_perfil).
+        return await consulta('*, ayudas(count), autor:perfiles!publicaciones_autor_id_fkey(foto_url)');
+      } on PostgrestException {
+        return consulta('*, ayudas(count)'); // sin la columna de foto: igual funciona
+      }
+    });
     final enviadas = filas.map(Publicacion.fromMap).toList();
     final ids = enviadas.map((p) => p.id).toSet();
     return [

@@ -361,9 +361,16 @@ class _MapaYCercanosState extends State<MapaYCercanos> {
       },
       builder: (context, todos) {
         final ref = st.referencia;
-        final conteo = {for (final t in TipoPunto.values) t: todos.where((p) => p.tipo == t).length};
+        // Mi propio pedido: se marca como "Tu pedido de ayuda", no como el de otro vecino.
+        final miPedido = st.miPedidoEmergencia?['id'];
+        bool mio(PuntoMapa p) =>
+            p.publicacion != null && ((st.uid != null && p.publicacion!.autorId == st.uid) || p.id == miPedido);
+        final conteo = {for (final t in TipoPunto.values) t: todos.where((p) => p.tipo == t && !mio(p)).length};
         final visibles = todos.where((p) => _filtro == null || p.tipo == _filtro).toList();
-        final cercanos = [...visibles]..sort((a, b) => distanciaKm(ref, a.punto).compareTo(distanciaKm(ref, b.punto)));
+        final cercanos = [...visibles]..sort((a, b) {
+            if (mio(a) != mio(b)) return mio(a) ? -1 : 1; // lo mío primero
+            return distanciaKm(ref, a.punto).compareTo(distanciaKm(ref, b.punto));
+          });
         final alto = (MediaQuery.of(context).size.height * 0.32).clamp(220.0, 300.0);
 
         return Container(
@@ -459,7 +466,7 @@ class _MapaYCercanosState extends State<MapaYCercanos> {
                         point: LatLng(p.punto.lat, p.punto.lng),
                         width: 44,
                         height: 44,
-                        child: _Pin(p, elegido: _elegido?.id == p.id, onTap: () => setState(() => _elegido = p)),
+                        child: _Pin(p, elegido: _elegido?.id == p.id, propio: mio(p), onTap: () => setState(() => _elegido = p)),
                       ),
                     if (st.ubicacion != null)
                       Marker(
@@ -531,7 +538,7 @@ class _MapaYCercanosState extends State<MapaYCercanos> {
                   left: 10,
                   right: 10,
                   bottom: 22,
-                  child: _TarjetaPunto(_elegido!, km: distanciaKm(ref, _elegido!.punto), emergencia: widget.emergencia),
+                  child: _TarjetaPunto(_elegido!, km: distanciaKm(ref, _elegido!.punto), emergencia: widget.emergencia, propio: mio(_elegido!)),
                 ),
               if (visibles.isEmpty)
                 Positioned(
@@ -591,8 +598,8 @@ class _MapaYCercanosState extends State<MapaYCercanos> {
                       Container(
                         width: 38,
                         height: 38,
-                        decoration: BoxDecoration(color: p.tipo.color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(12)),
-                        child: Icon(p.icono, size: 20, color: p.tipo.color),
+                        decoration: BoxDecoration(color: (mio(p) ? Paleta.azulInfo : p.tipo.color).withValues(alpha: 0.12), borderRadius: BorderRadius.circular(12)),
+                        child: Icon(mio(p) ? Icons.person_pin_circle_rounded : p.icono, size: 20, color: mio(p) ? Paleta.azulInfo : p.tipo.color),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -601,7 +608,7 @@ class _MapaYCercanosState extends State<MapaYCercanos> {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: Paleta.tinta)),
-                          Text(['${nombreTipo(p.tipo, emergencia: widget.emergencia)} · ${formatoDistancia(distanciaKm(ref, p.punto))}', if (p.publicacion?.sector != null) p.publicacion!.sector!].join(' · '),
+                          Text(['${mio(p) ? 'Tu pedido de ayuda' : nombreTipo(p.tipo, emergencia: widget.emergencia)} · ${formatoDistancia(distanciaKm(ref, p.punto))}', if (p.publicacion?.sector != null) p.publicacion!.sector!].join(' · '),
                               style: TextStyle(fontSize: 13, color: Paleta.gris)),
                         ]),
                       ),
@@ -663,15 +670,16 @@ class _Filtro extends StatelessWidget {
 }
 
 class _Pin extends StatelessWidget {
-  const _Pin(this.p, {required this.elegido, required this.onTap});
+  const _Pin(this.p, {required this.elegido, required this.onTap, this.propio = false});
   final PuntoMapa p;
   final bool elegido;
+  final bool propio; // mi propio pedido
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) => Semantics(
         button: true,
-        label: '${p.tipo.singular}: ${p.titulo}',
+        label: propio ? 'Tu pedido de ayuda: ${p.titulo}' : '${p.tipo.singular}: ${p.titulo}',
         child: GestureDetector(
           onTap: onTap,
           child: Center(
@@ -680,12 +688,12 @@ class _Pin extends StatelessWidget {
               width: elegido ? 42 : 34,
               height: elegido ? 42 : 34,
               decoration: BoxDecoration(
-                color: p.tipo.color,
+                color: propio ? Paleta.azulInfo : p.tipo.color,
                 shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 3),
+                border: Border.all(color: Colors.white, width: propio ? 4 : 3),
                 boxShadow: const [BoxShadow(blurRadius: 4, color: Colors.black38)],
               ),
-              child: Icon(p.icono, color: Colors.white, size: elegido ? 22 : 18),
+              child: Icon(propio ? Icons.person_rounded : p.icono, color: Colors.white, size: elegido ? 22 : 18),
             ),
           ),
         ),
@@ -709,8 +717,9 @@ class _BotonMapa extends StatelessWidget {
 
 /// Tarjeta corta que sube al tocar un pin: qué es, a qué distancia y "Ver".
 class _TarjetaPunto extends StatelessWidget {
-  const _TarjetaPunto(this.p, {required this.km, this.emergencia = false});
+  const _TarjetaPunto(this.p, {required this.km, this.emergencia = false, this.propio = false});
   final bool emergencia;
+  final bool propio;
   final PuntoMapa p;
   final double km;
 
@@ -742,7 +751,7 @@ class _TarjetaPunto extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Paleta.tinta)),
-                Text('${nombreTipo(p.tipo, emergencia: emergencia)} · ${formatoDistancia(km)}$extra',
+                Text('${propio ? 'Tu pedido de ayuda' : nombreTipo(p.tipo, emergencia: emergencia)} · ${formatoDistancia(km)}$extra',
                     maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, color: Paleta.gris)),
               ]),
             ),

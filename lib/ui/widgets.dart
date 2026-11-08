@@ -14,6 +14,7 @@ import '../state/app_state.dart';
 import '../util.dart';
 import 'diseno.dart';
 import 'tema.dart';
+import 'foto_perfil.dart';
 
 // ------------------------------------------------------------ acciones
 
@@ -428,13 +429,21 @@ class _TarjetaPublicacionState extends State<TarjetaPublicacion> {
         child: Padding(
           padding: const EdgeInsets.fromLTRB(14, 14, 6, 12),
           child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            CircleAvatar(
-              radius: 23,
-              backgroundColor: bg,
-              child: p.esColecta
-                  ? Icon(Icons.diversity_1, color: fg)
-                  : Text(iniciales(p.autorVisible), style: TextStyle(color: fg, fontWeight: FontWeight.w700, fontSize: 14)),
-            ),
+            if (!p.esColecta && (p.autorFoto ?? (p.autorId != null && p.autorId == context.read<AppState>().uid ? context.read<AppState>().fotoUrl : null)) != null)
+              // Foto de perfil de quien publica.
+              AvatarVecino(
+                nombre: p.autorVisible,
+                fotoUrl: p.autorFoto ?? context.read<AppState>().fotoUrl,
+                tamano: 46,
+              )
+            else
+              CircleAvatar(
+                radius: 23,
+                backgroundColor: bg,
+                child: p.esColecta
+                    ? Icon(Icons.diversity_1, color: fg)
+                    : Text(iniciales(p.autorVisible), style: TextStyle(color: fg, fontWeight: FontWeight.w700, fontSize: 14)),
+              ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
