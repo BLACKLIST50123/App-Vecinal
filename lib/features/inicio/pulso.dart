@@ -125,9 +125,23 @@ class _PulsoBarrioState extends State<PulsoBarrio> {
     }
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: Paleta.linea)),
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Paleta.primario, Paleta.primarioClaro],
+        ),
+        borderRadius: BorderRadius.circular(18),
+      ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        const Row(children: [
+          Icon(Icons.sensors_rounded, size: 16, color: Color(0xFF86EFAC)),
+          SizedBox(width: 6),
+          Text('AHORA EN TU BARRIO',
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1, color: Color(0xFFCBD5E1))),
+        ]),
+        const SizedBox(height: 8),
         FutureBuilder<_DatosPulso>(
           future: _futuro,
           builder: (context, s) {
@@ -171,32 +185,44 @@ class _PulsoBarrioState extends State<PulsoBarrio> {
                   padding: const EdgeInsets.only(top: 6, left: 30),
                   child: Text(
                     d.actualizado == null ? 'Sin señal' : 'Sin señal · actualizado ${haceCuanto(d.actualizado!)}',
-                    style: const TextStyle(fontSize: 12, color: Paleta.gris),
+                    style: const TextStyle(fontSize: 12, color: Color(0xFFCBD5E1)),
                   ),
                 ),
             ]);
           },
         ),
-        const SizedBox(height: 10),
-        SizedBox(
-          height: 44,
-          child: st.online
-              ? OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF128C7E),
-                    side: const BorderSide(color: Color(0xFF25D366), width: 1.4),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  onPressed: () => compartirWhatsapp(textoInvitarVecino),
-                  icon: const Icon(Icons.share_rounded, size: 19),
-                  label: const Text('Invitar por WhatsApp', style: TextStyle(fontWeight: FontWeight.w800)),
-                )
-              : const OutlinedButton(
-                  onPressed: null,
-                  child: Text('Necesitas señal para invitar'),
-                ),
-        ),
       ]),
+    );
+  }
+}
+
+/// Botón verde para invitar a un vecino por WhatsApp (va al final del Inicio).
+class BotonInvitarWhatsapp extends StatelessWidget {
+  const BotonInvitarWhatsapp({super.key});
+
+  static const _verde = Color(0xFF25D366);
+
+  @override
+  Widget build(BuildContext context) {
+    final online = context.select<AppState, bool>((s) => s.online);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 18, 16, 0),
+      child: SizedBox(
+        height: 54,
+        child: FilledButton.icon(
+          style: FilledButton.styleFrom(
+            backgroundColor: _verde,
+            foregroundColor: Colors.white,
+            disabledBackgroundColor: const Color(0xFFD1D5DB),
+            disabledForegroundColor: const Color(0xFF4B5563),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          ),
+          onPressed: online ? () => compartirWhatsapp(textoInvitarVecino) : null,
+          icon: const Icon(Icons.share_rounded),
+          label: Text(online ? 'Invitar vecinos por WhatsApp' : 'Necesitas señal para invitar',
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+        ),
+      ),
     );
   }
 }
@@ -228,8 +254,8 @@ class _LineaPulso extends StatelessWidget {
             Container(
               width: 22,
               height: 22,
-              decoration: BoxDecoration(color: Paleta.primarioSuave, borderRadius: BorderRadius.circular(7)),
-              child: Icon(icono, size: 15, color: Paleta.primario),
+              decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.16), borderRadius: BorderRadius.circular(7)),
+              child: Icon(icono, size: 15, color: Colors.white),
             ),
             if (activo)
               Positioned(
@@ -241,7 +267,7 @@ class _LineaPulso extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: const Color(0xFF22C55E),
                     shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 1.5),
+                    border: Border.all(color: Paleta.primario, width: 1.5),
                   ),
                 ),
               ),
@@ -251,7 +277,7 @@ class _LineaPulso extends StatelessWidget {
         Expanded(
           child: Text(texto,
               maxLines: 3,
-              style: const TextStyle(fontSize: 15, height: 1.3, fontWeight: FontWeight.w600, color: Paleta.tinta)),
+              style: const TextStyle(fontSize: 16, height: 1.3, fontWeight: FontWeight.w700, color: Colors.white)),
         ),
       ]);
 }
