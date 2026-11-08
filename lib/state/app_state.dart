@@ -150,6 +150,16 @@ class AppState extends ChangeNotifier {
           .onPostgresChanges(
             event: PostgresChangeEvent.all,
             schema: 'public',
+            table: 'estados_vecino',
+            callback: (_) {
+              // Conteo de vecinos a salvo (junta, organizaciones, brigadistas).
+              _debounce?.cancel();
+              _debounce = Timer(const Duration(milliseconds: 800), refrescar);
+            },
+          )
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
             table: 'brigadistas',
             callback: (cambio) {
               // Me nombraron (o me quitaron) brigadista: se ve al instante.
@@ -235,15 +245,82 @@ class AppState extends ChangeNotifier {
   Future<void> actualizarEmergencia() async {
     try {
       final e = await repo.emergencia();
-      if (e.activa != emergencia.activa || e.titulo != emergencia.titulo || e.mensaje != emergencia.mensaje) {
+      if (e.activa != emergencia.activa ||
+          e.titulo != emergencia.titulo ||
+          e.mensaje != emergencia.mensaje ||
+          e.clave != emergencia.clave) {
         emergencia = e;
         version++;
         notifyListeners();
       }
+      await _cargarMiEstado();
+    } catch (_) {}
+  }
+
+  // ------------------------------------------------- "Estoy bien" (0012)
+
+  /// Lo que respondí en esta emergencia: 'bien', 'ayuda' o null.
+  String? miEstado;
+
+  /// Clave de la emergencia a la que corresponde [miEstado].
+  String? _estadoDe;
+
+  Future<void> _cargarMiEstado() async {
+    final clave = emergencia.clave;
+    if (!emergencia.activa || clave == null || !logueado) {
+      if (miEstado != null) {
+        miEstado = null;
+        notifyListeners();
+      }
+      return;
+    }
+    // Sin señal: lo último que respondí en esta emergencia (guardado aquí).
+    final pendiente = prefs.getString('estado_pendiente_$clave');
+    if (pendiente != null) {
+      miEstado = pendiente;
+      notifyListeners();
+      return;
+    }
+    if (_estadoDe == clave && miEstado != null) return;
+    try {
+      miEstado = await repo.miEstado(clave);
+      _estadoDe = clave;
+      notifyListeners();
+    } catch (_) {} // sin la migración 0012 o sin señal: se muestra sin responder
+  }
+
+  /// "Estoy bien" o "Necesito ayuda". Sin señal queda guardado y se envía al volver.
+  Future<void> marcarEstado(String estado) async {
+    final clave = emergencia.clave;
+    if (clave == null || !logueado) return;
+    miEstado = estado;
+    _estadoDe = clave;
+    notifyListeners();
+    try {
+      await repo.marcarEstado(emergencia: clave, estado: estado, sector: sector);
+      await prefs.remove('estado_pendiente_$clave');
+    } catch (e) {
+      if (Repo.esErrorDeRed(e)) {
+        await prefs.setString('estado_pendiente_$clave', estado);
+      } else {
+        rethrow;
+      }
+    }
+  }
+
+  Future<void> _enviarEstadoPendiente() async {
+    final clave = emergencia.clave;
+    if (clave == null || !logueado) return;
+    final pendiente = prefs.getString('estado_pendiente_$clave');
+    if (pendiente == null) return;
+    try {
+      await repo.marcarEstado(emergencia: clave, estado: pendiente, sector: sector);
+      await prefs.remove('estado_pendiente_$clave');
     } catch (_) {}
   }
 
   Future<void> sincronizar({bool silencioso = false}) async {
+    await _enviarEstadoPendiente();
     final (n, rechazadas) = await repo.sincronizar();
     if (rechazadas.isNotEmpty) {
       // Nunca dejar una alerta "guardada" que en realidad no se enviará.

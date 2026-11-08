@@ -667,6 +667,44 @@ class Repo {
         if (atender) 'atendido_por': uid,
       }).eq('id', id);
 
+  // ------------------------------------------------- "Estoy bien" (0012)
+
+  /// Mi estado en esta emergencia: 'bien', 'ayuda' o null si no respondí.
+  Future<String?> miEstado(String emergencia) async {
+    if (uid == null || forzarOffline) return null;
+    final r = await db
+        .from('estados_vecino')
+        .select('estado')
+        .eq('vecino_id', uid!)
+        .eq('emergencia_desde', emergencia)
+        .maybeSingle()
+        .timeout(const Duration(seconds: 10));
+    return r?['estado'] as String?;
+  }
+
+  Future<void> marcarEstado({required String emergencia, required String estado, String? sector}) => db
+      .from('estados_vecino')
+      .upsert({
+        'vecino_id': uid,
+        'emergencia_desde': emergencia,
+        'estado': estado,
+        'sector': sector,
+        'actualizado_en': DateTime.now().toUtc().toIso8601String(),
+      }, onConflict: 'vecino_id,emergencia_desde')
+      .timeout(const Duration(seconds: 10));
+
+  /// Quiénes avisaron que están bien y quiénes que necesitan ayuda.
+  Future<({Set<String> bien, Set<String> ayuda})> resumenEstados(String emergencia) async {
+    final r = await _consultar(
+      'estados_$emergencia',
+      () => db.from('estados_vecino').select('vecino_id, estado').eq('emergencia_desde', emergencia).limit(5000),
+    );
+    return (
+      bien: {for (final f in r) if (f['estado'] == 'bien') f['vecino_id'] as String},
+      ayuda: {for (final f in r) if (f['estado'] != 'bien') f['vecino_id'] as String},
+    );
+  }
+
   Future<void> cambiarEmergencia({required bool activa, String? titulo, String? mensaje}) =>
       db.from('emergencia').update({
         'activa': activa,

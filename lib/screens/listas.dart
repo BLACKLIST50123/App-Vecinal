@@ -11,7 +11,6 @@ import '../ui/widgets.dart';
 import '../util.dart';
 import 'confianza.dart';
 import 'mapa.dart';
-import 'publicar.dart';
 
 // ======================================= Módulo 1 · Servicios de Proximidad
 
@@ -182,38 +181,21 @@ class _FavoresScreenState extends State<FavoresScreen> {
           return ListView(padding: const EdgeInsets.only(bottom: 110), children: [
             // 0 ─ Alertas SOS (día a día; en emergencia ya están en el tablero)
             if (!e) const FranjaAlertasSos(maximo: 3),
-            // 1 ─ Banner (se publica desde el botón Publicar)
-            BannerDegradado(
-              icono: e ? Icons.volunteer_activism : Icons.favorite_border,
-              titulo: e ? 'Cada ayuda cuenta' : 'Una pequeña ayuda cambia el día',
-              subtitulo: e
-                  ? 'Mira quién necesita ayuda y qué hay para compartir.'
-                  : 'Entre vecinos, sin dinero de por medio.',
-              colores: e ? const [Paleta.rojo, Paleta.rojo] : const [Paleta.acentoOscuro, Paleta.acento],
-              colorIcono: Colors.white,
-            ),
-            // En el día a día se publica desde el botón "Publicar"; en emergencia quedan a la vista.
+            // 1 ─ Banner (día a día). En emergencia la lista va directo: pedir
+            // ayuda y compartir ya están en la pestaña Emergencia.
+            if (!e)
+              const BannerDegradado(
+                icono: Icons.favorite_border,
+                titulo: 'Una pequeña ayuda cambia el día',
+                subtitulo: 'Entre vecinos, sin dinero de por medio.',
+                colores: [Paleta.acentoOscuro, Paleta.acento],
+                colorIcono: Colors.white,
+              ),
             if (e)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                child: Row(children: [
-                  Expanded(
-                    child: FilledButton.icon(
-                      style: FilledButton.styleFrom(backgroundColor: Paleta.rojo),
-                      onPressed: () => abrirFormulario(context, TipoForm.necesitoAyuda),
-                      icon: const Icon(Icons.front_hand_outlined),
-                      label: const Text('Necesito ayuda'),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => abrirFormulario(context, TipoForm.ofrezcoRecurso),
-                      icon: const Icon(Icons.volunteer_activism_outlined),
-                      label: const Text('Tengo algo'),
-                    ),
-                  ),
-                ]),
+              const Padding(
+                padding: EdgeInsets.fromLTRB(20, 10, 20, 0),
+                child: Text('Los más urgentes aparecen primero. Toca uno para ayudar o ver cómo contactar.',
+                    style: TextStyle(fontSize: 14, color: Paleta.gris)),
               ),
             Center(
               child: TextButton.icon(
@@ -238,7 +220,7 @@ class _FavoresScreenState extends State<FavoresScreen> {
 
             // 3 ─ Solicitudes
             TituloDiseno(
-              e ? 'Pedidos y recursos' : 'Solicitudes de vecinos',
+              e ? 'Pedidos y lo que hay para compartir' : 'Solicitudes de vecinos',
               detalle: '${lista.length}',
             ),
             Row(children: [

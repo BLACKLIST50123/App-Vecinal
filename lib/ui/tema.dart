@@ -92,14 +92,17 @@ TextTheme _dmSans(TextTheme t) => TextTheme(
 /// blancas con borde fino, botones de al menos 52 px y color distinto en
 /// emergencia. En alto contraste se refuerzan bordes y colores.
 ThemeData construirTema({required bool emergencia, required bool altoContraste}) {
-  final primario = emergencia ? Paleta.rojo : Paleta.primario;
-  final suave = emergencia ? Paleta.rojoSuave : Paleta.primarioSuave;
+  // En emergencia se mantiene el azul marino: el rojo queda solo para lo
+  // crítico (aviso de la junta, SOS, "Necesito ayuda", muy urgente). Si todo
+  // fuera rojo, el rojo dejaría de alertar.
+  const primario = Paleta.primario;
+  const suave = Paleta.primarioSuave;
   final fondo = altoContraste ? Colors.white : Paleta.crema;
   final borde = altoContraste ? Colors.black : Paleta.linea;
 
   final esquema = altoContraste
       ? ColorScheme.highContrastLight(
-          primary: emergencia ? const Color(0xFF8B0000) : const Color(0xFF0F172A),
+          primary: const Color(0xFF0F172A),
           primaryContainer: suave,
           onPrimaryContainer: Colors.black,
           secondary: Colors.black,
@@ -110,7 +113,7 @@ ThemeData construirTema({required bool emergencia, required bool altoContraste})
           primary: primario,
           onPrimary: Colors.white,
           primaryContainer: suave,
-          onPrimaryContainer: emergencia ? const Color(0xFF7F1010) : Paleta.primarioOscuro,
+          onPrimaryContainer: Paleta.primarioOscuro,
           surface: fondo,
           onSurface: Paleta.tinta,
           onSurfaceVariant: Paleta.gris,

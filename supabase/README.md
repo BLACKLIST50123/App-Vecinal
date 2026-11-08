@@ -16,6 +16,7 @@ supabase/
     0009_foro.sql            foro vecinal: temas, respuestas y reacciones
     0010_foto_perfil.sql     foto de perfil (Storage "avatares")
     0011_brigadistas.sql     la junta nombra brigadistas de su sector; canales del sector
+    0012_estoy_bien.sql      "Estoy bien / Necesito ayuda" en emergencia y conteo para la junta
   seed.sql                   datos de demostración (se puede repetir)
 ```
 
