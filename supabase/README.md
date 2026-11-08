@@ -19,6 +19,7 @@ supabase/
     0012_notificaciones_push.sql  avisos con la app cerrada (notificaciones)
     0013_estoy_bien.sql      "Estoy bien / Necesito ayuda" en emergencia y conteo para la junta
     0016_recomendaciones.sql  sello "Recomendado en tu barrio" (sector de quien recomienda) y motivos
+    0017_experiencias.sql    "No me fue bien" privado: resta en el puntaje y aviso para la junta
   seed.sql                   datos de demostración (se puede repetir)
 ```
 

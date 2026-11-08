@@ -359,8 +359,11 @@ class TarjetaCerca extends StatelessWidget {
 
 /// Tarjeta horizontal de "Servicios y productos": ícono, datos, precio y flecha.
 class TarjetaMercado extends StatelessWidget {
-  const TarjetaMercado(this.s, {super.key, this.destacado = false});
+  const TarjetaMercado(this.s, {super.key, this.destacado = false, this.quejas = 0});
   final Servicio s;
+
+  /// Total de "No me fue bien" (no se muestra: solo baja la insignia).
+  final int quejas;
 
   /// El de mayor puntaje de su tipo: "El más recomendado en Gasfitería".
   final bool destacado;
@@ -440,7 +443,7 @@ class TarjetaMercado extends StatelessWidget {
                   const _Dato(icono: Icons.favorite_border, texto: 'Ayuda voluntaria', color: naranja)
                 else
                   // Una sola insignia, según el puntaje de confianza vecinal.
-                  switch (s.nivel(st.sector)) {
+                  switch (s.nivel(st.sector, quejas: quejas)) {
                     // 3+ vecinos VERIFICADOS de la misma zona lo recomiendan.
                     NivelConfianza.barrio => SelloBarrio(propio: st.sector != null, total: s.vistosBuenos),
                     NivelConfianza.muy => _Dato(

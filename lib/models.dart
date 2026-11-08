@@ -77,7 +77,13 @@ class Servicio {
   /// Cada Visto Bueno: verificado 1 · no verificado 0,5 · de la zona de
   /// quien mira +0,5 · si tiene más de 3 meses, vale la mitad.
   /// Sin el detalle (migración 0016 pendiente) vale el conteo simple.
-  double puntaje(String? miSector) {
+  /// Cada "No me fue bien" (privado, migración 0017) resta 1.
+  double puntaje(String? miSector, {int quejas = 0}) => _base(miSector) - quejas;
+
+  /// Con 3 o más quejas no recibe sello ni "N.º 1" hasta que la junta revise.
+  static const maximoQuejas = 3;
+
+  double _base(String? miSector) {
     if (recos.isEmpty) return vistosBuenos.toDouble();
     final zona = miSector ?? sector;
     final ahora = DateTime.now();
@@ -94,9 +100,10 @@ class Servicio {
   int get recientes => recos.where((r) => r.fecha != null && DateTime.now().difference(r.fecha!).inDays <= diasRecientes).length;
 
   /// Nivel que se muestra (una sola insignia por tarjeta).
-  NivelConfianza nivel(String? miSector) {
-    if (tieneSello(miSector)) return NivelConfianza.barrio;
-    if (puntaje(miSector) >= 3) return NivelConfianza.muy;
+  NivelConfianza nivel(String? miSector, {int quejas = 0}) {
+    final enRevision = quejas >= maximoQuejas;
+    if (!enRevision && tieneSello(miSector)) return NivelConfianza.barrio;
+    if (!enRevision && puntaje(miSector, quejas: quejas) >= 3) return NivelConfianza.muy;
     if (vistosBuenos > 0) return NivelConfianza.recomendado;
     return NivelConfianza.nuevo;
   }
@@ -312,7 +319,8 @@ enum NivelConfianza { barrio, muy, recomendado, nuevo }
 
 /// "El más recomendado" de cada tipo: el de mayor puntaje, solo si hay al
 /// menos 2 servicios de ese tipo (competencia real) y tiene 2+ Vistos Buenos.
-Set<String> masRecomendadosPorTipo(List<Servicio> servicios, String? miSector) {
+Set<String> masRecomendadosPorTipo(List<Servicio> servicios, String? miSector, {Map<String, int> quejas = const {}}) {
+  double p(Servicio s) => s.puntaje(miSector, quejas: quejas[s.id] ?? 0);
   final porTipo = <String, List<Servicio>>{};
   for (final s in servicios) {
     porTipo.putIfAbsent(s.categoria, () => []).add(s);
@@ -320,10 +328,11 @@ Set<String> masRecomendadosPorTipo(List<Servicio> servicios, String? miSector) {
   final ids = <String>{};
   for (final l in porTipo.values) {
     if (l.length < 2) continue;
-    l.sort((a, b) => b.puntaje(miSector).compareTo(a.puntaje(miSector)));
+    l.sort((a, b) => p(b).compareTo(p(a)));
     final primero = l.first;
-    final empate = l[1].puntaje(miSector) == primero.puntaje(miSector);
-    if (primero.vistosBuenos >= 2 && !empate) ids.add(primero.id);
+    final empate = p(l[1]) == p(primero);
+    final enRevision = (quejas[primero.id] ?? 0) >= Servicio.maximoQuejas;
+    if (primero.vistosBuenos >= 2 && !empate && !enRevision) ids.add(primero.id);
   }
   return ids;
 }

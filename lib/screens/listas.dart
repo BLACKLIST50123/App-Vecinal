@@ -57,10 +57,12 @@ class _ServiciosScreenState extends State<ServiciosScreen> {
 
     return RefreshIndicator(
       onRefresh: () async => st.refrescar(),
-      child: Cargador<List<Servicio>>(
+      child: Cargador<(List<Servicio>, Map<String, int>)>(
         claves: [e],
-        cargar: (st) => st.repo.servicios(emergencia: e),
-        builder: (context, todos) {
+        // Servicios + total de "No me fue bien" por servicio (privado).
+        cargar: (st) async => (await st.repo.servicios(emergencia: e), await st.repo.conteoExperiencias()),
+        builder: (context, datos) {
+          final (todos, quejas) = datos;
           final ref = context.read<AppState>().referencia;
           final lista = todos.where((s) {
             if (!_pasaFiltro(s)) return false;
@@ -74,14 +76,14 @@ class _ServiciosScreenState extends State<ServiciosScreen> {
           double dr(Servicio s) => s.punto == null ? 999 : distanciaKmRedondeada(ref, s.punto!);
           // Puntaje de confianza vecinal: pesa más quien está verificado,
           // quien vive en tu zona y lo más reciente.
-          final puntajes = {for (final s in lista) s.id: s.puntaje(st.sector)};
+          final puntajes = {for (final s in lista) s.id: s.puntaje(st.sector, quejas: quejas[s.id] ?? 0)};
           int masRecomendado(Servicio a, Servicio b) {
             final z = puntajes[b.id]!.compareTo(puntajes[a.id]!);
             return z != 0 ? z : b.vistosBuenos.compareTo(a.vistosBuenos);
           }
           // "El más recomendado" se calcula con todos los del barrio, no solo
           // con lo filtrado, para que el trofeo no cambie al buscar.
-          final destacados = e ? const <String>{} : masRecomendadosPorTipo(todos, st.sector);
+          final destacados = e ? const <String>{} : masRecomendadosPorTipo(todos, st.sector, quejas: quejas);
           lista.sort(_porCercania
               // Cerca primero; a distancia parecida, el más recomendado.
               ? (a, b) {
@@ -149,15 +151,15 @@ class _ServiciosScreenState extends State<ServiciosScreen> {
                     ? 'Te mostramos lo más cercano a $zona.'
                     : 'A menos de 2 km de $zona · ${cerca.length} ${cerca.length == 1 ? 'opción' : 'opciones'}',
               ),
-              for (final s in cerca) TarjetaMercado(s, destacado: destacados.contains(s.id)),
+              for (final s in cerca) TarjetaMercado(s, destacado: destacados.contains(s.id), quejas: quejas[s.id] ?? 0),
               if (lejos.isNotEmpty) ...[
                 if (cerca.isNotEmpty) const _TituloGrupo('Un poco más lejos', 'Más de 2 km, por si no encuentras cerca.'),
-                for (final s in lejos) TarjetaMercado(s, destacado: destacados.contains(s.id)),
+                for (final s in lejos) TarjetaMercado(s, destacado: destacados.contains(s.id), quejas: quejas[s.id] ?? 0),
               ],
             ] else ...[
               _TituloGrupo('Los más recomendados',
                   'Por la confianza de tus vecinos: verificados, de tu zona y recientes · ${lista.length} ${lista.length == 1 ? 'opción' : 'opciones'}'),
-              for (final s in lista) TarjetaMercado(s, destacado: destacados.contains(s.id)),
+              for (final s in lista) TarjetaMercado(s, destacado: destacados.contains(s.id), quejas: quejas[s.id] ?? 0),
             ],
           ]);
         },

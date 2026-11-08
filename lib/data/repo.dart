@@ -311,6 +311,36 @@ class Repo {
     return filas.map(PedidoServicio.fromMap).toList();
   }
 
+  // ---------------------------------- "No me fue bien" (migración 0017)
+
+  /// Guarda en privado que al vecino no le fue bien con un servicio.
+  /// Si la migración aún no está, no hace nada (la app sigue andando).
+  Future<void> registrarExperiencia(String servicioId, String? motivo) async {
+    try {
+      await db.from('experiencias').insert({'servicio_id': servicioId, 'motivo': ?motivo});
+    } on PostgrestException catch (e) {
+      if (e.code == '23505' || e.code == '42P01' || e.code == 'PGRST205') return; // ya estaba / sin migración
+      rethrow;
+    }
+  }
+
+  /// Total de experiencias negativas por servicio (sin nombres).
+  Future<Map<String, int>> conteoExperiencias() async {
+    try {
+      final filas = await _consultar(
+        'conteo_experiencias',
+        () async => List<Map<String, dynamic>>.from(await db.rpc('conteo_experiencias') as List),
+      );
+      return {for (final f in filas) '${f['servicio_id']}': (f['total'] as num).toInt()};
+    } catch (_) {
+      return const {}; // sin la migración 0017: sin descuentos
+    }
+  }
+
+  /// Para la junta vecinal: servicios con 2 o más quejas.
+  Future<List<Map<String, dynamic>>> serviciosConQuejas() async =>
+      List<Map<String, dynamic>>.from(await db.rpc('servicios_con_quejas').timeout(const Duration(seconds: 10)) as List);
+
   /// Otros servicios activos del mismo vecino ("Más de este vecino").
   Future<List<Servicio>> serviciosDe(String autorId, {String? excepto}) async {
     final filas = await _consultar(

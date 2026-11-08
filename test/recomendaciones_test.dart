@@ -89,4 +89,27 @@ void main() {
       expect(masRecomendadosPorTipo([sv('a', 2), sv('b', 2)], 'X'), isEmpty); // empate
     });
   });
+
+  group('"No me fue bien" (privado)', () {
+    Map<String, dynamic> vb(String sector) =>
+        {'autor_sector': sector, 'autor_verificado': true, 'motivos': <String>[], 'created_at': DateTime.now().toIso8601String()};
+    final cuatro = Servicio.fromMap(_servicio([vb('A'), vb('A'), vb('A'), vb('A')], sector: 'A'));
+
+    test('cada queja resta 1 al puntaje', () {
+      expect(cuatro.puntaje('A', quejas: 2), closeTo(cuatro.puntaje('A') - 2, 0.001));
+    });
+
+    test('con 3 quejas pierde el sello y el "Muy recomendado"', () {
+      expect(cuatro.nivel('A'), NivelConfianza.barrio);
+      expect(cuatro.nivel('A', quejas: 3), NivelConfianza.recomendado);
+    });
+
+    test('con 3 quejas no puede ser N.º 1', () {
+      Servicio sv(String id, int n) =>
+          Servicio.fromMap({..._servicio([for (var i = 0; i < n; i++) vb('X')]), 'id': id});
+      final lista = [sv('a', 6), sv('b', 2)];
+      expect(masRecomendadosPorTipo(lista, 'X'), {'a'});
+      expect(masRecomendadosPorTipo(lista, 'X', quejas: {'a': 3}), isEmpty);
+    });
+  });
 }

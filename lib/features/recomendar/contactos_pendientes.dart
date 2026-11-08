@@ -6,6 +6,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../models.dart';
 import '../../screens/detalles.dart';
 import '../../ui/tema.dart';
+import 'package:provider/provider.dart';
+import '../../state/app_state.dart';
 
 /// "¿Te atendió bien?": cuando un vecino llama o escribe a un servicio, se
 /// recuerda en el celular. Al volver a la app se le pregunta si lo
@@ -55,6 +57,41 @@ class ContactosPendientes {
     }
     _guardar(p, l);
   }
+
+  /// "¿Qué pasó?" con un toque. "" = prefiere no decir; null = canceló.
+  static Future<String?> _preguntarMotivo(BuildContext context) => showModalBottomSheet<String>(
+        context: context,
+        showDragHandle: true,
+        backgroundColor: Colors.white,
+        builder: (c) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              const Text('¿Qué pasó?', textAlign: TextAlign.center, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 4),
+              const Text('Es privado: no se publica ni se muestra tu nombre.',
+                  textAlign: TextAlign.center, style: TextStyle(color: Paleta.gris, fontSize: 15)),
+              const SizedBox(height: 14),
+              for (final (id, texto, icono) in const [
+                ('no_vino', 'No vino o no respondió', Icons.event_busy),
+                ('cobro_de_mas', 'Cobró de más', Icons.money_off),
+                ('mal_trabajo', 'El trabajo quedó mal', Icons.build_outlined),
+                ('mal_trato', 'Me trató mal', Icons.sentiment_dissatisfied),
+              ])
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(54), alignment: Alignment.centerLeft),
+                    onPressed: () => Navigator.pop(c, id),
+                    icon: Icon(icono),
+                    label: Text(texto, style: const TextStyle(fontSize: 16)),
+                  ),
+                ),
+              TextButton(onPressed: () => Navigator.pop(c, ''), child: const Text('Prefiero no decir')),
+            ]),
+          ),
+        ),
+      );
 
   /// Si hay un contacto pendiente y ya pasó el tiempo, pregunta (una sola
   /// pregunta a la vez).
@@ -113,8 +150,17 @@ class ContactosPendientes {
           final ok = await dialogoVistoBueno(context, servicioId: id, titulo: titulo);
           ok ? quitar(p, id) : _posponer(p, id);
         case 'no':
-          // No se recomienda. (Si fue grave, puede usar "Reportar" en el servicio.)
+          // Se guarda en PRIVADO: nadie lo ve en público, solo baja un poco
+          // el orden y avisa a la junta si se repite.
           quitar(p, id);
+          final motivo = await _preguntarMotivo(context);
+          if (motivo == null || !context.mounted) return;
+          try {
+            await context.read<AppState>().repo.registrarExperiencia(id, motivo.isEmpty ? null : motivo);
+            avisar('Gracias. Tu respuesta es privada y ayuda a cuidar a tus vecinos.');
+          } catch (_) {
+            avisar('No se pudo guardar tu respuesta. Inténtalo más tarde.');
+          }
         default:
           _posponer(p, id);
       }

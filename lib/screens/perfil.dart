@@ -588,6 +588,7 @@ class JuntaVecinalScreen extends StatelessWidget {
                 style: TextStyle(color: Paleta.gris, fontSize: 15)),
           ),
           _PanelModerador(),
+          _ServiciosConQuejas(),
         ]),
       );
 }
@@ -913,4 +914,64 @@ class _RecordatorioAvisos extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Para la junta: servicios con varias respuestas "No me fue bien"
+/// (privadas). Permite revisar antes de que un vecino salga perjudicado.
+class _ServiciosConQuejas extends StatelessWidget {
+  const _ServiciosConQuejas();
+
+  static const _motivos = {
+    'no_vino': 'No vino',
+    'cobro_de_mas': 'Cobró de más',
+    'mal_trabajo': 'Trabajo mal hecho',
+    'mal_trato': 'Mal trato',
+  };
+
+  @override
+  Widget build(BuildContext context) => Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            const Text('Servicios con quejas', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
+            const SizedBox(height: 4),
+            const Text('Respuestas privadas de "No me fue bien" (2 o más). Con 3 pierden el sello y el N.º 1.',
+                style: TextStyle(color: Paleta.gris)),
+            const SizedBox(height: 8),
+            Cargador<List<Map<String, dynamic>>>(
+              cargar: (st) async {
+                try {
+                  return await st.repo.serviciosConQuejas();
+                } catch (_) {
+                  return const []; // sin la migración 0017 o sin señal
+                }
+              },
+              builder: (c, lista) => lista.isEmpty
+                  ? const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: Row(children: [
+                        Icon(Icons.check_circle, color: Paleta.verde),
+                        SizedBox(width: 8),
+                        Expanded(child: Text('Ningún servicio tiene quejas repetidas.')),
+                      ]),
+                    )
+                  : Column(children: [
+                      for (final q in lista)
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: CircleAvatar(
+                            backgroundColor: Paleta.rojoSuave,
+                            child: Text('${q['total']}', style: const TextStyle(color: Paleta.rojoTexto, fontWeight: FontWeight.w800)),
+                          ),
+                          title: Text('${q['titulo']}', style: const TextStyle(fontWeight: FontWeight.w700)),
+                          subtitle: Text([
+                            '${q['autor_nombre'] ?? 'Vecino'}',
+                            for (final m in (q['motivos'] as List?) ?? const []) _motivos['$m'] ?? '$m',
+                          ].join(' · ')),
+                        ),
+                    ]),
+            ),
+          ]),
+        ),
+      );
 }
