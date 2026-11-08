@@ -45,6 +45,43 @@ void main() {
     });
   });
 
+  group('Modo emergencia', () {
+    test('la emergencia se identifica por la hora en que se activó', () {
+      final e = EstadoEmergencia.fromMap({'activa': true, 'titulo': 'Lluvias', 'actualizado_en': '2026-11-08T10:00:00Z'});
+      expect(e.clave, '2026-11-08T10:00:00.000Z');
+      expect(const EstadoEmergencia.inactiva().clave, isNull);
+    });
+
+    test('el mapa de emergencia muestra solo los pedidos de ESTA emergencia', () {
+      final desde = DateTime.utc(2026, 11, 8, 15);
+      final puntos = armarPuntosEmergencia(
+        grupos: [
+          Servicio(id: 'g1', categoria: 'albergue', titulo: 'Albergue', esEmergencia: true, lat: -9.08, lng: -78.58),
+          Servicio(id: 's1', categoria: 'gasfiteria', titulo: 'Gasfitero', lat: -9.08, lng: -78.58),
+        ],
+        pedidos: [
+          Publicacion(id: 'viejo', tipo: 'pido', categoria: 'rescate', titulo: 'De ayer', esEmergencia: true,
+              lat: -9.08, lng: -78.58, creado: desde.subtract(const Duration(days: 1)).toLocal()),
+          Publicacion(id: 'nuevo', tipo: 'pido', categoria: 'rescate', titulo: 'Ahora', esEmergencia: true,
+              lat: -9.08, lng: -78.58, creado: desde.add(const Duration(minutes: 10)).toLocal()),
+          Publicacion(id: 'oferta', tipo: 'ofrezco', categoria: 'recurso', titulo: 'Tengo agua', esEmergencia: true,
+              lat: -9.08, lng: -78.58, creado: desde.add(const Duration(minutes: 5)).toLocal()),
+        ],
+        desde: desde,
+      );
+      expect(puntos.map((p) => (p.id, p.tipo)).toList(), [('g1', TipoPunto.grupo), ('nuevo', TipoPunto.emergencia)]);
+    });
+
+    test('en el mapa, los grupos de apoyo tienen su propio tipo', () {
+      final puntos = armarPuntos(
+        servicios: [Servicio(id: 'g1', categoria: 'albergue', titulo: 'Albergue', esEmergencia: true, lat: -9.08, lng: -78.58)],
+        publicaciones: const [],
+        emergencias: const [],
+      );
+      expect(puntos.single.tipo, TipoPunto.grupo);
+    });
+  });
+
   group('Mapa del Inicio', () {
     test('separa servicios, productos, peticiones y emergencias', () {
       final puntos = armarPuntos(
