@@ -56,4 +56,37 @@ void main() {
     expect(s.motivosPrincipales(), ['puntual', 'precio_justo']);
     expect(textoMotivo('precio_justo'), 'Precio justo');
   });
+
+  group('Puntaje de confianza', () {
+    final hoy = DateTime.now().toIso8601String();
+    final viejo = DateTime.now().subtract(const Duration(days: 200)).toIso8601String();
+    Map<String, dynamic> vb(String? sector, {bool verificado = true, String? fecha}) =>
+        {'autor_sector': sector, 'autor_verificado': verificado, 'motivos': <String>[], 'created_at': fecha ?? hoy};
+
+    test('verificado de tu zona pesa más; lo antiguo vale la mitad', () {
+      final s = Servicio.fromMap(_servicio([
+        vb('Villa María'), // 1 + 0,5
+        vb('Bellamar'), // 1
+        vb(null, verificado: false), // 0,5
+        vb('Villa María', fecha: viejo), // (1 + 0,5) / 2
+      ]));
+      expect(s.puntaje('Villa María'), closeTo(1.5 + 1 + 0.5 + 0.75, 0.001));
+      expect(s.recientes, 3);
+    });
+
+    test('niveles: barrio, muy recomendado, recomendado y nuevo', () {
+      expect(Servicio.fromMap(_servicio([vb('A'), vb('A'), vb('A')], sector: 'A')).nivel('A'), NivelConfianza.barrio);
+      expect(Servicio.fromMap(_servicio([vb('B'), vb('B'), vb('B')])).nivel('A'), NivelConfianza.muy);
+      expect(Servicio.fromMap(_servicio([vb('B')])).nivel('A'), NivelConfianza.recomendado);
+      expect(Servicio.fromMap(_servicio([])).nivel('A'), NivelConfianza.nuevo);
+    });
+
+    test('el más recomendado por tipo: solo con competencia y sin empate', () {
+      Servicio sv(String id, int n, {String cat = 'gasfiteria'}) =>
+          Servicio.fromMap({..._servicio([for (var i = 0; i < n; i++) vb('X')]), 'id': id, 'categoria': cat});
+      final ids = masRecomendadosPorTipo([sv('a', 4), sv('b', 2), sv('c', 5, cat: 'clases'), sv('d', 1, cat: 'pan')], 'X');
+      expect(ids, {'a'}); // clases y pan tienen un solo servicio
+      expect(masRecomendadosPorTipo([sv('a', 2), sv('b', 2)], 'X'), isEmpty); // empate
+    });
+  });
 }

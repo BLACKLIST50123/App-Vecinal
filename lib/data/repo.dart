@@ -159,7 +159,7 @@ class Repo {
       try {
         // Sector, verificación y motivos de cada Visto Bueno (migración 0016):
         // permiten el sello "Recomendado en tu barrio".
-        return await consulta('vistos_buenos(autor_sector, autor_verificado, motivos)');
+        return await consulta('vistos_buenos(autor_sector, autor_verificado, motivos, created_at)');
       } catch (e) {
         if (_faltaColumna(e)) return await consulta('vistos_buenos(count)');
         rethrow;

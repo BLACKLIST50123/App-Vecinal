@@ -343,7 +343,13 @@ class _ServicioDetalleState extends State<ServicioDetalle> {
                           ? '$deZona ${deZona == 1 ? 'es vecino verificado' : 'son vecinos verificados'} de $zona'
                           : '$verificados de ${lista.length} son vecinos verificados de ${Zona.nombre}',
                       style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: const Text('Confirmaron con GPS que viven en la zona'),
+                  subtitle: Text([
+                    'Confirmaron con GPS que viven en la zona',
+                    // Lo reciente pesa más en el orden de la lista.
+                    if (lista.any((v) => DateTime.now().difference(v.creado).inDays <= Servicio.diasRecientes))
+                      '${lista.where((v) => DateTime.now().difference(v.creado).inDays <= Servicio.diasRecientes).length} '
+                          'en los últimos 3 meses',
+                  ].join(' · ')),
                 ),
               // Lo que más destacan los vecinos, con cuántos lo dijeron.
               if (motivos.isNotEmpty)

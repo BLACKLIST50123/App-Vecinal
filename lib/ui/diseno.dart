@@ -359,8 +359,11 @@ class TarjetaCerca extends StatelessWidget {
 
 /// Tarjeta horizontal de "Servicios y productos": ícono, datos, precio y flecha.
 class TarjetaMercado extends StatelessWidget {
-  const TarjetaMercado(this.s, {super.key});
+  const TarjetaMercado(this.s, {super.key, this.destacado = false});
   final Servicio s;
+
+  /// El de mayor puntaje de su tipo: "El más recomendado en Gasfitería".
+  final bool destacado;
 
   @override
   Widget build(BuildContext context) {
@@ -394,6 +397,20 @@ class TarjetaMercado extends StatelessWidget {
             const SizedBox(width: 14),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                if (destacado)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Row(children: [
+                      const Icon(Icons.emoji_events, size: 16, color: Paleta.ambar),
+                      const SizedBox(width: 4),
+                      Flexible(
+                        // Corto para que quepa en una línea (antes se cortaba).
+                        child: Text('N.º 1 en ${cat.nombre}',
+                            maxLines: 1, overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: Paleta.ambar)),
+                      ),
+                    ]),
+                  ),
                 Row(children: [
                   Flexible(
                     child: Text(s.titulo, maxLines: 2, overflow: TextOverflow.ellipsis,
@@ -421,19 +438,24 @@ class TarjetaMercado extends StatelessWidget {
                   const _Dato(icono: Icons.schedule, texto: 'Por enviar', color: Paleta.gris)
                 else if (apoyo)
                   const _Dato(icono: Icons.favorite_border, texto: 'Ayuda voluntaria', color: naranja)
-                else if (s.tieneSello(st.sector))
-                  // Sello: 3+ vecinos VERIFICADOS de la misma zona lo recomiendan.
-                  SelloBarrio(propio: st.sector != null, total: s.vistosBuenos)
                 else
-                  _Dato(
-                    icono: s.vistosBuenos > 0 ? Icons.thumb_up_alt_rounded : Icons.thumb_up_alt_outlined,
-                    texto: switch (s.vistosBuenos) {
-                      0 => 'Aún sin recomendaciones',
-                      1 => '1 vecino lo recomienda',
-                      final n => '$n vecinos lo recomiendan',
-                    },
-                    color: s.vistosBuenos > 0 ? Paleta.verde : Paleta.gris,
-                  ),
+                  // Una sola insignia, según el puntaje de confianza vecinal.
+                  switch (s.nivel(st.sector)) {
+                    // 3+ vecinos VERIFICADOS de la misma zona lo recomiendan.
+                    NivelConfianza.barrio => SelloBarrio(propio: st.sector != null, total: s.vistosBuenos),
+                    NivelConfianza.muy => _Dato(
+                        icono: Icons.thumb_up_alt_rounded,
+                        texto: 'Muy recomendado · ${s.vistosBuenos} vecinos',
+                        color: Paleta.verde,
+                      ),
+                    NivelConfianza.recomendado => _Dato(
+                        icono: Icons.thumb_up_alt_rounded,
+                        texto: s.vistosBuenos == 1 ? '1 vecino lo recomienda' : '${s.vistosBuenos} vecinos lo recomiendan',
+                        color: Paleta.verde,
+                      ),
+                    // Sin recomendaciones todavía: no es malo, es nuevo.
+                    NivelConfianza.nuevo => const _Dato(icono: Icons.eco_outlined, texto: 'Nuevo en el barrio', color: Paleta.gris),
+                  },
                 // Por qué lo recomiendan (los 2 motivos más elegidos).
                 if (!apoyo && s.motivosPrincipales().isNotEmpty)
                   Padding(

@@ -31,6 +31,7 @@ class Servicio {
     this.vistosBuenos = 0,
     this.verificadosPorSector = const {},
     this.motivos = const {},
+    this.recos = const [],
     this.respondiendoA,
     this.pendiente = false,
     DateTime? creado,
@@ -50,6 +51,9 @@ class Servicio {
 
   /// Cuántas veces se eligió cada motivo ("puntual", "precio_justo"...).
   final Map<String, int> motivos;
+
+  /// Cada Visto Bueno (sector, verificado, fecha) para el puntaje de confianza.
+  final List<Reco> recos;
   final String? respondiendoA;
   final bool pendiente;
   final DateTime creado;
@@ -64,6 +68,39 @@ class Servicio {
   static const minimoSello = 3;
   bool tieneSello(String? sector) => recomendacionesDeZona(sector) >= minimoSello;
 
+  // ------------------------------------------------ puntaje de confianza
+
+  /// Recomendaciones de los últimos 3 meses (pesan completo).
+  static const diasRecientes = 90;
+
+  /// Puntaje de confianza vecinal (no se muestra: ordena la lista).
+  /// Cada Visto Bueno: verificado 1 · no verificado 0,5 · de la zona de
+  /// quien mira +0,5 · si tiene más de 3 meses, vale la mitad.
+  /// Sin el detalle (migración 0016 pendiente) vale el conteo simple.
+  double puntaje(String? miSector) {
+    if (recos.isEmpty) return vistosBuenos.toDouble();
+    final zona = miSector ?? sector;
+    final ahora = DateTime.now();
+    var p = 0.0;
+    for (final r in recos) {
+      var v = r.verificado ? 1.0 : 0.5;
+      if (r.verificado && r.sector != null && r.sector == zona) v += 0.5;
+      if (r.fecha != null && ahora.difference(r.fecha!).inDays > diasRecientes) v /= 2;
+      p += v;
+    }
+    return p;
+  }
+
+  int get recientes => recos.where((r) => r.fecha != null && DateTime.now().difference(r.fecha!).inDays <= diasRecientes).length;
+
+  /// Nivel que se muestra (una sola insignia por tarjeta).
+  NivelConfianza nivel(String? miSector) {
+    if (tieneSello(miSector)) return NivelConfianza.barrio;
+    if (puntaje(miSector) >= 3) return NivelConfianza.muy;
+    if (vistosBuenos > 0) return NivelConfianza.recomendado;
+    return NivelConfianza.nuevo;
+  }
+
   /// Los [n] motivos más elegidos (al menos 1 vez), del más al menos.
   List<String> motivosPrincipales([int n = 2]) {
     final l = motivos.entries.where((e) => e.value > 0).toList()..sort((a, b) => b.value.compareTo(a.value));
@@ -74,6 +111,7 @@ class Servicio {
     var vb = 0;
     final porSector = <String, int>{};
     final motivos = <String, int>{};
+    final recos = <Reco>[];
     final x = m['vistos_buenos'];
     if (x is List && x.isNotEmpty && x.first is Map && (x.first as Map).containsKey('count')) {
       vb = ((x.first as Map)['count'] as num?)?.toInt() ?? 0;
@@ -83,6 +121,11 @@ class Servicio {
       for (final f in x.whereType<Map>()) {
         final sec = f['autor_sector'] as String?;
         if (f['autor_verificado'] == true && sec != null) porSector[sec] = (porSector[sec] ?? 0) + 1;
+        recos.add((
+          sector: sec,
+          verificado: f['autor_verificado'] == true,
+          fecha: f['created_at'] == null ? null : DateTime.tryParse('${f['created_at']}'),
+        ));
         for (final mo in (f['motivos'] as List?) ?? const []) {
           motivos['$mo'] = (motivos['$mo'] ?? 0) + 1;
         }
@@ -107,6 +150,7 @@ class Servicio {
       vistosBuenos: vb,
       verificadosPorSector: porSector,
       motivos: motivos,
+      recos: recos,
       pendiente: pendiente,
       creado: _fecha(m['created_at']),
     );
@@ -258,6 +302,30 @@ class Publicacion {
         if (!esColecta && ayudantes > 0) '$ayudantes ${ayudantes == 1 ? 'vecino respondió' : 'vecinos respondieron'}'
         else if (estado == 'en_curso') 'Ya la están ayudando',
       ].join('. ');
+}
+
+/// Un Visto Bueno resumido para calcular el puntaje de confianza.
+typedef Reco = ({String? sector, bool verificado, DateTime? fecha});
+
+/// Insignia de confianza de un servicio (de más a menos).
+enum NivelConfianza { barrio, muy, recomendado, nuevo }
+
+/// "El más recomendado" de cada tipo: el de mayor puntaje, solo si hay al
+/// menos 2 servicios de ese tipo (competencia real) y tiene 2+ Vistos Buenos.
+Set<String> masRecomendadosPorTipo(List<Servicio> servicios, String? miSector) {
+  final porTipo = <String, List<Servicio>>{};
+  for (final s in servicios) {
+    porTipo.putIfAbsent(s.categoria, () => []).add(s);
+  }
+  final ids = <String>{};
+  for (final l in porTipo.values) {
+    if (l.length < 2) continue;
+    l.sort((a, b) => b.puntaje(miSector).compareTo(a.puntaje(miSector)));
+    final primero = l.first;
+    final empate = l[1].puntaje(miSector) == primero.puntaje(miSector);
+    if (primero.vistosBuenos >= 2 && !empate) ids.add(primero.id);
+  }
+  return ids;
 }
 
 /// Motivos de un toque al dar el Visto Bueno: (id, texto, ícono).

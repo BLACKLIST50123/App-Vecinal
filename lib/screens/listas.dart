@@ -72,12 +72,16 @@ class _ServiciosScreenState extends State<ServiciosScreen> {
           }).toList();
           double d(Servicio s) => s.punto == null ? 999 : distanciaKm(ref, s.punto!);
           double dr(Servicio s) => s.punto == null ? 999 : distanciaKmRedondeada(ref, s.punto!);
-          // Pesa más la recomendación de vecinos verificados de TU zona.
-          int deTuZona(Servicio s) => s.recomendacionesDeZona(st.sector);
+          // Puntaje de confianza vecinal: pesa más quien está verificado,
+          // quien vive en tu zona y lo más reciente.
+          final puntajes = {for (final s in lista) s.id: s.puntaje(st.sector)};
           int masRecomendado(Servicio a, Servicio b) {
-            final z = deTuZona(b).compareTo(deTuZona(a));
+            final z = puntajes[b.id]!.compareTo(puntajes[a.id]!);
             return z != 0 ? z : b.vistosBuenos.compareTo(a.vistosBuenos);
           }
+          // "El más recomendado" se calcula con todos los del barrio, no solo
+          // con lo filtrado, para que el trofeo no cambie al buscar.
+          final destacados = e ? const <String>{} : masRecomendadosPorTipo(todos, st.sector);
           lista.sort(_porCercania
               // Cerca primero; a distancia parecida, el más recomendado.
               ? (a, b) {
@@ -145,14 +149,15 @@ class _ServiciosScreenState extends State<ServiciosScreen> {
                     ? 'Te mostramos lo más cercano a $zona.'
                     : 'A menos de 2 km de $zona · ${cerca.length} ${cerca.length == 1 ? 'opción' : 'opciones'}',
               ),
-              for (final s in cerca) TarjetaMercado(s),
+              for (final s in cerca) TarjetaMercado(s, destacado: destacados.contains(s.id)),
               if (lejos.isNotEmpty) ...[
                 if (cerca.isNotEmpty) const _TituloGrupo('Un poco más lejos', 'Más de 2 km, por si no encuentras cerca.'),
-                for (final s in lejos) TarjetaMercado(s),
+                for (final s in lejos) TarjetaMercado(s, destacado: destacados.contains(s.id)),
               ],
             ] else ...[
-              _TituloGrupo('Los más recomendados', 'Por el Visto Bueno de tus vecinos · ${lista.length} ${lista.length == 1 ? 'opción' : 'opciones'}'),
-              for (final s in lista) TarjetaMercado(s),
+              _TituloGrupo('Los más recomendados',
+                  'Por la confianza de tus vecinos: verificados, de tu zona y recientes · ${lista.length} ${lista.length == 1 ? 'opción' : 'opciones'}'),
+              for (final s in lista) TarjetaMercado(s, destacado: destacados.contains(s.id)),
             ],
           ]);
         },
