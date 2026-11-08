@@ -13,6 +13,7 @@ import 'aportes.dart';
 import 'auth_screen.dart';
 import 'confianza.dart';
 import 'detalles.dart';
+import 'notificaciones_screen.dart';
 import 'qr_screens.dart';
 import '../features/junta/junta.dart';
 import 'tutorial.dart';
@@ -60,6 +61,8 @@ class PerfilScreen extends StatelessWidget {
     // Pantalla simple para adultos mayores: quién soy, mi reconocimiento,
     // 4 accesos grandes y el resto en "Más opciones".
     return ListView(padding: const EdgeInsets.only(bottom: 120), children: [
+      // Recordatorio guía: se ve hasta que activa los avisos de emergencia.
+      if (st.faltaActivarAvisos) _RecordatorioAvisos(onTap: () => _ir(context, const NotificacionesScreen())),
       if (st.logueado) ...[
         const _CabeceraPerfil(),
         // Invitación de la junta para ser brigadista (Aceptar / Ahora no).
@@ -189,6 +192,17 @@ class PerfilScreen extends StatelessWidget {
 
       const SizedBox(height: 12),
       ListaAjustes(filas: [
+        // Avisos de emergencia y del barrio (con puntito si faltan activar).
+        FilaAjuste(
+          icono: Icons.notifications_outlined,
+          texto: 'Notificaciones',
+          valor: st.faltaActivarAvisos ? 'Actívalas' : 'Activas',
+          onTap: () => _ir(context, const NotificacionesScreen()),
+          final_: Row(mainAxisSize: MainAxisSize.min, children: [
+            if (st.faltaActivarAvisos) const Padding(padding: EdgeInsets.only(left: 8), child: PuntoAviso()),
+            const Icon(Icons.chevron_right, color: Color(0xFF94A3B8)),
+          ]),
+        ),
         FilaAjuste(
           icono: Icons.more_horiz,
           texto: 'Más opciones',
@@ -834,6 +848,68 @@ class _PanelModeradorState extends State<_PanelModerador> {
               child: OutlinedButton(onPressed: _cargando ? null : () => _cambiar(true), child: const Text('Actualizar mensaje')),
             ),
         ]),
+      ),
+    );
+  }
+}
+
+/// Puntito rojo de recordatorio (también se usa en la pestaña Perfil).
+class PuntoAviso extends StatelessWidget {
+  const PuntoAviso({super.key, this.tamano = 10});
+  final double tamano;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: tamano,
+        height: tamano,
+        decoration: BoxDecoration(
+          color: Paleta.rojo,
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white, width: 1.5),
+        ),
+      );
+}
+
+/// Tarjeta guía arriba del perfil: invita a activar los avisos de emergencia.
+class _RecordatorioAvisos extends StatelessWidget {
+  const _RecordatorioAvisos({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final st = context.watch<AppState>();
+    final bloqueadas = st.avisosActivados && st.permisoAvisos == false;
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+      child: Material(
+        color: Paleta.rojoSuave,
+        borderRadius: BorderRadius.circular(18),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(children: [
+              Stack(clipBehavior: Clip.none, children: [
+                const Icon(Icons.notifications_active_outlined, color: Paleta.rojo, size: 30),
+                const Positioned(right: -2, top: -2, child: PuntoAviso()),
+              ]),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(
+                    bloqueadas ? 'Tu celular bloquea los avisos' : 'Activa los avisos de emergencia',
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Paleta.rojoOscuro),
+                  ),
+                  const SizedBox(height: 2),
+                  const Text('Entérate al instante de sismos, inundaciones y vecinos que piden ayuda.',
+                      style: TextStyle(fontSize: 13, color: Paleta.tinta, height: 1.3)),
+                ]),
+              ),
+              const Icon(Icons.chevron_right, color: Paleta.rojo),
+            ]),
+          ),
+        ),
       ),
     );
   }

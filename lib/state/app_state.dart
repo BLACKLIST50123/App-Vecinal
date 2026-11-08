@@ -11,6 +11,9 @@ import '../config.dart';
 import '../data/repo.dart';
 import '../features/sos/sos_navegacion.dart';
 import '../models.dart';
+import '../services/notificaciones.dart';
+import '../services/push.dart';
+import '../services/vigia.dart';
 import '../services/ubicacion.dart';
 import '../util.dart';
 
@@ -32,8 +35,9 @@ void avisar(String texto) {
 }
 
 /// Estado global: sesión, rol, modo emergencia, conexión y accesibilidad.
-class AppState extends ChangeNotifier {
+class AppState extends ChangeNotifier with WidgetsBindingObserver {
   AppState(this.prefs, this.repo) {
+    WidgetsBinding.instance.addObserver(this);
     escala = prefs.getDouble('escala') ?? 1.0;
     altoContraste = prefs.getBool('alto_contraste') ?? false;
     voz = prefs.getBool('voz') ?? true;
@@ -48,6 +52,10 @@ class AppState extends ChangeNotifier {
     // cuenta se vuelve a la bienvenida (invitando a crear una cuenta).
     invitado = false;
     repo.forzarOffline = prefs.getBool('forzar_offline') ?? false;
+    avisosActivados = prefs.getBool('avisos_activados') ?? false;
+    for (final t in TipoAviso.values) {
+      avisos[t] = prefs.getBool('aviso_${t.name}') ?? t.porDefecto;
+    }
     final p = prefs.getString('perfil');
     if (p != null) perfil = Map<String, dynamic>.from(jsonDecode(p) as Map);
     _iniciar();
@@ -60,6 +68,20 @@ class AppState extends ChangeNotifier {
   late bool altoContraste;
   late bool voz;
   late bool tutorialVisto;
+
+  /// Ya pasó por "Activar notificaciones" (y dio permiso al sistema).
+  late bool avisosActivados;
+
+  /// Permiso del sistema para mostrar avisos (null = no aplica, p. ej. web).
+  bool? permisoAvisos;
+
+  /// Preferencia de cada tipo de aviso.
+  final avisos = <TipoAviso, bool>{};
+
+  /// Recordatorio (puntito en Perfil): faltan activar los avisos, el
+  /// sistema los bloquea o se apagaron los de emergencia (los más importantes).
+  bool get faltaActivarAvisos =>
+      !avisosActivados || permisoAvisos == false || TipoAviso.values.any((t) => t.critico && avisos[t] != true);
 
   /// Entró sin cuenta desde la pantalla de bienvenida.
   late bool invitado;
@@ -105,6 +127,8 @@ class AppState extends ChangeNotifier {
         );
     _subAuth = repo.db.auth.onAuthStateChange.listen((_) => cargarPerfil());
     _escucharTiempoReal();
+    unawaited(revisarPermisoAvisos());
+    unawaited(registrarPush()); // token del celular para avisos con la app cerrada
     unawaited(cargarPerfil());
     unawaited(actualizarEmergencia());
     unawaited(sincronizar(silencioso: true));
@@ -124,8 +148,16 @@ class AppState extends ChangeNotifier {
             callback: (_) async {
               final antes = emergencia.activa;
               await actualizarEmergencia();
-              if (!antes && emergencia.activa) avisar('Se activó el modo EMERGENCIA en tu barrio');
-              if (antes && !emergencia.activa) avisar('Terminó el modo emergencia');
+              if (!antes && emergencia.activa) {
+                avisar('Se activó el modo EMERGENCIA en tu barrio');
+                notificar(TipoAviso.emergencia, 'EMERGENCIA en tu barrio',
+                    emergencia.titulo ?? 'La junta vecinal activó el modo emergencia.', mensajeInterno: false);
+              }
+              if (antes && !emergencia.activa) {
+                avisar('Terminó el modo emergencia');
+                notificar(TipoAviso.emergencia, 'Terminó la emergencia', 'Tu barrio volvió a la normalidad.',
+                    mensajeInterno: false);
+              }
             },
           )
           .onPostgresChanges(
@@ -133,7 +165,10 @@ class AppState extends ChangeNotifier {
             schema: 'public',
             table: 'publicaciones',
             callback: (cambio) {
-              if (cambio.eventType == PostgresChangeEvent.insert) _avisarSiEsSosCercano(cambio.newRecord);
+              if (cambio.eventType == PostgresChangeEvent.insert) {
+                _avisarSiEsSosCercano(cambio.newRecord);
+                _avisarSiEsPedidoDeAyuda(cambio.newRecord);
+              }
               _debounce?.cancel();
               _debounce = Timer(const Duration(milliseconds: 800), refrescar);
             },
@@ -142,9 +177,24 @@ class AppState extends ChangeNotifier {
             event: PostgresChangeEvent.all,
             schema: 'public',
             table: 'pedidos_servicio',
-            callback: (_) {
+            callback: (cambio) {
+              final f = cambio.newRecord;
+              if (cambio.eventType == PostgresChangeEvent.insert && uid != null && f['prestador_id'] == uid) {
+                notificar(TipoAviso.misServicios, 'Nuevo pedido a tu servicio',
+                    '${f['cliente_nombre'] ?? 'Un vecino'}: ${f['detalle'] ?? ''}');
+              }
               _debounce?.cancel();
               _debounce = Timer(const Duration(milliseconds: 800), refrescar);
+            },
+          )
+          .onPostgresChanges(
+            event: PostgresChangeEvent.insert,
+            schema: 'public',
+            table: 'foro_temas',
+            callback: (cambio) {
+              final f = cambio.newRecord;
+              if (f['autor_id'] != null && f['autor_id'] == uid) return;
+              notificar(TipoAviso.foro, 'Nuevo tema en el foro', '${f['titulo'] ?? ''}');
             },
           )
           .onPostgresChanges(
@@ -185,7 +235,16 @@ class AppState extends ChangeNotifier {
       if (km > radioAlertaKm) return;
       alertaEntrante.value = (p, km);
       HapticFeedback.vibrate();
+      // En pantalla ya se ve la alerta; en segundo plano, a la barra del celular.
+      notificar(TipoAviso.sosCercano, 'SOS cerca de ti', '${p.titulo} · ${formatoDistancia(km)}', mensajeInterno: false);
     } catch (_) {}
+  }
+
+  /// Un pedido de ayuda nuevo (no SOS, no mío) en el día a día del barrio.
+  void _avisarSiEsPedidoDeAyuda(Map<String, dynamic> fila) {
+    if (fila['tipo'] != 'pido' || fila['origen'] == 'sos') return;
+    if (fila['autor_id'] != null && fila['autor_id'] == uid) return;
+    notificar(TipoAviso.pedidosAyuda, 'Un vecino necesita una mano', '${fila['titulo'] ?? ''}');
   }
 
   Future<void> ubicar() async {
@@ -211,6 +270,7 @@ class AppState extends ChangeNotifier {
     if (!logueado) {
       perfil = null;
       await prefs.remove('perfil');
+      unawaited(registrarPush());
       notifyListeners();
       return;
     }
@@ -229,6 +289,7 @@ class AppState extends ChangeNotifier {
         await prefs.setString('brigadista', jsonEncode(brigadista!.toJson()));
       }
     } catch (_) {} // sin la migración 0010 simplemente no hay brigadistas
+    unawaited(registrarPush()); // vincula el celular con la cuenta
     notifyListeners();
   }
 
@@ -236,9 +297,12 @@ class AppState extends ChangeNotifier {
     try {
       final e = await repo.emergencia();
       if (e.activa != emergencia.activa || e.titulo != emergencia.titulo || e.mensaje != emergencia.mensaje) {
+        final cambioModo = e.activa != emergencia.activa;
         emergencia = e;
         version++;
         notifyListeners();
+        // En emergencia se enciende el modo alerta (y se apaga al terminar).
+        if (cambioModo) unawaited(actualizarVigia());
       }
     } catch (_) {}
   }
@@ -337,6 +401,117 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ------------------------------------------------------- notificaciones
+
+  Future<void> revisarPermisoAvisos() async {
+    final p = await Notificaciones.permitidas();
+    if (p != permisoAvisos) {
+      permisoAvisos = p;
+      notifyListeners();
+    }
+  }
+
+  /// Activa los avisos: pide permiso al sistema y enciende los de emergencia.
+  /// Devuelve false si el vecino negó el permiso.
+  Future<bool> activarAvisos() async {
+    final ok = await Notificaciones.pedirPermiso();
+    permisoAvisos = await Notificaciones.permitidas() ?? (ok ? true : null);
+    if (ok) {
+      avisosActivados = true;
+      await prefs.setBool('avisos_activados', true);
+      for (final t in TipoAviso.values.where((t) => t.critico)) {
+        avisos[t] = true;
+        await prefs.setBool('aviso_${t.name}', true);
+      }
+      unawaited(registrarPush());
+    }
+    notifyListeners();
+    return ok;
+  }
+
+  void setAviso(TipoAviso t, bool v) {
+    avisos[t] = v;
+    prefs.setBool('aviso_${t.name}', v);
+    notifyListeners();
+    unawaited(registrarPush());
+  }
+
+  /// Envía al servidor este celular y lo que quiere recibir, para que los
+  /// push lleguen aunque la app esté cerrada. La ubicación va aproximada.
+  Future<void> registrarPush() async {
+    if (!avisosActivados) return;
+    unawaited(actualizarVigia());
+    final p = aproximar(referencia);
+    await Push.registrar(db: repo.db, avisos: avisos, sector: sector, lat: p.lat, lng: p.lng);
+  }
+
+  // ------------------------------------------------- avisos con app cerrada
+
+  /// Modo alerta permanente elegido por el vecino (si no, solo en emergencias).
+  bool get modoAlerta => prefs.getBool('modo_alerta') ?? false;
+
+  /// El servicio de modo alerta está corriendo ahora.
+  bool modoAlertaActivo = false;
+
+  void setModoAlerta(bool v) {
+    prefs.setBool('modo_alerta', v);
+    notifyListeners();
+    unawaited(actualizarVigia());
+  }
+
+  /// Revisión periódica siempre (cada ~15 min, aun con la app cerrada) y
+  /// modo alerta (cada 30 s) durante una emergencia o si el vecino lo pidió.
+  Future<void> actualizarVigia() async {
+    if (!Vigia.soportado) return;
+    if (!avisosActivados) {
+      await Vigia.cancelar();
+      await Vigia.apagarModoAlerta();
+    } else {
+      await Vigia.guardarContexto(lat: referencia.lat, lng: referencia.lng, uid: uid);
+      await Vigia.programar();
+      final encender = modoAlerta || (emergencia.activa && avisos[TipoAviso.emergencia] == true);
+      if (encender) {
+        await Vigia.encenderModoAlerta(porEmergencia: emergencia.activa && !modoAlerta);
+      } else {
+        await Vigia.apagarModoAlerta();
+      }
+    }
+    final activo = await Vigia.modoAlertaEncendido;
+    if (activo != modoAlertaActivo) {
+      modoAlertaActivo = activo;
+      notifyListeners();
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      // Lo que ya vio con la app abierta no se vuelve a avisar.
+      unawaited(Vigia.marcarVisto(emergenciaActiva: emergencia.activa));
+    } else if (state == AppLifecycleState.resumed) {
+      unawaited(revisarPermisoAvisos());
+    }
+  }
+
+  /// Muestra un aviso si el vecino lo tiene encendido. Con la app abierta
+  /// basta el mensaje interno; en segundo plano va a la barra del celular.
+  void notificar(TipoAviso t, String titulo, String cuerpo, {bool mensajeInterno = true}) {
+    if (avisos[t] != true) return;
+    final enPantalla = WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
+    if (enPantalla) {
+      if (mensajeInterno) avisar('$titulo: $cuerpo');
+    } else if (avisosActivados && !Push.activo) {
+      // Con push activo, el servidor ya manda el aviso: no se duplica.
+      // Pedidos a mis servicios necesitan la sesión: se avisan directo.
+      // Lo demás pasa por el vigía, que no repite lo ya avisado.
+      if (t == TipoAviso.misServicios) {
+        Notificaciones.mostrar(t, titulo, cuerpo);
+      } else {
+        unawaited(Vigia.revisar());
+      }
+    }
+  }
+
   void setVoz(bool v) {
     voz = v;
     prefs.setBool('voz', v);
@@ -390,6 +565,7 @@ class AppState extends ChangeNotifier {
     _timer?.cancel();
     _debounce?.cancel();
     if (_canal != null) repo.db.removeChannel(_canal!);
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 }
