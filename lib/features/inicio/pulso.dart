@@ -136,10 +136,10 @@ class _PulsoBarrioState extends State<PulsoBarrio> {
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         const Row(children: [
-          Icon(Icons.sensors_rounded, size: 16, color: Color(0xFF86EFAC)),
+          Icon(Icons.sensors_rounded, size: 16, color: Paleta.verdeClaro),
           SizedBox(width: 6),
           Text('AHORA EN TU BARRIO',
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1, color: Color(0xFFCBD5E1))),
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1, color: Paleta.lineaFuerte)),
         ]),
         const SizedBox(height: 8),
         FutureBuilder<_DatosPulso>(
@@ -185,7 +185,7 @@ class _PulsoBarrioState extends State<PulsoBarrio> {
                   padding: const EdgeInsets.only(top: 6, left: 30),
                   child: Text(
                     d.actualizado == null ? 'Sin señal' : 'Sin señal · actualizado ${haceCuanto(d.actualizado!)}',
-                    style: const TextStyle(fontSize: 12, color: Color(0xFFCBD5E1)),
+                    style: const TextStyle(fontSize: 12, color: Paleta.lineaFuerte),
                   ),
                 ),
             ]);
@@ -200,7 +200,7 @@ class _PulsoBarrioState extends State<PulsoBarrio> {
 class BotonInvitarWhatsapp extends StatelessWidget {
   const BotonInvitarWhatsapp({super.key});
 
-  static const _verde = Color(0xFF25D366);
+  static const _verde = Paleta.whatsapp;
 
   @override
   Widget build(BuildContext context) {
@@ -213,8 +213,8 @@ class BotonInvitarWhatsapp extends StatelessWidget {
           style: FilledButton.styleFrom(
             backgroundColor: _verde,
             foregroundColor: Colors.white,
-            disabledBackgroundColor: const Color(0xFFD1D5DB),
-            disabledForegroundColor: const Color(0xFF4B5563),
+            disabledBackgroundColor: Paleta.lineaFuerte,
+            disabledForegroundColor: Paleta.gris,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           ),
           onPressed: online ? () => compartirWhatsapp(textoInvitarVecino) : null,
@@ -265,7 +265,7 @@ class _LineaPulso extends StatelessWidget {
                   width: 8,
                   height: 8,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF22C55E),
+                    color: Paleta.verde,
                     shape: BoxShape.circle,
                     border: Border.all(color: Paleta.primario, width: 1.5),
                   ),

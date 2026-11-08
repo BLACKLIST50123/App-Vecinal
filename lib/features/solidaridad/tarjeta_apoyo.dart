@@ -120,7 +120,7 @@ class _TarjetaApoyoState extends State<TarjetaApoyo> {
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(color: Paleta.rojoSuave, borderRadius: BorderRadius.circular(999)),
                         child: const Text('URGENTE',
-                            style: TextStyle(color: Color(0xFFC62828), fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 0.3)),
+                            style: TextStyle(color: Paleta.rojoTexto, fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 0.3)),
                       ),
                     ],
                   ]),
@@ -204,7 +204,7 @@ class _TarjetaApoyoState extends State<TarjetaApoyo> {
       'ayuda' => Paleta.azul,
       'movilidad' => Paleta.morado,
       'donacion' => Paleta.verdeCat,
-      'habilidad' => (const Color(0xFF8A6418), const Color(0xFFF7EFDC)),
+      'habilidad' => (Paleta.ambar, Paleta.ambarSuave),
       null => (Paleta.primario, Paleta.primarioSuave),
-      _ => (Paleta.gris, const Color(0xFFF1F3F5)),
+      _ => (Paleta.gris, Paleta.grisFondo),
     };

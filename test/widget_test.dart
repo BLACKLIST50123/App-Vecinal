@@ -6,7 +6,6 @@ import 'package:app_vecinal/features/solidaridad/clasificador.dart';
 import 'package:app_vecinal/features/sos/sos_tipos.dart';
 import 'package:app_vecinal/main.dart';
 import 'package:app_vecinal/models.dart';
-import 'package:app_vecinal/screens/roles.dart';
 import 'package:app_vecinal/util.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -150,13 +149,6 @@ void main() {
     test('distancia aproximada correcta', () {
       final km = distanciaKm(Zona.sectores['Casco Urbano']!, Zona.sectores['Buenos Aires']!);
       expect(km, inInclusiveRange(7, 10));
-    });
-  });
-
-  group('Roles simplificados', () {
-    test('solo existen 2 roles elegibles: vecino y brigadista', () {
-      expect(roles.length, 2);
-      expect(roles.map((r) => r.id).toList(), ['vecino', 'brigadista']);
     });
   });
 

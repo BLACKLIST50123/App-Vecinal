@@ -167,10 +167,10 @@ class _ForoScreenState extends State<ForoScreen> {
 
     const opcionesTipo = [
       ('todos', 'Todos', Icons.grid_view_rounded, Paleta.primario),
-      ('servicio', 'Consultas de oficios', Icons.handyman_rounded, Color(0xFF0284C7)),
-      ('dialogo', 'Comunidad', Icons.forum_rounded, Color(0xFF059669)),
-      ('recomendacion', 'Recomendaciones', Icons.verified_rounded, Color(0xFFD97706)),
-      ('aviso', 'Avisos vecinales', Icons.campaign_rounded, Color(0xFF7C3AED)),
+      ('servicio', 'Consultas de oficios', Icons.handyman_rounded, Paleta.azulInfo),
+      ('dialogo', 'Comunidad', Icons.forum_rounded, Paleta.verde),
+      ('recomendacion', 'Recomendaciones', Icons.verified_rounded, Paleta.ambar),
+      ('aviso', 'Avisos vecinales', Icons.campaign_rounded, Paleta.violeta),
     ];
 
     return RefreshIndicator(
@@ -224,14 +224,14 @@ class _ForoScreenState extends State<ForoScreen> {
                 child: Container(
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
-                      colors: [Color(0xFF1E293B), Color(0xFF2B3D55)],
+                      colors: [Paleta.tinta, Paleta.primarioClaro],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFF1E293B).withValues(alpha: 0.16),
+                        color: Paleta.tinta.withValues(alpha: 0.16),
                         blurRadius: 16,
                         offset: const Offset(0, 4),
                       ),
@@ -280,7 +280,7 @@ class _ForoScreenState extends State<ForoScreen> {
                                   Text(
                                     'Consulta por un oficio o comparte una recomendación',
                                     style: TextStyle(
-                                      color: Color(0xFFCBD5E1),
+                                      color: Paleta.lineaFuerte,
                                       fontSize: 12,
                                       height: 1.25,
                                     ),

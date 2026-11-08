@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models.dart';
 import '../../ui/widgets.dart';
 import 'sos_tipos.dart';
+import '../../ui/tema.dart';
 
 /// Franja "Alertas SOS activas": hace visibles los SOS de las últimas 24 h
 /// aunque la junta no haya activado el modo emergencia. Si no hay alertas,
@@ -45,7 +46,7 @@ class FranjaAlertasSos extends StatelessWidget {
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         Text('Alertas SOS activas (${alertas.length})',
                             style: const TextStyle(color: ColoresSos.rojoOscuro, fontSize: 17, fontWeight: FontWeight.w800)),
-                        const Text('Vecinos que pidieron ayuda ahora', style: TextStyle(color: Color(0xFF5F6B66), fontSize: 13)),
+                        const Text('Vecinos que pidieron ayuda ahora', style: TextStyle(color: Paleta.gris, fontSize: 13)),
                       ]),
                     ),
                     if (alertas.length > maximo)

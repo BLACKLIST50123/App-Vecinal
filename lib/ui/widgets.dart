@@ -86,7 +86,7 @@ class BannerConexion extends StatelessWidget {
     return Semantics(
       liveRegion: true,
       child: Material(
-        color: offline ? const Color(0xFFFFE082) : const Color(0xFFBBDEFB),
+        color: offline ? Paleta.oroClaro : Paleta.azulSuave,
         child: InkWell(
           onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PendientesScreen())),
           child: Padding(
@@ -118,7 +118,7 @@ class BannerEmergencia extends StatelessWidget {
       liveRegion: true,
       child: Container(
         width: double.infinity,
-        color: const Color(0xFFE53935),
+        color: Paleta.rojo,
         padding: EdgeInsets.symmetric(horizontal: 16, vertical: grande ? 16 : 8),
         child: Row(children: [
           const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 32),
@@ -198,8 +198,8 @@ class InsigniaRol extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (String, IconData, Color)? info = switch (rol) {
-      'organizacion' => ('Organización verificada', Icons.verified, const Color(0xFF1565C0)),
-      'moderador' => ('Junta vecinal', Icons.shield, const Color(0xFF6A1B9A)),
+      'organizacion' => ('Organización verificada', Icons.verified, Paleta.azulInfo),
+      'moderador' => ('Junta vecinal', Icons.shield, Paleta.violeta),
       _ => null,
     };
     if (info == null) return const SizedBox.shrink();
@@ -319,7 +319,7 @@ class TarjetaServicio extends StatelessWidget {
                   label: '${s.vistosBuenos} vecinos le dieron Visto Bueno',
                   excludeSemantics: true,
                   child: Row(children: [
-                    Icon(Icons.thumb_up, color: s.vistosBuenos > 0 ? const Color(0xFF2E7D32) : esquema.outline),
+                    Icon(Icons.thumb_up, color: s.vistosBuenos > 0 ? Paleta.verde : esquema.outline),
                     const SizedBox(width: 6),
                     Text(
                       s.vistosBuenos == 0
@@ -410,17 +410,17 @@ class _TarjetaPublicacionState extends State<TarjetaPublicacion> {
     final esMio = p.autorId != null && p.autorId == st.uid;
     final puedeResponder = !esMio && !p.pendiente && p.estado != 'resuelta';
     final (fg, bg) = p.esColecta
-        ? (const Color(0xFF6A1B9A), const Color(0xFFF3E5F5))
+        ? (Paleta.violeta, Paleta.violetaSuave)
         : critica
-            ? (const Color(0xFFE53935), const Color(0xFFFDECEA))
+            ? (Paleta.rojo, Paleta.rojoSuave)
             : p.esPedido
                 ? (esquema.primary, esquema.primaryContainer)
-                : (const Color(0xFF376A89), const Color(0xFFE3EFF5));
+                : (Paleta.azulInfo, Paleta.azulSuave);
     final textoRespondido = p.esColecta ? 'Ya aportaste' : (p.esPedido ? 'Me he ofrecido' : 'Te interesa');
 
     return Card(
       shape: critica
-          ? RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: const BorderSide(color: Color(0xFFE53935), width: 2))
+          ? RoundedRectangleBorder(borderRadius: BorderRadius.circular(18), side: const BorderSide(color: Paleta.rojo, width: 2))
           : null,
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
@@ -439,14 +439,14 @@ class _TarjetaPublicacionState extends State<TarjetaPublicacion> {
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Wrap(spacing: 6, runSpacing: 4, children: [
-                  if (p.esColecta) const _Etiqueta('COLECTA', Color(0xFF6A1B9A)),
-                  if (!p.esPedido) const _Etiqueta('OFRECE', Color(0xFF376A89)),
-                  if (critica) const _Etiqueta('MUY URGENTE', Color(0xFFE53935)),
-                  if (p.esEmergencia && p.prioridad == 'alta') const _Etiqueta('URGENTE', Color(0xFFC62828)),
-                  if (p.verificada) const _Etiqueta('VERIFICADO', Color(0xFF00695C)),
-                  if (p.estado == 'no_verificado') const _Etiqueta('SIN CONFIRMAR', Color(0xFF616161)),
-                  if (p.origen == 'qr') const _Etiqueta('LLEGÓ POR QR', Color(0xFF6A1B9A)),
-                  if (p.pendiente) const _Etiqueta('POR ENVIAR', Color(0xFF616161)),
+                  if (p.esColecta) const _Etiqueta('COLECTA', Paleta.violeta),
+                  if (!p.esPedido) const _Etiqueta('OFRECE', Paleta.azulInfo),
+                  if (critica) const _Etiqueta('MUY URGENTE', Paleta.rojo),
+                  if (p.esEmergencia && p.prioridad == 'alta') const _Etiqueta('URGENTE', Paleta.rojoTexto),
+                  if (p.verificada) const _Etiqueta('VERIFICADO', Paleta.verde),
+                  if (p.estado == 'no_verificado') const _Etiqueta('SIN CONFIRMAR', Paleta.gris),
+                  if (p.origen == 'qr') const _Etiqueta('LLEGÓ POR QR', Paleta.violeta),
+                  if (p.pendiente) const _Etiqueta('POR ENVIAR', Paleta.gris),
                 ]),
                 const SizedBox(height: 2),
                 Text(p.titulo, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, height: 1.25)),
@@ -497,7 +497,7 @@ class _TarjetaPublicacionState extends State<TarjetaPublicacion> {
                             style: FilledButton.styleFrom(
                               minimumSize: const Size(0, 42),
                               padding: const EdgeInsets.symmetric(horizontal: 16),
-                              backgroundColor: p.esColecta ? const Color(0xFF6A1B9A) : null,
+                              backgroundColor: p.esColecta ? Paleta.violeta : null,
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                               textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
                             ),
@@ -505,7 +505,7 @@ class _TarjetaPublicacionState extends State<TarjetaPublicacion> {
                             child: Text(p.esColecta ? 'Yo aporto' : (p.esPedido ? 'Quiero ayudar' : 'Me interesa')),
                           )
                   else if (p.estado == 'resuelta')
-                    Text(p.estadoTexto, style: const TextStyle(color: Color(0xFF2E7D32), fontWeight: FontWeight.w700)),
+                    Text(p.estadoTexto, style: const TextStyle(color: Paleta.verde, fontWeight: FontWeight.w700)),
                 ]),
               ]),
             ),
@@ -532,7 +532,7 @@ class MedallaNivel extends StatelessWidget {
       height: tamano,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: bloqueada ? const Color(0xFFEEF0F3) : null,
+        color: bloqueada ? Paleta.grisFondo : null,
         gradient: bloqueada
             ? null
             : LinearGradient(
@@ -543,7 +543,7 @@ class MedallaNivel extends StatelessWidget {
         border: actual ? Border.all(color: Colors.white, width: 3) : null,
         boxShadow: actual ? [BoxShadow(color: color.withValues(alpha: 0.35), blurRadius: 10, spreadRadius: 1)] : null,
       ),
-      child: Icon(nivel.icono, size: tamano * 0.5, color: bloqueada ? const Color(0xFFB4BCC8) : Colors.white),
+      child: Icon(nivel.icono, size: tamano * 0.5, color: bloqueada ? Paleta.grisClaro : Colors.white),
     );
   }
 }
@@ -584,7 +584,7 @@ class BarraColecta extends StatelessWidget {
   Widget build(BuildContext context) {
     final meta = p.meta ?? 0;
     final faltan = (meta - p.aportes).clamp(0, meta);
-    const color = Color(0xFF6A1B9A);
+    const color = Paleta.violeta;
     final texto = faltan == 0
         ? '¡Meta cumplida! ${p.aportes} de $meta'
         : '${p.aportes} de $meta donaciones · faltan $faltan';
@@ -617,7 +617,7 @@ class TarjetaColecta extends StatelessWidget {
   Widget build(BuildContext context) => SizedBox(
         width: 270,
         child: Card(
-          color: const Color(0xFFF3E5F5),
+          color: Paleta.violetaSuave,
           child: InkWell(
             borderRadius: BorderRadius.circular(16),
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PublicacionDetalle(publicacion: p))),
@@ -625,14 +625,14 @@ class TarjetaColecta extends StatelessWidget {
               padding: const EdgeInsets.all(14),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Row(children: [
-                  const Icon(Icons.diversity_1, color: Color(0xFF6A1B9A)),
+                  const Icon(Icons.diversity_1, color: Paleta.violeta),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(p.autorVisible,
                         maxLines: 1, overflow: TextOverflow.ellipsis,
                         style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.black87)),
                   ),
-                  if (p.autorRol == 'organizacion') const Icon(Icons.verified, size: 18, color: Color(0xFF1565C0)),
+                  if (p.autorRol == 'organizacion') const Icon(Icons.verified, size: 18, color: Paleta.azulInfo),
                 ]),
                 const SizedBox(height: 6),
                 Expanded(
@@ -642,7 +642,7 @@ class TarjetaColecta extends StatelessWidget {
                 ),
                 BarraColecta(p),
                 const SizedBox(height: 6),
-                const Text('Toca para aportar →', style: TextStyle(color: Color(0xFF6A1B9A), fontWeight: FontWeight.w600)),
+                const Text('Toca para aportar →', style: TextStyle(color: Paleta.violeta, fontWeight: FontWeight.w600)),
               ]),
             ),
           ),

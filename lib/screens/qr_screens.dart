@@ -7,6 +7,7 @@ import '../data/qr_codec.dart';
 import '../data/repo.dart';
 import '../state/app_state.dart';
 import '../ui/widgets.dart';
+import '../ui/tema.dart';
 
 /// DIFERENCIADOR · "Mula de datos" vecinal.
 /// Sin internet, el pedido se convierte en un QR. Cualquier vecino lo
@@ -83,7 +84,7 @@ class _EscanearQrScreenState extends State<EscanearQrScreen> {
     await showDialog<void>(
       context: context,
       builder: (c) => AlertDialog(
-        icon: Icon(enviado ? Icons.check_circle : Icons.inventory, size: 48, color: const Color(0xFF2E7D32)),
+        icon: Icon(enviado ? Icons.check_circle : Icons.inventory, size: 48, color: Paleta.verde),
         title: Text(!nuevo ? 'Ya tenías este pedido' : (enviado ? '¡Pedido enviado!' : '¡Pedido guardado!')),
         content: Text(
           '"${datos['titulo']}"\n\n'
@@ -126,7 +127,7 @@ class PendientesScreen extends StatelessWidget {
       appBar: AppBar(title: const Text('Llevar mensajes')),
       body: ListView(padding: const EdgeInsets.only(bottom: 32), children: [
         Card(
-          color: const Color(0xFFEDE7F6),
+          color: Paleta.violetaSuave,
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

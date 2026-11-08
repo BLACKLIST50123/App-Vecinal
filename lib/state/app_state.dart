@@ -38,14 +38,15 @@ class AppState extends ChangeNotifier {
     altoContraste = prefs.getBool('alto_contraste') ?? false;
     voz = prefs.getBool('voz') ?? true;
     tutorialVisto = prefs.getBool('tutorial_visto') ?? false;
-    rolSimulado = prefs.getString('rol_simulado') ?? 'vecino';
-    if (rolSimulado != 'vecino' && rolSimulado != 'brigadista') rolSimulado = 'vecino';
-    // El rol se elige una sola vez; después se cambia desde Perfil.
-    rolElegido = prefs.getBool('rol_elegido') ?? false;
+    final b = prefs.getString('brigadista');
+    if (b != null) {
+      try {
+        brigadista = Brigadista.fromMap(Map<String, dynamic>.from(jsonDecode(b) as Map));
+      } catch (_) {}
+    }
     // El modo invitado no se recuerda: cada vez que se abre la app sin
     // cuenta se vuelve a la bienvenida (invitando a crear una cuenta).
     invitado = false;
-    especialidad = prefs.getString('especialidad');
     repo.forzarOffline = prefs.getBool('forzar_offline') ?? false;
     final p = prefs.getString('perfil');
     if (p != null) perfil = Map<String, dynamic>.from(jsonDecode(p) as Map);
@@ -59,13 +60,6 @@ class AppState extends ChangeNotifier {
   late bool altoContraste;
   late bool voz;
   late bool tutorialVisto;
-
-  /// Rol elegido en "¿Quién soy hoy?": 'vecino', 'prestador' o 'brigadista'.
-  /// Se pregunta solo la primera vez (no en cada apertura: en una
-  /// emergencia cada paso extra cuesta). Se cambia desde Perfil.
-  late String rolSimulado;
-  String? especialidad; // oficio del prestador (gasfitero, electricista...)
-  late bool rolElegido;
 
   /// Entró sin cuenta desde la pantalla de bienvenida.
   late bool invitado;
@@ -189,6 +183,25 @@ class AppState extends ChangeNotifier {
               _debounce = Timer(const Duration(milliseconds: 500), refrescar);
             },
           )
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'brigadistas',
+            callback: (cambio) {
+              // Me nombraron (o me quitaron) brigadista: se ve al instante.
+              final fila = cambio.newRecord.isNotEmpty ? cambio.newRecord : cambio.oldRecord;
+              final antes = brigadista;
+              if (fila['vecino_id'] == uid || (antes != null && cambio.eventType == PostgresChangeEvent.delete)) {
+                cargarPerfil().then((_) {
+                  if (antes == null && tieneInvitacionBrigadista) {
+                    avisar('La junta vecinal te nombró brigadista. Revisa tu Perfil.');
+                  }
+                });
+              }
+              _debounce?.cancel();
+              _debounce = Timer(const Duration(milliseconds: 800), refrescar);
+            },
+          )
           .subscribe();
     } catch (_) {
       // Sin tiempo real la app sigue funcionando con la consulta cada 30 s.
@@ -244,6 +257,14 @@ class AppState extends ChangeNotifier {
         await prefs.setString('perfil', jsonEncode(p));
       }
     } catch (_) {}
+    try {
+      brigadista = await repo.miNombramiento();
+      if (brigadista == null) {
+        await prefs.remove('brigadista');
+      } else {
+        await prefs.setString('brigadista', jsonEncode(brigadista!.toJson()));
+      }
+    } catch (_) {} // sin la migración 0010 simplemente no hay brigadistas
     notifyListeners();
   }
 
@@ -319,20 +340,12 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Inició sesión con una cuenta que ya existía: el tutorial y "¿Quién soy
-  /// hoy?" son solo para cuentas nuevas, así que se saltan (aunque sea un
-  /// celular nuevo). Si en este celular nunca eligió rol, se toma de su
-  /// perfil (prestador o vecino).
+  /// Inició sesión con una cuenta que ya existía: el tutorial es solo para
+  /// cuentas nuevas, así que se salta (aunque sea un celular nuevo).
   void entrarConCuentaExistente() {
-    if (!prefs.containsKey('rol_simulado')) {
-      rolSimulado = perfil?['es_prestador'] == true ? 'prestador' : 'vecino';
-      prefs.setString('rol_simulado', rolSimulado);
-    }
     tutorialVisto = true;
-    rolElegido = true;
     invitado = false;
     prefs.setBool('tutorial_visto', true);
-    prefs.setBool('rol_elegido', true);
     notifyListeners();
   }
 
@@ -341,9 +354,7 @@ class AppState extends ChangeNotifier {
   void entrarEnEmergencia() {
     invitado = true;
     tutorialVisto = true; // en emergencia no se muestra el tutorial
-    rolElegido = true;
     prefs.setBool('tutorial_visto', true);
-    prefs.setBool('rol_elegido', true);
     notifyListeners();
   }
 
@@ -374,14 +385,27 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  bool get esBrigadista => rolSimulado == 'brigadista';
+  /// Nombramiento como brigadista hecho por la junta de su sector.
+  Brigadista? brigadista;
+
+  /// Brigadista activo (aceptó el nombramiento de la junta).
+  bool get esBrigadista => logueado && brigadista?.activo == true;
+
+  /// La junta lo nombró y falta que acepte.
+  bool get tieneInvitacionBrigadista => logueado && brigadista?.invitado == true;
   bool get esPrestador => perfil?['es_prestador'] == true;
 
-  void elegirRol(String rol) {
-    rolSimulado = (rol == 'brigadista') ? 'brigadista' : 'vecino';
-    rolElegido = true;
-    prefs.setString('rol_simulado', rolSimulado);
-    prefs.setBool('rol_elegido', true);
+  /// URL de la foto de perfil (null = se muestran las iniciales).
+  String? get fotoUrl => perfil?['foto_url'] as String?;
+
+  Future<void> responderNombramiento(bool aceptar) async {
+    if (aceptar) {
+      await repo.aceptarNombramiento();
+    } else {
+      await repo.quitarBrigadista(uid!);
+    }
+    await cargarPerfil();
+    version++;
     notifyListeners();
   }
 

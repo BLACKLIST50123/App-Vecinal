@@ -406,7 +406,7 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                             ? Icons.replay
                             : Icons.check_circle_outline,
                         size: 18,
-                        color: const Color(0xFF16A34A),
+                        color: Paleta.verde,
                       ),
                       const SizedBox(width: 8),
                       Text(
@@ -602,7 +602,7 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                                   t.contenido,
                                   style: const TextStyle(
                                     fontSize: 15,
-                                    color: Color(0xFF334155),
+                                    color: Paleta.primarioClaro,
                                     height: 1.45,
                                   ),
                                 ),
@@ -804,13 +804,13 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                                 width: 50,
                                 height: 50,
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFFEF3C7),
+                                  color: Paleta.ambarSuave,
                                   borderRadius: BorderRadius.circular(16),
                                 ),
                                 child: const Icon(
                                   Icons.handyman_rounded,
                                   size: 26,
-                                  color: Color(0xFFD97706),
+                                  color: Paleta.ambar,
                                 ),
                               ),
                               const SizedBox(height: 12),
@@ -837,7 +837,7 @@ class _DetalleTemaForoScreenState extends State<DetalleTemaForoScreen> {
                                 const SizedBox(height: 16),
                                 FilledButton.icon(
                                   style: FilledButton.styleFrom(
-                                    backgroundColor: const Color(0xFFD97706),
+                                    backgroundColor: Paleta.ambar,
                                     foregroundColor: Colors.white,
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 20,
