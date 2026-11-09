@@ -121,6 +121,9 @@ class Push {
         'p_pedidos_ayuda': avisos[TipoAviso.pedidosAyuda] == true,
         'p_mis_servicios': avisos[TipoAviso.misServicios] == true,
         'p_foro': avisos[TipoAviso.foro] == true,
+        // Los sismos son emergencias: siguen la preferencia de emergencia.
+        // Enviarlo además deja la llamada sin ambigüedad (ver migración 0019).
+        'p_sismos': avisos[TipoAviso.emergencia] == true,
         'p_sector': sector,
         'p_lat': lat,
         'p_lng': lng,
