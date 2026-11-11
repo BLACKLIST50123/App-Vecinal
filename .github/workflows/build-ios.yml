@@ -15,7 +15,7 @@ on:
 jobs:
   build-ipa:
     name: Compilar IPA de iOS
-    runs-on: macos-14
+    runs-on: macos-latest
     steps:
       - name: Descargar repositorio
         uses: actions/checkout@v4
@@ -42,15 +42,15 @@ jobs:
           else
             echo "Generando supabase.json con valores base del proyecto..."
             cat << 'EOF' > supabase.json
-          {
-              "SUPABASE_URL": "https://valxntyeowpuxvlcpqfk.supabase.co",
-              "SUPABASE_ANON_KEY": "sb_publishable_IgR6AwX5-HC6gudGEAsCVA_-uUmYVRC",
-              "FIREBASE_API_KEY": "AIzaSyDYU6vDOPCGgffTIIytVcjlMhPjdZKb27w",
-              "FIREBASE_APP_ID": "1:935326892525:android:c2f427fe8f945b442667e4",
-              "FIREBASE_SENDER_ID": "935326892525",
-              "FIREBASE_PROJECT_ID": "conecta-vecino"
-          }
-          EOF
+{
+    "SUPABASE_URL": "https://valxntyeowpuxvlcpqfk.supabase.co",
+    "SUPABASE_ANON_KEY": "sb_publishable_IgR6AwX5-HC6gudGEAsCVA_-uUmYVRC",
+    "FIREBASE_API_KEY": "AIzaSyDYU6vDOPCGgffTIIytVcjlMhPjdZKb27w",
+    "FIREBASE_APP_ID": "1:935326892525:android:c2f427fe8f945b442667e4",
+    "FIREBASE_SENDER_ID": "935326892525",
+    "FIREBASE_PROJECT_ID": "conecta-vecino"
+}
+EOF
           fi
 
       - name: Obtener dependencias de Flutter
