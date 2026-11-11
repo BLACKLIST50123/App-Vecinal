@@ -1,9 +1,10 @@
 name: Compilar IPA para iPhone (Sideload / AltStore)
 
 on:
-  workflow_dispatch: # Permite ejecutar la compilación manualmente con un clic en GitHub
+  workflow_dispatch: # Permite ejecutar manualmente si está en la rama principal
   push:
-    branches: [ main, feature/* ]
+    branches:
+      - '**' # Se dispara automáticamente al hacer push en CUALQUIER rama (incluida tu rama actual)
     paths:
       - 'lib/**'
       - 'ios/**'
