@@ -837,14 +837,14 @@ class RespuestaForo {
     final diff = DateTime.now().difference(creado);
     if (diff.inMinutes < 60) {
       final m = diff.inMinutes.clamp(1, 59);
-      return 'Hace ${m} min';
+      return 'Hace $m min';
     }
     if (diff.inHours < 24) {
       final h = diff.inHours;
-      return 'Hace ${h} ${h == 1 ? 'hora' : 'horas'}';
+      return 'Hace $h ${h == 1 ? 'hora' : 'horas'}';
     }
     final d = diff.inDays;
-    return 'Hace ${d} ${d == 1 ? 'día' : 'días'}';
+    return 'Hace $d ${d == 1 ? 'día' : 'días'}';
   }
 
   String get tiempoCorto {

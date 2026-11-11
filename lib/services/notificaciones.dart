@@ -49,17 +49,25 @@ class Notificaciones {
   static bool _listo = false;
   static int _id = 0;
 
-  /// En web solo se usan los mensajes dentro de la app.
-  static bool get soportado => !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+  /// En web solo se usan los mensajes dentro de la app. En Android e iOS se usan avisos del sistema.
+  static bool get soportado =>
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.iOS);
 
   static AndroidFlutterLocalNotificationsPlugin? get _android =>
       _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+
+  static IOSFlutterLocalNotificationsPlugin? get _ios =>
+      _plugin.resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>();
 
   static Future<void> iniciar() async {
     if (!soportado || _listo) return;
     try {
       await _plugin.initialize(
-        settings: const InitializationSettings(android: AndroidInitializationSettings('@mipmap/ic_launcher')),
+        settings: const InitializationSettings(
+          android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+          iOS: DarwinInitializationSettings(),
+        ),
       );
       _listo = true;
       await crearCanales();
@@ -104,11 +112,15 @@ class Notificaciones {
     }
   }
 
-  /// Pide el permiso del sistema (Android 13+ muestra el diálogo).
+  /// Pide el permiso del sistema (diálogo en Android 13+ e iOS).
   static Future<bool> pedirPermiso() async {
     if (!soportado) return true;
     await iniciar();
     try {
+      if (defaultTargetPlatform == TargetPlatform.iOS) {
+        final r = await _ios?.requestPermissions(alert: true, badge: true, sound: true);
+        return r ?? false;
+      }
       final r = await _android?.requestNotificationsPermission();
       return r ?? await permitidas() ?? false;
     } catch (_) {
@@ -138,12 +150,18 @@ class Notificaciones {
             importance: Importance.defaultImportance,
             color: Color(0xFF1E293B),
           );
+    final detallesIos = DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+      interruptionLevel: tipo.critico ? InterruptionLevel.critical : InterruptionLevel.active,
+    );
     try {
       await _plugin.show(
         id: clave != null ? clave.hashCode & 0x7fffffff : _id++,
         title: titulo,
         body: cuerpo,
-        notificationDetails: NotificationDetails(android: detalles),
+        notificationDetails: NotificationDetails(android: detalles, iOS: detallesIos),
       );
     } catch (e) {
       debugPrint("Notificaciones: $e");

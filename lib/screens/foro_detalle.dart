@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import '../config.dart';
 import '../models.dart';
 import '../state/app_state.dart';
-import '../ui/diseno.dart';
 import '../ui/tema.dart';
 import '../ui/widgets.dart';
 import '../ui/foto_perfil.dart';

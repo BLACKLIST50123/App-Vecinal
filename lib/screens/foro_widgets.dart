@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import '../config.dart';
 import '../models.dart';
 import '../state/app_state.dart';
-import '../ui/diseno.dart';
 import '../ui/tema.dart';
 import '../ui/widgets.dart';
 import '../ui/foto_perfil.dart';
@@ -16,7 +15,7 @@ String _formatearCelularPeru(String tel) {
     d = d.substring(2);
   }
   if (d.length == 9) {
-    return '' + d.substring(0, 3) + ' ' + d.substring(3, 6) + ' ' + d.substring(6);
+    return '${d.substring(0, 3)} ${d.substring(3, 6)} ${d.substring(6)}';
   }
   return tel;
 }
